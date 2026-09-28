@@ -1,268 +1,357 @@
 # Receipt Photobooth PWA — TODO
 
-## Phase 1 — Project Setup
-- [ ] Create Next.js project with TypeScript
-- [ ] Configure Tailwind CSS
-- [ ] Add shadcn/ui
+## Phase 1 — Existing Project Setup
+- [x] Create Next.js project with TypeScript
+- [x] Configure Tailwind CSS
+- [x] Add shadcn/ui
 - [ ] Add Zustand
 - [ ] Add Dexie.js
 - [ ] Add Serwist
 - [ ] Add MongoDB dependency
 - [ ] Add Cloudinary dependency
 - [ ] Add QR code library
-- [ ] Configure folder structure
+- [ ] Configure project folder structure
 - [ ] Configure environment variables
 
-## Phase 2 — PWA and Offline Foundation
-- [ ] Create web app manifest
+# UI/UX IMPLEMENTATION
+
+## Phase 2 — Design System
+- [x] Review attached reference design
+- [x] Review `/skills` folder for UI/UX guidance
+- [x] Define typography
+- [x] Define spacing system
+- [x] Define border radius system
+- [x] Define button styles
+- [x] Define card styles
+- [x] Define form/input styles
+- [x] Define icon usage
+- [x] Define responsive breakpoints
+- [x] Create reusable page container
+- [x] Create reusable header/navigation
+- [x] Create reusable modal/dialog
+- [x] Create reusable loading state
+- [x] Create reusable empty state
+- [x] Create reusable error state
+
+## Phase 3 — Theme and Business Branding UI
+- [x] Create business branding settings UI
+- [x] Create business name field
+- [x] Create logo upload UI
+- [x] Create logo preview
+- [x] Create replace/remove logo actions
+- [x] Create primary color picker
+- [x] Create secondary color picker
+- [x] Create background color picker
+- [x] Create text color picker
+- [x] Create accent color picker
+- [x] Create live theme preview
+- [x] Apply theme variables across UI
+- [x] Apply theme preview to templates
+
+## Phase 4 — User Start UI
+- [x] Create photobooth welcome/start screen
+- [x] Show business logo and branding
+- [x] Create Start button
+- [x] Create template/layout selection screen
+- [x] Create template cards
+- [x] Create number-of-photos selection
+- [x] Create selected-state styling
+- [x] Create Continue/Back navigation
+- [x] Optimize screens for tablet and mobile
+
+## Phase 5 — Camera UI
+- [x] Create camera screen layout
+- [x] Create camera viewport
+- [x] Create countdown overlay
+- [x] Create capture button
+- [x] Create camera switch button
+- [x] Create photo progress indicator
+- [x] Create captured-photo thumbnails
+- [x] Create retake action
+- [x] Create camera permission state
+- [x] Create camera error state
+
+## Phase 6 — Photo Preview UI
+- [x] Create final preview screen
+- [x] Show selected template/layout
+- [x] Show captured photos
+- [x] Create Color / B&W preview toggle
+- [x] Create Retake button
+- [x] Create Confirm button
+- [x] Create Print action UI
+- [x] Create responsive preview layout
+
+## Phase 7 — Photo Share QR UI
+- [x] Create photo QR result screen
+- [x] Create QR code container
+- [x] Add scan instruction text
+- [x] Add online-only state
+- [x] Add offline unavailable state
+- [x] Create Continue button
+
+## Phase 8 — Public Photo Page UI
+- [x] Create `/share/[token]` page UI
+- [x] Show business branding
+- [x] Create photo display area
+- [x] Create Color / B&W toggle
+- [x] Create Download button
+- [x] Create loading state
+- [x] Create expired/invalid link state
+- [x] Optimize for mobile viewing
+
+## Phase 9 — Social Media QR UI
+- [x] Create final social media QR screen
+- [x] Show business social QR
+- [x] Add business/social CTA
+- [x] Create fallback state when no QR exists
+- [x] Create Finish / New Session button
+
+## Phase 10 — Admin Layout UI
+- [x] Create admin login UI
+- [x] Create admin dashboard layout
+- [x] Create admin sidebar/navigation
+- [x] Create dashboard summary cards
+- [x] Create responsive admin navigation
+- [x] Create Branding page UI
+- [x] Create Theme page UI
+- [x] Create Templates page UI
+- [x] Create Sessions page UI
+- [x] Create Settings page UI
+
+## Phase 11 — Template Management UI
+- [x] Create template list/grid
+- [x] Create template preview cards
+- [x] Create Add Template UI
+- [x] Create Edit Template UI
+- [x] Create Duplicate action
+- [x] Create Delete confirmation
+- [x] Create Set Default action
+- [x] Create photo slot configuration UI
+- [x] Create receipt dimension controls
+- [x] Create logo placement controls
+- [x] Create template color controls
+- [x] Create live template preview
+
+## Phase 12 — Social QR Admin UI
+- [x] Create social QR settings UI
+- [x] Create QR upload field
+- [x] Create QR preview
+- [x] Create Replace action
+- [x] Create Remove action
+- [x] Create save state
+
+## Phase 13 — Sessions Admin UI
+- [x] Create session list/table
+- [x] Show session ID
+- [x] Show date/time
+- [x] Show template
+- [x] Show photo count
+- [x] Show sync status
+- [x] Create session detail UI
+- [x] Create photo preview
+- [x] Create Reprint action
+- [x] Create Delete action
+- [x] Create sync-status badges
+
+## Phase 14 — Settings UI
+- [x] Create photo count setting
+- [x] Create countdown setting
+- [x] Create default template setting
+- [x] Create receipt size setting
+- [x] Create fullscreen setting
+- [x] Create reset settings action
+- [x] Create reset local data action
+- [x] Add destructive-action confirmation dialogs
+
+# FRONTEND IMPLEMENTATION
+
+## Phase 15 — Client State and Navigation
+- [ ] Add Zustand stores
+- [ ] Create booth session state
+- [ ] Create selected template state
+- [ ] Create photo count state
+- [ ] Create captured photos state
+- [ ] Create branding/theme state
+- [ ] Create admin UI state
+- [ ] Connect user flow navigation
+- [ ] Prevent invalid step navigation
+- [ ] Add session reset flow
+
+## Phase 16 — Camera Functionality
+- [ ] Request camera permission
+- [ ] Detect available cameras
+- [ ] Implement live camera preview
+- [ ] Implement front/rear camera switching where supported
+- [ ] Implement countdown
+- [ ] Implement photo capture
+- [ ] Implement multiple-photo capture
+- [ ] Implement capture progress
+- [ ] Implement retake
+- [ ] Handle denied camera permission
+- [ ] Handle missing camera device
+
+## Phase 17 — Image and Template Rendering
+- [ ] Render captured photos into selected template
+- [ ] Generate color version
+- [ ] Generate black-and-white version
+- [ ] Implement Color / B&W toggle
+- [ ] Render business logo
+- [ ] Render business branding
+- [ ] Apply selected theme
+- [ ] Generate final downloadable image
+- [ ] Prepare final image for printing
+- [ ] Prepare final image for upload
+
+## Phase 18 — Printing
+- [ ] Build printable layout
+- [ ] Add `@media print` styles
+- [ ] Implement Print action
+- [ ] Hide non-print UI
+- [ ] Implement Reprint action
+- [ ] Support configured receipt dimensions
+- [ ] Test print layout on target device
+
+## Phase 19 — IndexedDB Offline Storage
+- [ ] Create IndexedDB database
+- [ ] Create business settings table
+- [ ] Create templates table
+- [ ] Create sessions table
+- [ ] Create photos table
+- [ ] Create sync queue table
+- [ ] Add database versioning
+- [ ] Add local CRUD utilities
+- [ ] Add sync status fields
+- [ ] Add local reset function
+- [ ] Cache latest branding locally
+- [ ] Cache latest theme locally
+- [ ] Cache templates locally
+- [ ] Save offline sessions locally
+
+## Phase 20 — PWA and Offline Behavior
+- [ ] Configure web app manifest
 - [ ] Add PWA icons
+- [ ] Configure Serwist
 - [ ] Configure Service Worker
 - [ ] Cache app shell
 - [ ] Cache booth pages
 - [ ] Cache required admin pages
 - [ ] Add offline fallback
-- [ ] Add network status detection
-- [ ] Add offline indicator
+- [ ] Detect network status
+- [ ] Show offline indicator
 - [ ] Verify installed PWA opens offline
+- [ ] Verify core photobooth flow works offline
 
-## Phase 3 — IndexedDB Local Storage
-- [ ] Create IndexedDB database
-- [ ] Create local business settings table
-- [ ] Create local templates table
-- [ ] Create local sessions table
-- [ ] Create local photos table
-- [ ] Create sync queue table
-- [ ] Add database versioning
-- [ ] Add CRUD utilities
-- [ ] Add sync status fields
-- [ ] Add local reset function
+# API / SERVER IMPLEMENTATION
 
-## Phase 4 — MongoDB
+## Phase 21 — MongoDB Setup
 - [ ] Configure MongoDB connection
-- [ ] Create Business model/collection
-- [ ] Create Template model/collection
-- [ ] Create Session model/collection
+- [ ] Create Business collection
+- [ ] Create Template collection
+- [ ] Create Session collection
 - [ ] Create admin/auth data model if required
-- [ ] Add database connection utility
-- [ ] Add business settings persistence
-- [ ] Add template persistence
-- [ ] Add session metadata persistence
-- [ ] Add share-token persistence
+- [ ] Create database utility
+- [ ] Add indexes where required
 
-## Phase 5 — Cloudinary
+## Phase 22 — Next.js API / Server Actions
+- [ ] Create business settings endpoints/actions
+- [ ] Create template CRUD endpoints/actions
+- [ ] Create session endpoints/actions
+- [ ] Create share-token lookup endpoint/action
+- [ ] Add request validation
+- [ ] Add consistent API error responses
+- [ ] Protect admin-only operations
+
+## Phase 23 — Cloudinary Integration
 - [ ] Configure Cloudinary credentials
 - [ ] Create secure upload handler
-- [ ] Upload captured/final images
+- [ ] Upload final session images
 - [ ] Upload business logo
-- [ ] Upload social media QR image
+- [ ] Upload social media QR
 - [ ] Store Cloudinary asset references in MongoDB
+- [ ] Implement asset replace/delete
+- [ ] Add upload validation
 - [ ] Add upload error handling
-- [ ] Add delete/replace asset handling
 
-## Phase 6 — Admin Authentication
-- [ ] Create admin login
+## Phase 24 — Admin Authentication
+- [ ] Implement admin login
 - [ ] Secure admin credentials
 - [ ] Create admin session handling
 - [ ] Protect admin routes
-- [ ] Add logout
-- [ ] Add change password flow
-- [ ] Cache required booth settings for offline use
+- [ ] Implement logout
+- [ ] Implement change password flow
 
-## Phase 7 — Business Profile
-- [ ] Create business settings page
-- [ ] Add business name
-- [ ] Add logo upload
-- [ ] Add logo replace/remove
-- [ ] Add header text
-- [ ] Add footer text
-- [ ] Add custom message
-- [ ] Persist settings to MongoDB when online
-- [ ] Cache settings in IndexedDB
-- [ ] Remove hardcoded business branding
+## Phase 25 — Business Settings Persistence
+- [ ] Save business name to MongoDB
+- [ ] Save logo reference
+- [ ] Save header/footer/custom message
+- [ ] Save theme palette
+- [ ] Save social media QR reference
+- [ ] Load business settings when online
+- [ ] Update local cache after successful save
 
-## Phase 8 — Theme Color Picker
-- [ ] Add primary color picker
-- [ ] Add secondary color picker
-- [ ] Add background color picker
-- [ ] Add text color picker
-- [ ] Add accent color picker
-- [ ] Add live theme preview
-- [ ] Apply theme to user application
-- [ ] Apply theme to admin interface
-- [ ] Apply theme to supported templates
-- [ ] Save theme to MongoDB
-- [ ] Cache theme locally
-
-## Phase 9 — Social Media QR Management
-- [ ] Add social media QR upload
-- [ ] Add QR preview
-- [ ] Add QR replace/remove
-- [ ] Save QR asset to Cloudinary
-- [ ] Save QR settings to MongoDB
-- [ ] Cache latest QR locally
-- [ ] Add final social QR screen
-
-## Phase 10 — Template / Layout Management
-- [ ] Create default templates
-- [ ] Create template list
-- [ ] Add template
-- [ ] Edit template
-- [ ] Duplicate template
-- [ ] Delete template
-- [ ] Set default template
-- [ ] Configure layout/photo slots
-- [ ] Configure receipt dimensions
-- [ ] Configure logo placement
-- [ ] Configure template colors/theme
+## Phase 26 — Template Persistence
 - [ ] Save templates to MongoDB
-- [ ] Cache templates in IndexedDB
-- [ ] Add live template preview
+- [ ] Load templates from MongoDB
+- [ ] Update templates
+- [ ] Delete templates
+- [ ] Set default template
+- [ ] Sync latest templates to IndexedDB
 
-## Phase 11 — User Start Flow
-- [ ] Create start screen
-- [ ] Load business branding/theme
-- [ ] Add template/layout selection
-- [ ] Add number-of-photos selection
-- [ ] Validate selected template
-- [ ] Validate photo count
-- [ ] Start photobooth session
-
-## Phase 12 — Camera Module
-- [ ] Request camera permission
-- [ ] Detect available cameras
-- [ ] Add live camera preview
-- [ ] Add front/rear camera switching where supported
-- [ ] Add countdown timer
-- [ ] Add capture button
-- [ ] Add multiple photo capture
-- [ ] Add capture progress
-- [ ] Add retake
-- [ ] Handle denied camera permission
-- [ ] Handle missing camera
-
-## Phase 13 — Preview and Image Processing
-- [ ] Create final preview screen
-- [ ] Render selected template/layout
-- [ ] Generate color image
-- [ ] Generate black-and-white image
-- [ ] Add retake/back action
-- [ ] Save generated image locally
-- [ ] Prepare image for Cloudinary upload
-
-## Phase 14 — Online Session Saving
-- [ ] Detect online state before cloud workflow
+## Phase 27 — Online Session Saving
+- [ ] Detect online state
 - [ ] Save session metadata to MongoDB
 - [ ] Upload final image to Cloudinary
 - [ ] Store Cloudinary URL in session
 - [ ] Generate unique share token
 - [ ] Mark session as synced
-- [ ] Handle failed upload/save
+- [ ] Handle partial save failures
 - [ ] Queue failed cloud operations
 
-## Phase 15 — Offline Session Handling
-- [ ] Save session locally when offline
-- [ ] Save captured photos locally
-- [ ] Mark session as pending sync
-- [ ] Continue core photobooth flow offline
-- [ ] Show cloud-sharing unavailable state while offline
-- [ ] Retry pending sync when internet returns
-- [ ] Prevent duplicate cloud uploads
-- [ ] Update local sync status after success
-
-## Phase 16 — Session Share QR
-- [ ] Create public share URL format
+## Phase 28 — Public Photo Sharing
+- [ ] Generate public share URL
 - [ ] Generate QR code from share URL
-- [ ] Show QR after successful online save/upload
-- [ ] Add QR scan instructions
-- [ ] Handle expired/invalid share token
-- [ ] Handle unavailable cloud image
-
-## Phase 17 — Public Photo Share Page
-- [ ] Create `/share/[token]` page
 - [ ] Load session by share token
-- [ ] Show business branding
-- [ ] Show color photo
-- [ ] Show black-and-white photo
-- [ ] Add Color / B&W toggle
-- [ ] Add download button
-- [ ] Optimize for mobile
-- [ ] Prevent access to invalid sessions
-- [ ] Add loading/error states
+- [ ] Load Cloudinary photo
+- [ ] Support Color / B&W view
+- [ ] Implement photo download
+- [ ] Handle invalid token
+- [ ] Handle unavailable image
 
-## Phase 18 — Social Media QR User Flow
-- [ ] Show social media QR after photo view/download flow
-- [ ] Load current business social QR
-- [ ] Add business/social CTA
-- [ ] Ensure QR is mobile-scannable
-- [ ] Add fallback when no QR is configured
-
-## Phase 19 — Receipt / Print Flow
-- [ ] Build printable receipt/photo layout
-- [ ] Add print preview
-- [ ] Add `@media print` styles
-- [ ] Add Print button
-- [ ] Hide non-print UI
-- [ ] Add reprint
-- [ ] Test configured receipt sizes
-- [ ] Test printing offline
-
-## Phase 20 — Admin Dashboard
-- [ ] Create dashboard layout
-- [ ] Show total sessions
-- [ ] Show synced sessions
-- [ ] Show pending sessions
-- [ ] Show active template
-- [ ] Show storage/sync status
-- [ ] Add Branding navigation
-- [ ] Add Theme navigation
-- [ ] Add Templates navigation
-- [ ] Add Sessions navigation
-- [ ] Add Settings navigation
-
-## Phase 21 — Session Management
-- [ ] Create session list
-- [ ] Show session ID/date
-- [ ] Show template/photo count
-- [ ] Show sync status
-- [ ] Open session details
-- [ ] Preview saved image
-- [ ] Reprint session
-- [ ] Delete local session
-- [ ] Delete cloud session where applicable
-
-## Phase 22 — Cloud Sync Engine
+## Phase 29 — Sync Engine
 - [ ] Create sync queue processor
 - [ ] Listen for network reconnection
-- [ ] Sync pending business settings
+- [ ] Sync pending settings
 - [ ] Sync pending templates
 - [ ] Upload pending session images
 - [ ] Sync pending session metadata
 - [ ] Add retry limits
 - [ ] Add failed sync state
-- [ ] Add manual retry action
+- [ ] Add manual retry
 - [ ] Prevent duplicate records/uploads
 
-## Phase 23 — Reusable Business Configuration
-- [ ] Ensure no business name is hardcoded
-- [ ] Ensure no logo is hardcoded
-- [ ] Ensure no theme is hardcoded
-- [ ] Ensure no social QR is hardcoded
-- [ ] Ensure templates are business-configurable
-- [ ] Add initial business setup flow
-- [ ] Verify new business can be configured without code changes
+# REUSABILITY, QA, AND DELIVERY
 
-## Phase 24 — UX and Kiosk Mode
-- [ ] Optimize for tablet
+## Phase 30 — Reusable Business Configuration
+- [ ] Remove hardcoded business name
+- [ ] Remove hardcoded logo
+- [ ] Remove hardcoded theme
+- [ ] Remove hardcoded social QR
+- [ ] Make templates business-configurable
+- [ ] Add initial business configuration flow
+- [ ] Verify a new business can reuse the app without code changes
+
+## Phase 31 — UX and Kiosk Optimization
+- [ ] Optimize user flow for tablet
 - [ ] Optimize for mobile
 - [ ] Add large touch targets
 - [ ] Add fullscreen-friendly booth UI
-- [ ] Prevent accidental navigation during active session
+- [ ] Prevent accidental navigation during session
 - [ ] Add inactivity reset
 - [ ] Add loading states
 - [ ] Add success states
 - [ ] Add error states
 
-## Phase 25 — Offline QA
+## Phase 32 — Offline QA
 - [ ] Test first install online
 - [ ] Disable internet after install
 - [ ] Reopen PWA offline
@@ -274,43 +363,43 @@
 - [ ] Test printing offline
 - [ ] Test pending sync after reconnection
 
-## Phase 26 — Online QA
+## Phase 33 — Online QA
 - [ ] Test MongoDB saves
 - [ ] Test Cloudinary uploads
 - [ ] Test share QR generation
-- [ ] Test QR scanning on another phone
+- [ ] Test QR scanning from another phone
 - [ ] Test public share page
 - [ ] Test Color / B&W toggle
-- [ ] Test image download
-- [ ] Test social media QR screen
-- [ ] Test admin QR update
+- [ ] Test photo download
+- [ ] Test social media QR flow
+- [ ] Test admin social QR update
 - [ ] Test theme update
 - [ ] Test business settings update
 
-## Phase 27 — Security and Validation
+## Phase 34 — Security and Validation
 - [ ] Validate uploads and file types
 - [ ] Restrict upload sizes
 - [ ] Protect admin routes
 - [ ] Protect Cloudinary upload flow
 - [ ] Validate MongoDB inputs
 - [ ] Use non-guessable share tokens
-- [ ] Prevent unauthorized admin data changes
+- [ ] Prevent unauthorized admin changes
 - [ ] Add basic rate/error protection where required
 
-## Phase 28 — Production Deployment
-- [ ] Create production Vercel project
+## Phase 35 — Production Deployment
+- [ ] Configure production Vercel project
 - [ ] Configure MongoDB production environment
 - [ ] Configure Cloudinary production environment
 - [ ] Configure environment variables
 - [ ] Verify HTTPS
 - [ ] Verify camera access
 - [ ] Verify Service Worker registration
-- [ ] Verify PWA install
+- [ ] Verify PWA installation
 - [ ] Verify offline launch
 - [ ] Verify online cloud workflow
 - [ ] Verify share links and QR codes
 
-## Phase 29 — Client Handover
+## Phase 36 — Client Handover
 - [ ] Configure client business profile
 - [ ] Upload client logo
 - [ ] Configure client theme

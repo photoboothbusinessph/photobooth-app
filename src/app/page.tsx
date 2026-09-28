@@ -1,69 +1,48 @@
-import Image from "next/image";
+import Link from "next/link";
+import { ArrowDownRight } from "lucide-react";
+import { BrandMark } from "@/components/shared/brand-mark";
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <main className="grain relative min-h-dvh overflow-hidden bg-[var(--booth-primary)] text-white">
+      <div className="absolute inset-y-0 left-0 hidden w-24 items-center overflow-hidden border-r border-white/35 md:flex lg:w-32">
+        <p className="whitespace-nowrap text-6xl font-black uppercase tracking-[-0.07em] [writing-mode:vertical-rl]">
+          Receipt Photobooth / Receipt Photobooth
+        </p>
+      </div>
+      <div className="relative z-10 flex min-h-dvh flex-col px-5 py-6 md:ml-24 md:px-10 lg:ml-32 lg:px-16">
+        <header className="flex items-center justify-between border-b border-white/35 pb-5">
+          <span className="text-xs font-bold uppercase tracking-[0.2em]">Est. 2026 / Manila</span>
+          <Link
+            href="/admin/login"
+            className="text-xs font-bold uppercase tracking-[0.2em] underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-white"
           >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+            Admin
+          </Link>
+        </header>
+        <section className="flex flex-1 flex-col justify-between py-10 sm:py-14">
+          <BrandMark inverse className="self-center text-6xl sm:text-8xl lg:text-[9rem]" />
+          <div className="mt-14 grid items-end gap-8 lg:grid-cols-[1fr_auto]">
+            <div>
+              <p className="mb-4 max-w-sm text-sm font-bold uppercase leading-6 tracking-[0.18em] text-white/75">
+                Pick a layout. Strike a pose. Leave with the proof.
+              </p>
+              <h1 className="max-w-4xl text-[clamp(3.5rem,10vw,9rem)] font-black uppercase leading-[0.77] tracking-[-0.075em]">
+                Receipt
+                <br />
+                Photobooth
+              </h1>
+            </div>
+            <Link
+              href="/booth/templates"
+              className="group flex min-h-24 min-w-72 items-center justify-between border-2 border-white px-7 text-xl font-black uppercase tracking-[-0.03em] transition-colors hover:bg-white hover:text-black focus-visible:ring-4 focus-visible:ring-[var(--booth-accent)] lg:min-h-32"
+            >
+              Tap to start{" "}
+              <ArrowDownRight className="size-8 transition-transform group-hover:translate-x-1 group-hover:translate-y-1" />
+            </Link>
+          </div>
+        </section>
+      </div>
+    </main>
   );
 }
