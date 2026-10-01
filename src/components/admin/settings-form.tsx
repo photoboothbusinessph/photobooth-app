@@ -8,7 +8,7 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, Di
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 
-const defaults = { count: "4", countdown: "3", template: "double", size: "80 × 180 mm", fullscreen: true };
+const defaults = { countdown: "3", template: "double", size: "80 × 180 mm", fullscreen: true };
 
 export function SettingsForm() {
   const [settings, setSettings] = React.useState(defaults);
@@ -18,7 +18,6 @@ export function SettingsForm() {
     <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
       <section className="border border-black/15 bg-card p-5 sm:p-7">
         <div className="grid gap-6 sm:grid-cols-2">
-          <SettingSelect label="Default photo count" value={settings.count} onChange={(value) => setSettings({ ...settings, count: value })} options={["1", "2", "3", "4"]} />
           <SettingSelect label="Countdown" value={settings.countdown} onChange={(value) => setSettings({ ...settings, countdown: value })} options={["3", "5", "10"]} suffix=" seconds" />
           <SettingSelect label="Default template" value={settings.template} onChange={(value) => setSettings({ ...settings, template: value })} options={["solo", "double", "triple", "quad"]} labels={["Solo Story", "Double Take", "Three Beats", "Four Frames"]} />
           <SettingSelect label="Receipt size" value={settings.size} onChange={(value) => setSettings({ ...settings, size: value })} options={["80 × 120 mm", "80 × 180 mm", "80 × 220 mm", "80 × 260 mm"]} />

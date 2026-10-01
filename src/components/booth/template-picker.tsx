@@ -8,8 +8,8 @@ import { Button } from "@/components/ui/button";
 import { templates } from "@/config/mock-data";
 import { cn } from "@/lib/utils";
 
-export function TemplatePicker() {
-  const [selected, setSelected] = React.useState("double");
+export function TemplatePicker({ initialSelected = "double" }: { initialSelected?: string }) {
+  const [selected, setSelected] = React.useState(initialSelected);
   return (
     <div className="flex flex-1 flex-col">
       <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
@@ -28,7 +28,7 @@ export function TemplatePicker() {
         })}
       </div>
       <div className="safe-bottom mt-8 flex justify-end">
-        <Button nativeButton={false} render={<Link href="/booth/photo-count" />} className="h-14 w-full rounded-none border-2 border-black bg-[var(--booth-accent)] px-7 text-base font-black uppercase text-black hover:bg-white sm:w-auto">Continue <ArrowRight className="size-5" /></Button>
+        <Button nativeButton={false} render={<Link href={`/booth/camera?template=${selected}`} />} className="h-14 w-full rounded-none border-2 border-black bg-[var(--booth-accent)] px-7 text-base font-black uppercase text-black hover:bg-white sm:w-auto">Continue <ArrowRight className="size-5" /></Button>
       </div>
     </div>
   );

@@ -54,7 +54,7 @@
 - [x] Create Start button
 - [x] Create template/layout selection screen
 - [x] Create template cards
-- [x] Create number-of-photos selection
+- [x] Use template photo slot count as the capture count
 - [x] Create selected-state styling
 - [x] Create Continue/Back navigation
 - [x] Optimize screens for tablet and mobile
@@ -154,7 +154,6 @@
 - [x] Create sync-status badges
 
 ## Phase 14 — Settings UI
-- [x] Create photo count setting
 - [x] Create countdown setting
 - [x] Create default template setting
 - [x] Create receipt size setting
@@ -169,7 +168,7 @@
 - [ ] Add Zustand stores
 - [ ] Create booth session state
 - [ ] Create selected template state
-- [ ] Create photo count state
+- [ ] Derive photo count from selected template state
 - [ ] Create captured photos state
 - [ ] Create branding/theme state
 - [ ] Create admin UI state
@@ -312,6 +311,7 @@
 - [ ] Generate QR code from share URL
 - [ ] Load session by share token
 - [ ] Load Cloudinary photo
+- [ ] Show both color and black-and-white photo versions on the scanned QR page
 - [ ] Support Color / B&W view
 - [ ] Implement photo download
 - [ ] Handle invalid token
@@ -347,6 +347,7 @@
 - [ ] Add fullscreen-friendly booth UI
 - [ ] Prevent accidental navigation during session
 - [ ] Add inactivity reset
+- [x] Add 120-second session countdown
 - [ ] Add loading states
 - [ ] Add success states
 - [ ] Add error states
@@ -356,7 +357,7 @@
 - [ ] Disable internet after install
 - [ ] Reopen PWA offline
 - [ ] Test template selection offline
-- [ ] Test photo-count selection offline
+- [ ] Test template-derived photo count offline
 - [ ] Test camera offline
 - [ ] Test preview offline
 - [ ] Test local session saving

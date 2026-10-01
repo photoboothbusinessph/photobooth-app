@@ -23,13 +23,11 @@ Build a reusable, business-configurable receipt photobooth Progressive Web Appli
 ## User Flow
 
 ```text
-Start
+Start 120-second session countdown
 ↓
 Choose Template / Layout
 ↓
-Choose Number of Photos
-↓
-Capture Photo(s)
+Capture the number of photos defined by the template
 ↓
 Preview
 ↓
@@ -70,7 +68,6 @@ Business-configurable data:
 - Theme colors
 - Receipt templates
 - Default layout
-- Default photo count
 - Header/footer text
 - Custom messages
 
@@ -123,7 +120,7 @@ Admin can:
 
 User can:
 - Choose template/layout before capture
-- Choose number of photos before capture
+- Use the selected template's photo slot count as the required capture count
 
 ### 7. Camera Module
 - Camera permission handling
@@ -397,7 +394,8 @@ src/
 
 ## MVP Completion Criteria
 - PWA installs and reopens offline
-- User selects layout/template and photo count
+- User starts a 120-second session and selects a layout/template
+- Selected template determines the required photo count
 - User captures and retakes photos
 - User sees final preview
 - Online sessions upload successfully to Cloudinary

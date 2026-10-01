@@ -1,13 +1,13 @@
 import Link from "next/link";
-import { ArrowDownRight } from "lucide-react";
 import { BrandMark } from "@/components/shared/brand-mark";
+import { StartSessionButton } from "@/components/booth/start-session-button";
 
 export default function Home() {
   return (
     <main className="grain relative min-h-dvh overflow-hidden bg-[var(--booth-primary)] text-white">
-      <div className="absolute inset-y-0 left-0 hidden w-24 items-center overflow-hidden border-r border-white/35 md:flex lg:w-32">
+      <div className="absolute inset-y-0 left-0 hidden w-24 items-center justify-center border-r border-white/35 md:flex lg:w-32">
         <p className="whitespace-nowrap text-6xl font-black uppercase tracking-[-0.07em] [writing-mode:vertical-rl]">
-          Receipt Photobooth / Receipt Photobooth
+          Photobooth Receipt
         </p>
       </div>
       <div className="relative z-10 flex min-h-dvh flex-col px-5 py-6 md:ml-24 md:px-10 lg:ml-32 lg:px-16">
@@ -33,13 +33,7 @@ export default function Home() {
                 Photobooth
               </h1>
             </div>
-            <Link
-              href="/booth/templates"
-              className="group flex min-h-24 min-w-72 items-center justify-between border-2 border-white px-7 text-xl font-black uppercase tracking-[-0.03em] transition-colors hover:bg-white hover:text-black focus-visible:ring-4 focus-visible:ring-[var(--booth-accent)] lg:min-h-32"
-            >
-              Tap to start{" "}
-              <ArrowDownRight className="size-8 transition-transform group-hover:translate-x-1 group-hover:translate-y-1" />
-            </Link>
+            <StartSessionButton />
           </div>
         </section>
       </div>
