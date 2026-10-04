@@ -3,6 +3,25 @@ export type SyncStatus = "synced" | "pending" | "local" | "failed";
 
 export interface ThemePalette { primary: string; secondary: string; background: string; text: string; accent: string; }
 
+export interface BusinessBranding {
+  name: string;
+  monogram: string;
+  handle: string;
+  headerText: string;
+  footerText: string;
+  customMessage: string;
+  logoDataUrl: string | null;
+}
+
+export interface CapturedPhoto {
+  id: string;
+  dataUrl: string;
+  capturedAt: number;
+}
+
+export type BoothStep = "idle" | "selecting" | "capturing" | "reviewing" | "complete";
+export type PhotoMode = "color" | "bw";
+
 export interface ReceiptTemplate {
   id: string;
   name: string;

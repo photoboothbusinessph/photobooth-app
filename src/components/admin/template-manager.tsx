@@ -10,7 +10,9 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, Di
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { defaultPalette, templates as initialTemplates } from "@/config/mock-data";
+import { defaultPalette } from "@/config/mock-data";
+import { cacheTemplates, photoboothDb, queueSync } from "@/lib/db/indexed-db";
+import { useBusinessStore } from "@/stores/business-store";
 import type { ReceiptTemplate, TemplateLayout } from "@/types";
 
 const layoutOptions: { value: TemplateLayout; label: string; slots: number }[] = [
@@ -22,21 +24,46 @@ function freshTemplate(): ReceiptTemplate {
 }
 
 export function TemplateManager() {
-  const [items, setItems] = React.useState<ReceiptTemplate[]>(initialTemplates);
+  const storedTemplates = useBusinessStore((state) => state.templates);
+  const setStoredTemplates = useBusinessStore((state) => state.setTemplates);
+  const items = storedTemplates;
   const [editorOpen, setEditorOpen] = React.useState(false);
   const [draft, setDraft] = React.useState<ReceiptTemplate>(freshTemplate);
   const [deleteTarget, setDeleteTarget] = React.useState<ReceiptTemplate | null>(null);
 
+  async function persist(next: ReceiptTemplate[], templateId: string, operation: "upsert" | "delete" = "upsert") {
+    setStoredTemplates(next);
+    await cacheTemplates(next);
+    await queueSync("template", templateId, operation);
+  }
+
   function openEditor(template?: ReceiptTemplate) { setDraft(template ? { ...template, palette: { ...template.palette } } : freshTemplate()); setEditorOpen(true); }
-  function saveDraft() {
-    setItems((current) => current.some((item) => item.id === draft.id) ? current.map((item) => item.id === draft.id ? draft : item) : [...current, draft]);
-    setEditorOpen(false); toast.success("Template saved locally");
+  async function saveDraft() {
+    const next = items.some((item) => item.id === draft.id) ? items.map((item) => item.id === draft.id ? draft : item) : [...items, draft];
+    await persist(next, draft.id);
+    setEditorOpen(false);
+    toast.success(navigator.onLine ? "Template saved and queued for sync" : "Template saved offline");
   }
-  function duplicate(template: ReceiptTemplate) {
-    setItems((current) => [...current, { ...template, id: `${template.id}-copy-${Date.now()}`, name: `${template.name} Copy`, isDefault: false }]); toast.success("Template duplicated");
+  async function duplicate(template: ReceiptTemplate) {
+    const copy = { ...template, id: `${template.id}-copy-${Date.now()}`, name: `${template.name} Copy`, isDefault: false };
+    await persist([...items, copy], copy.id);
+    toast.success("Template duplicated");
   }
-  function setDefault(id: string) { setItems((current) => current.map((item) => ({ ...item, isDefault: item.id === id }))); toast.success("Default template updated"); }
-  function remove() { if (!deleteTarget) return; setItems((current) => current.filter((item) => item.id !== deleteTarget.id)); setDeleteTarget(null); toast.success("Template removed from this demo"); }
+  async function setDefault(id: string) {
+    const next = items.map((item) => ({ ...item, isDefault: item.id === id }));
+    await persist(next, id);
+    toast.success("Default template updated");
+  }
+  async function remove() {
+    if (!deleteTarget) return;
+    const target = deleteTarget;
+    const next = items.filter((item) => item.id !== target.id);
+    setStoredTemplates(next);
+    await photoboothDb.templates.delete(target.id);
+    await queueSync("template", target.id, "delete");
+    setDeleteTarget(null);
+    toast.success(navigator.onLine ? "Template deletion queued" : "Template removed offline");
+  }
 
   return (
     <>
@@ -44,7 +71,7 @@ export function TemplateManager() {
       <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
         {items.map((template) => <article key={template.id} className="border border-black/15 bg-card p-4">
           <div className="flex min-h-72 items-center justify-center bg-muted p-5"><ReceiptPreview template={template} compact className="shadow-[5px_6px_0_rgb(16_16_16/0.15)]" /></div>
-          <div className="mt-4 flex items-start justify-between gap-3"><div><div className="flex flex-wrap items-center gap-2"><h2 className="font-bold">{template.name}</h2>{template.isDefault ? <Badge className="bg-primary text-primary-foreground"><Star className="size-3" /> Default</Badge> : null}</div><p className="mt-1 text-xs text-muted-foreground">{template.photoSlots} slots · {template.size}</p></div><DropdownMenu><DropdownMenuTrigger render={<Button variant="ghost" size="icon" aria-label={`Actions for ${template.name}`} />}><MoreHorizontal /></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onClick={() => openEditor(template)}><Pencil /> Edit</DropdownMenuItem><DropdownMenuItem onClick={() => duplicate(template)}><Copy /> Duplicate</DropdownMenuItem><DropdownMenuItem onClick={() => setDefault(template.id)} disabled={template.isDefault}><Star /> Set default</DropdownMenuItem><DropdownMenuItem variant="destructive" onClick={() => setDeleteTarget(template)}><Trash2 /> Delete</DropdownMenuItem></DropdownMenuContent></DropdownMenu></div>
+          <div className="mt-4 flex items-start justify-between gap-3"><div><div className="flex flex-wrap items-center gap-2"><h2 className="font-bold">{template.name}</h2>{template.isDefault ? <Badge className="bg-primary text-primary-foreground"><Star className="size-3" /> Default</Badge> : null}</div><p className="mt-1 text-xs text-muted-foreground">{template.photoSlots} slots · {template.size}</p></div><DropdownMenu><DropdownMenuTrigger render={<Button variant="ghost" size="icon" aria-label={`Actions for ${template.name}`} />}><MoreHorizontal /></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onClick={() => openEditor(template)}><Pencil /> Edit</DropdownMenuItem><DropdownMenuItem onClick={() => void duplicate(template)}><Copy /> Duplicate</DropdownMenuItem><DropdownMenuItem onClick={() => void setDefault(template.id)} disabled={template.isDefault}><Star /> Set default</DropdownMenuItem><DropdownMenuItem variant="destructive" onClick={() => setDeleteTarget(template)}><Trash2 /> Delete</DropdownMenuItem></DropdownMenuContent></DropdownMenu></div>
         </article>)}
       </div>
 
@@ -61,12 +88,12 @@ export function TemplateManager() {
             </div>
             <div className="flex items-center justify-center bg-muted p-5"><ReceiptPreview template={draft} compact /></div>
           </div>
-          <DialogFooter><DialogClose render={<Button variant="outline" />}>Cancel</DialogClose><Button onClick={saveDraft} disabled={!draft.name.trim()}><Save /> Save template</Button></DialogFooter>
+          <DialogFooter><DialogClose render={<Button variant="outline" />}>Cancel</DialogClose><Button onClick={() => void saveDraft()} disabled={!draft.name.trim()}><Save /> Save template</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
       <Dialog open={Boolean(deleteTarget)} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <DialogContent><DialogHeader><DialogTitle>Delete {deleteTarget?.name}?</DialogTitle><DialogDescription>This removes the template from the current UI demo. The action cannot be undone during this visit.</DialogDescription></DialogHeader><DialogFooter><DialogClose render={<Button variant="outline" />}>Cancel</DialogClose><Button variant="destructive" onClick={remove}><Trash2 /> Delete template</Button></DialogFooter></DialogContent>
+        <DialogContent><DialogHeader><DialogTitle>Delete {deleteTarget?.name}?</DialogTitle><DialogDescription>This removes the template from this device and the server after synchronization. This action cannot be undone.</DialogDescription></DialogHeader><DialogFooter><DialogClose render={<Button variant="outline" />}>Cancel</DialogClose><Button variant="destructive" onClick={() => void remove()}><Trash2 /> Delete template</Button></DialogFooter></DialogContent>
       </Dialog>
     </>
   );

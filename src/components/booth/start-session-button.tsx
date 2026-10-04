@@ -3,11 +3,14 @@
 import { useRouter } from "next/navigation";
 import { ArrowDownRight } from "lucide-react";
 import { BOOTH_SESSION_DEADLINE_KEY, BOOTH_SESSION_VOICE_WARNINGS_KEY, createBoothSessionDeadline } from "@/lib/booth-session";
+import { useBoothStore } from "@/stores/booth-store";
 
 export function StartSessionButton() {
   const router = useRouter();
+  const startBoothSession = useBoothStore((state) => state.startSession);
 
   function startSession() {
+    startBoothSession();
     sessionStorage.setItem(BOOTH_SESSION_DEADLINE_KEY, String(createBoothSessionDeadline()));
     sessionStorage.removeItem(BOOTH_SESSION_VOICE_WARNINGS_KEY);
     router.push("/booth/templates");

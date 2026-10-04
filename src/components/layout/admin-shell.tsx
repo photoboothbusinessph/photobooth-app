@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { BarChart3, Brush, ExternalLink, Grid2X2, Images, LogOut, Menu, QrCode, Settings, SlidersHorizontal } from "lucide-react";
 import { BrandMark } from "@/components/shared/brand-mark";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { useAdminUiStore } from "@/stores/admin-ui-store";
 
 const navigation = [
   { href: "/admin", label: "Overview", icon: BarChart3 },
@@ -36,6 +37,9 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
 }
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
+  const mobileNavigationOpen = useAdminUiStore((state) => state.mobileNavigationOpen);
+  const setMobileNavigationOpen = useAdminUiStore((state) => state.setMobileNavigationOpen);
+
   return (
     <div className="min-h-dvh bg-background">
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-sidebar-border bg-sidebar p-5 text-sidebar-foreground lg:flex">
@@ -49,11 +53,11 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       <div className="lg:pl-64">
         <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b bg-background/90 px-4 backdrop-blur sm:px-8">
           <div className="flex items-center gap-3 lg:hidden">
-            <Sheet>
+            <Sheet open={mobileNavigationOpen} onOpenChange={setMobileNavigationOpen}>
               <SheetTrigger render={<Button variant="outline" size="icon" aria-label="Open navigation" />}><Menu /></SheetTrigger>
               <SheetContent side="left" className="bg-sidebar text-sidebar-foreground">
                 <SheetHeader><SheetTitle><BrandMark inverse className="text-2xl" /></SheetTitle><SheetDescription className="text-sidebar-foreground/60">Photobooth administration</SheetDescription></SheetHeader>
-                <div className="px-4"><NavLinks /></div>
+                <div className="px-4"><NavLinks onNavigate={() => setMobileNavigationOpen(false)} /></div>
               </SheetContent>
             </Sheet>
             <span className="text-sm font-bold">Admin</span>
@@ -68,6 +72,12 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 }
 
 function LogoutDialog() {
+  const router = useRouter();
+  async function logout() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.replace("/admin/login");
+    router.refresh();
+  }
   return (
     <Dialog>
       <DialogTrigger render={<Button variant="ghost" className="h-11 w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground" />}><LogOut /> Log out</DialogTrigger>
@@ -75,7 +85,7 @@ function LogoutDialog() {
         <DialogHeader><DialogTitle>Leave admin mode?</DialogTitle><DialogDescription>This mock does not have an active authenticated session. You will return to the login screen.</DialogDescription></DialogHeader>
         <DialogFooter>
           <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
-          <Button nativeButton={false} render={<Link href="/admin/login" />}>Go to login</Button>
+          <Button onClick={() => void logout()}>Log out</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

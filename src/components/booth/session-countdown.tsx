@@ -6,6 +6,7 @@ import { Clock3 } from "lucide-react";
 import { toast } from "sonner";
 import { BOOTH_SESSION_DEADLINE_KEY, BOOTH_SESSION_VOICE_WARNINGS_KEY } from "@/lib/booth-session";
 import { cn } from "@/lib/utils";
+import { useBoothStore } from "@/stores/booth-store";
 
 const voiceWarnings = [
   { seconds: 30, message: "Warning. Your session will end in 30 seconds." },
@@ -42,6 +43,7 @@ function announceTimeWarning(remaining: number) {
 
 export function SessionCountdown() {
   const router = useRouter();
+  const resetSession = useBoothStore((state) => state.resetSession);
   const [remaining, setRemaining] = React.useState<number | null>(null);
 
   React.useEffect(() => {
@@ -60,6 +62,7 @@ export function SessionCountdown() {
         sessionStorage.removeItem(BOOTH_SESSION_DEADLINE_KEY);
         sessionStorage.removeItem(BOOTH_SESSION_VOICE_WARNINGS_KEY);
         window.speechSynthesis?.cancel();
+        resetSession();
         toast.error("Session expired. Start again when you’re ready.");
         router.replace("/");
       }
@@ -68,7 +71,7 @@ export function SessionCountdown() {
     updateCountdown();
     const interval = window.setInterval(updateCountdown, 250);
     return () => window.clearInterval(interval);
-  }, [router]);
+  }, [resetSession, router]);
 
   if (remaining === null) return null;
 

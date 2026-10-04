@@ -1,22 +1,39 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowRight, Check } from "lucide-react";
 import { ReceiptPreview } from "@/components/receipt/receipt-preview";
 import { Button } from "@/components/ui/button";
-import { templates } from "@/config/mock-data";
 import { cn } from "@/lib/utils";
+import { useBoothStore } from "@/stores/booth-store";
+import { useBusinessStore } from "@/stores/business-store";
 
 export function TemplatePicker({ initialSelected = "double" }: { initialSelected?: string }) {
-  const [selected, setSelected] = React.useState(initialSelected);
+  const router = useRouter();
+  const storedTemplateId = useBoothStore((state) => state.selectedTemplateId);
+  const selectTemplate = useBoothStore((state) => state.selectTemplate);
+  const beginCapture = useBoothStore((state) => state.beginCapture);
+  const templates = useBusinessStore((state) => state.templates);
+  const [selected, setSelected] = React.useState(storedTemplateId ?? initialSelected);
+
+  function chooseTemplate(templateId: string) {
+    setSelected(templateId);
+    selectTemplate(templateId);
+  }
+
+  function continueToCamera() {
+    selectTemplate(selected);
+    beginCapture();
+    router.push(`/booth/camera?template=${selected}`);
+  }
   return (
     <div className="flex flex-1 flex-col">
       <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
         {templates.map((template) => {
           const active = selected === template.id;
           return (
-            <button key={template.id} type="button" aria-pressed={active} onClick={() => setSelected(template.id)} className={cn("group relative flex min-h-80 flex-col items-center border-2 p-4 text-left transition-all focus-visible:ring-4 focus-visible:ring-[var(--booth-accent)] sm:p-6", active ? "border-black bg-white text-black shadow-[8px_8px_0_#101010]" : "border-white/55 bg-white/8 hover:bg-white/15")}>
+            <button key={template.id} type="button" aria-pressed={active} onClick={() => chooseTemplate(template.id)} className={cn("group relative flex min-h-80 flex-col items-center border-2 p-4 text-left transition-all focus-visible:ring-4 focus-visible:ring-[var(--booth-accent)] sm:p-6", active ? "border-black bg-white text-black shadow-[8px_8px_0_#101010]" : "border-white/55 bg-white/8 hover:bg-white/15")}>
               {active ? <span className="absolute right-3 top-3 grid size-8 place-items-center rounded-full bg-[var(--booth-primary)] text-white"><Check className="size-4" /></span> : null}
               <ReceiptPreview template={template} compact className="w-[78%] shadow-none" />
               <div className="mt-5 w-full">
@@ -28,7 +45,7 @@ export function TemplatePicker({ initialSelected = "double" }: { initialSelected
         })}
       </div>
       <div className="safe-bottom mt-8 flex justify-end">
-        <Button nativeButton={false} render={<Link href={`/booth/camera?template=${selected}`} />} className="h-14 w-full rounded-none border-2 border-black bg-[var(--booth-accent)] px-7 text-base font-black uppercase text-black hover:bg-white sm:w-auto">Continue <ArrowRight className="size-5" /></Button>
+        <Button onClick={continueToCamera} className="h-14 w-full rounded-none border-2 border-black bg-[var(--booth-accent)] px-7 text-base font-black uppercase text-black hover:bg-white sm:w-auto">Continue <ArrowRight className="size-5" /></Button>
       </div>
     </div>
   );

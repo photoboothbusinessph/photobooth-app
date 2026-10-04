@@ -4,14 +4,14 @@
 - [x] Create Next.js project with TypeScript
 - [x] Configure Tailwind CSS
 - [x] Add shadcn/ui
-- [ ] Add Zustand
-- [ ] Add Dexie.js
-- [ ] Add Serwist
-- [ ] Add MongoDB dependency
-- [ ] Add Cloudinary dependency
-- [ ] Add QR code library
-- [ ] Configure project folder structure
-- [ ] Configure environment variables
+- [x] Add Zustand
+- [x] Add Dexie.js
+- [x] Add Serwist
+- [x] Add MongoDB dependency
+- [x] Add Cloudinary dependency
+- [x] Add QR code library
+- [x] Configure project folder structure
+- [x] Configure environment variables
 
 # UI/UX IMPLEMENTATION
 
@@ -165,169 +165,169 @@
 # FRONTEND IMPLEMENTATION
 
 ## Phase 15 — Client State and Navigation
-- [ ] Add Zustand stores
-- [ ] Create booth session state
-- [ ] Create selected template state
-- [ ] Derive photo count from selected template state
-- [ ] Create captured photos state
-- [ ] Create branding/theme state
-- [ ] Create admin UI state
-- [ ] Connect user flow navigation
-- [ ] Prevent invalid step navigation
-- [ ] Add session reset flow
+- [x] Add Zustand stores
+- [x] Create booth session state
+- [x] Create selected template state
+- [x] Derive photo count from selected template state
+- [x] Create captured photos state
+- [x] Create branding/theme state
+- [x] Create admin UI state
+- [x] Connect user flow navigation
+- [x] Prevent invalid step navigation
+- [x] Add session reset flow
 
 ## Phase 16 — Camera Functionality
-- [ ] Request camera permission
-- [ ] Detect available cameras
-- [ ] Implement live camera preview
-- [ ] Implement front/rear camera switching where supported
-- [ ] Implement countdown
-- [ ] Implement photo capture
-- [ ] Implement multiple-photo capture
-- [ ] Implement capture progress
-- [ ] Implement retake
-- [ ] Handle denied camera permission
-- [ ] Handle missing camera device
+- [x] Request camera permission
+- [x] Detect available cameras
+- [x] Implement live camera preview
+- [x] Implement front/rear camera switching where supported
+- [x] Implement countdown
+- [x] Implement photo capture
+- [x] Implement multiple-photo capture
+- [x] Implement capture progress
+- [x] Implement retake
+- [x] Handle denied camera permission
+- [x] Handle missing camera device
 
 ## Phase 17 — Image and Template Rendering
-- [ ] Render captured photos into selected template
-- [ ] Generate color version
-- [ ] Generate black-and-white version
-- [ ] Implement Color / B&W toggle
-- [ ] Render business logo
-- [ ] Render business branding
-- [ ] Apply selected theme
-- [ ] Generate final downloadable image
-- [ ] Prepare final image for printing
-- [ ] Prepare final image for upload
+- [x] Render captured photos into selected template
+- [x] Generate color version
+- [x] Generate black-and-white version
+- [x] Implement Color / B&W toggle
+- [x] Render business logo
+- [x] Render business branding
+- [x] Apply selected theme
+- [x] Generate final downloadable image
+- [x] Prepare final image for printing
+- [x] Prepare final image for upload
 
 ## Phase 18 — Printing
-- [ ] Build printable layout
-- [ ] Add `@media print` styles
-- [ ] Implement Print action
-- [ ] Hide non-print UI
-- [ ] Implement Reprint action
-- [ ] Support configured receipt dimensions
+- [x] Build printable layout
+- [x] Add `@media print` styles
+- [x] Implement Print action
+- [x] Hide non-print UI
+- [x] Implement Reprint action
+- [x] Support configured receipt dimensions
 - [ ] Test print layout on target device
 
 ## Phase 19 — IndexedDB Offline Storage
-- [ ] Create IndexedDB database
-- [ ] Create business settings table
-- [ ] Create templates table
-- [ ] Create sessions table
-- [ ] Create photos table
-- [ ] Create sync queue table
-- [ ] Add database versioning
-- [ ] Add local CRUD utilities
-- [ ] Add sync status fields
-- [ ] Add local reset function
-- [ ] Cache latest branding locally
-- [ ] Cache latest theme locally
-- [ ] Cache templates locally
-- [ ] Save offline sessions locally
+- [x] Create IndexedDB database
+- [x] Create business settings table
+- [x] Create templates table
+- [x] Create sessions table
+- [x] Create photos table
+- [x] Create sync queue table
+- [x] Add database versioning
+- [x] Add local CRUD utilities
+- [x] Add sync status fields
+- [x] Add local reset function
+- [x] Cache latest branding locally
+- [x] Cache latest theme locally
+- [x] Cache templates locally
+- [x] Save offline sessions locally
 
 ## Phase 20 — PWA and Offline Behavior
-- [ ] Configure web app manifest
-- [ ] Add PWA icons
-- [ ] Configure Serwist
-- [ ] Configure Service Worker
-- [ ] Cache app shell
-- [ ] Cache booth pages
-- [ ] Cache required admin pages
-- [ ] Add offline fallback
-- [ ] Detect network status
-- [ ] Show offline indicator
+- [x] Configure web app manifest
+- [x] Add PWA icons
+- [x] Configure Serwist
+- [x] Configure Service Worker
+- [x] Cache app shell
+- [x] Cache booth pages
+- [x] Cache required admin pages
+- [x] Add offline fallback
+- [x] Detect network status
+- [x] Show offline indicator
 - [ ] Verify installed PWA opens offline
 - [ ] Verify core photobooth flow works offline
 
 # API / SERVER IMPLEMENTATION
 
 ## Phase 21 — MongoDB Setup
-- [ ] Configure MongoDB connection
-- [ ] Create Business collection
-- [ ] Create Template collection
-- [ ] Create Session collection
-- [ ] Create admin/auth data model if required
-- [ ] Create database utility
-- [ ] Add indexes where required
+- [x] Configure MongoDB connection
+- [x] Create Business collection
+- [x] Create Template collection
+- [x] Create Session collection
+- [x] Create admin/auth data model if required
+- [x] Create database utility
+- [x] Add indexes where required
 
 ## Phase 22 — Next.js API / Server Actions
-- [ ] Create business settings endpoints/actions
-- [ ] Create template CRUD endpoints/actions
-- [ ] Create session endpoints/actions
-- [ ] Create share-token lookup endpoint/action
-- [ ] Add request validation
-- [ ] Add consistent API error responses
-- [ ] Protect admin-only operations
+- [x] Create business settings endpoints/actions
+- [x] Create template CRUD endpoints/actions
+- [x] Create session endpoints/actions
+- [x] Create share-token lookup endpoint/action
+- [x] Add request validation
+- [x] Add consistent API error responses
+- [x] Protect admin-only operations
 
 ## Phase 23 — Cloudinary Integration
-- [ ] Configure Cloudinary credentials
-- [ ] Create secure upload handler
-- [ ] Upload final session images
-- [ ] Upload business logo
-- [ ] Upload social media QR
-- [ ] Store Cloudinary asset references in MongoDB
-- [ ] Implement asset replace/delete
-- [ ] Add upload validation
-- [ ] Add upload error handling
+- [x] Configure Cloudinary credentials
+- [x] Create secure upload handler
+- [x] Upload final session images
+- [x] Upload business logo
+- [x] Upload social media QR
+- [x] Store Cloudinary asset references in MongoDB
+- [x] Implement asset replace/delete
+- [x] Add upload validation
+- [x] Add upload error handling
 
 ## Phase 24 — Admin Authentication
-- [ ] Implement admin login
-- [ ] Secure admin credentials
-- [ ] Create admin session handling
-- [ ] Protect admin routes
-- [ ] Implement logout
-- [ ] Implement change password flow
+- [x] Implement admin login
+- [x] Secure admin credentials
+- [x] Create admin session handling
+- [x] Protect admin routes
+- [x] Implement logout
+- [x] Implement change password flow
 
 ## Phase 25 — Business Settings Persistence
-- [ ] Save business name to MongoDB
-- [ ] Save logo reference
-- [ ] Save header/footer/custom message
-- [ ] Save theme palette
-- [ ] Save social media QR reference
-- [ ] Load business settings when online
-- [ ] Update local cache after successful save
+- [x] Save business name to MongoDB
+- [x] Save logo reference
+- [x] Save header/footer/custom message
+- [x] Save theme palette
+- [x] Save social media QR reference
+- [x] Load business settings when online
+- [x] Update local cache after successful save
 
 ## Phase 26 — Template Persistence
-- [ ] Save templates to MongoDB
-- [ ] Load templates from MongoDB
-- [ ] Update templates
-- [ ] Delete templates
-- [ ] Set default template
-- [ ] Sync latest templates to IndexedDB
+- [x] Save templates to MongoDB
+- [x] Load templates from MongoDB
+- [x] Update templates
+- [x] Delete templates
+- [x] Set default template
+- [x] Sync latest templates to IndexedDB
 
 ## Phase 27 — Online Session Saving
-- [ ] Detect online state
-- [ ] Save session metadata to MongoDB
-- [ ] Upload final image to Cloudinary
-- [ ] Store Cloudinary URL in session
-- [ ] Generate unique share token
-- [ ] Mark session as synced
-- [ ] Handle partial save failures
-- [ ] Queue failed cloud operations
+- [x] Detect online state
+- [x] Save session metadata to MongoDB
+- [x] Upload final image to Cloudinary
+- [x] Store Cloudinary URL in session
+- [x] Generate unique share token
+- [x] Mark session as synced
+- [x] Handle partial save failures
+- [x] Queue failed cloud operations
 
 ## Phase 28 — Public Photo Sharing
-- [ ] Generate public share URL
-- [ ] Generate QR code from share URL
-- [ ] Load session by share token
-- [ ] Load Cloudinary photo
-- [ ] Show both color and black-and-white photo versions on the scanned QR page
-- [ ] Support Color / B&W view
-- [ ] Implement photo download
-- [ ] Handle invalid token
-- [ ] Handle unavailable image
+- [x] Generate public share URL
+- [x] Generate QR code from share URL
+- [x] Load session by share token
+- [x] Load Cloudinary photo
+- [x] Show both color and black-and-white photo versions on the scanned QR page
+- [x] Support Color / B&W view
+- [x] Implement photo download
+- [x] Handle invalid token
+- [x] Handle unavailable image
 
 ## Phase 29 — Sync Engine
-- [ ] Create sync queue processor
-- [ ] Listen for network reconnection
-- [ ] Sync pending settings
-- [ ] Sync pending templates
-- [ ] Upload pending session images
-- [ ] Sync pending session metadata
-- [ ] Add retry limits
-- [ ] Add failed sync state
-- [ ] Add manual retry
-- [ ] Prevent duplicate records/uploads
+- [x] Create sync queue processor
+- [x] Listen for network reconnection
+- [x] Sync pending settings
+- [x] Sync pending templates
+- [x] Upload pending session images
+- [x] Sync pending session metadata
+- [x] Add retry limits
+- [x] Add failed sync state
+- [x] Add manual retry
+- [x] Prevent duplicate records/uploads
 
 # REUSABILITY, QA, AND DELIVERY
 
@@ -365,8 +365,8 @@
 - [ ] Test pending sync after reconnection
 
 ## Phase 33 — Online QA
-- [ ] Test MongoDB saves
-- [ ] Test Cloudinary uploads
+- [x] Test MongoDB saves
+- [x] Test Cloudinary uploads
 - [ ] Test share QR generation
 - [ ] Test QR scanning from another phone
 - [ ] Test public share page
@@ -378,13 +378,13 @@
 - [ ] Test business settings update
 
 ## Phase 34 — Security and Validation
-- [ ] Validate uploads and file types
-- [ ] Restrict upload sizes
-- [ ] Protect admin routes
-- [ ] Protect Cloudinary upload flow
-- [ ] Validate MongoDB inputs
-- [ ] Use non-guessable share tokens
-- [ ] Prevent unauthorized admin changes
+- [x] Validate uploads and file types
+- [x] Restrict upload sizes
+- [x] Protect admin routes
+- [x] Protect Cloudinary upload flow
+- [x] Validate MongoDB inputs
+- [x] Use non-guessable share tokens
+- [x] Prevent unauthorized admin changes
 - [ ] Add basic rate/error protection where required
 
 ## Phase 35 — Production Deployment
