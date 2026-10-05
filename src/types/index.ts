@@ -6,6 +6,9 @@ export interface ThemePalette { primary: string; secondary: string; background: 
 export interface BusinessBranding {
   name: string;
   monogram: string;
+  logoMode?: "image" | "text";
+  logoFont?: "editorial" | "sans" | "mono";
+  logoColor?: string;
   handle: string;
   headerText: string;
   footerText: string;

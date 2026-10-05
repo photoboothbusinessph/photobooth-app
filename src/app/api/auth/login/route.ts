@@ -4,14 +4,16 @@ import { apiError, apiSuccess, handleApiError } from "@/lib/api/responses";
 import { createAdminSession } from "@/lib/auth/session";
 import { getCollections } from "@/lib/db/collections";
 import { getServerEnvironment } from "@/lib/server/env";
+import { enforceRateLimit } from "@/lib/security/rate-limit";
 
 const loginSchema = z.object({ email: z.email(), password: z.string().min(8).max(128) });
 
 export async function POST(request: Request) {
   try {
+    enforceRateLimit(request, "admin-login", 5, 60_000);
     const input = loginSchema.parse(await request.json());
     const email = input.email.toLowerCase();
-    const { admins } = await getCollections();
+    const { admins, businesses } = await getCollections();
     let admin = await admins.findOne({ email });
     const environment = getServerEnvironment();
 
@@ -35,7 +37,11 @@ export async function POST(request: Request) {
     if (!admin || !(await compare(input.password, admin.passwordHash)))
       return apiError("Invalid email or password.", 401);
     await createAdminSession(admin._id, admin.email);
-    return apiSuccess({ authenticated: true });
+    const configuredBusiness = await businesses.findOne(
+      { _id: "default" },
+      { projection: { isConfigured: 1 } },
+    );
+    return apiSuccess({ authenticated: true, requiresSetup: !configuredBusiness?.isConfigured });
   } catch (error) {
     return handleApiError(error);
   }

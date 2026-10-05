@@ -6,6 +6,7 @@ import Link from "next/link";
 import { AtSign, Download, LoaderCircle } from "lucide-react";
 import { toast } from "sonner";
 import { BrandMark } from "@/components/shared/brand-mark";
+import { SocialQrCode } from "@/components/shared/social-qr-code";
 import { StatusState } from "@/components/shared/status-state";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -18,6 +19,7 @@ interface SharedPhotoData {
   createdAt: string;
   branding: BusinessBranding;
   socialQrUrl: string | null;
+  socialUrl: string | null;
 }
 
 export function PublicShare({ data }: { data: SharedPhotoData | null }) {
@@ -52,7 +54,7 @@ export function PublicShare({ data }: { data: SharedPhotoData | null }) {
 
   return (
     <main className="min-h-dvh bg-neutral-950 text-white">
-      <header className="mx-auto flex max-w-6xl items-center justify-between border-b border-white/20 px-5 py-5"><BrandMark inverse /><span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/55">Private photo</span></header>
+      <header className="mx-auto flex max-w-6xl items-center justify-between border-b border-white/20 px-5 py-5"><BrandMark inverse branding={data.branding} /><span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/55">Private photo</span></header>
       <div className="mx-auto grid max-w-6xl gap-10 px-5 py-10 lg:grid-cols-[minmax(300px,0.95fr)_minmax(320px,1fr)] lg:py-16">
         <div className="space-y-4">
           <div className="relative mx-auto aspect-[2/3.35] w-full max-w-[420px] overflow-hidden border-2 border-white/20 bg-white"><Image src={activeImage} alt={`${mode === "color" ? "Color" : "Black-and-white"} receipt`} fill priority sizes="(max-width: 1024px) 90vw, 420px" className="object-contain" /></div>
@@ -68,7 +70,7 @@ export function PublicShare({ data }: { data: SharedPhotoData | null }) {
             {(["color", "bw"] as const).map((value) => <button key={value} type="button" onClick={() => setMode(value)} aria-pressed={mode === value} className={cn("min-h-12 font-black uppercase", mode === value ? "bg-white text-black" : "hover:bg-white/10")}>{value === "color" ? "Color" : "B&W"}</button>)}
           </div>
           <Button onClick={() => void downloadPhoto()} disabled={downloading} className="mt-4 h-14 w-full rounded-none bg-[var(--booth-primary)] font-black uppercase">{downloading ? <LoaderCircle className="animate-spin" /> : <Download />} {downloading ? "Downloading" : `Download ${mode === "color" ? "color" : "B&W"}`}</Button>
-          <div className="mt-8 border-t border-white/20 pt-6"><p className="text-sm text-white/60">Stay connected with the booth.</p><a href={data.branding.handle.startsWith("http") ? data.branding.handle : undefined} className="mt-2 inline-flex min-h-11 items-center gap-2 font-bold hover:text-[var(--booth-accent)]"><AtSign className="size-5" /> Follow {data.branding.handle}</a>{data.socialQrUrl ? <div className="relative mt-5 size-40 bg-white p-2"><Image src={data.socialQrUrl} alt="Business social media QR code" fill sizes="160px" className="object-contain p-2" /></div> : null}</div>
+          <div className="mt-8 border-t border-white/20 pt-6"><p className="text-sm text-white/60">Stay connected with the booth.</p>{data.socialUrl ? <a href={data.socialUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex min-h-11 items-center gap-2 font-bold hover:text-[var(--booth-accent)]"><AtSign className="size-5" /> Follow {data.branding.handle || data.branding.name}</a> : <span className="mt-2 inline-flex min-h-11 items-center gap-2 font-bold"><AtSign className="size-5" /> {data.branding.handle || data.branding.name}</span>}{data.socialUrl ? <SocialQrCode url={data.socialUrl} className="mt-5 size-40 p-2" /> : data.socialQrUrl ? <div className="relative mt-5 size-40 bg-white p-2"><Image src={data.socialQrUrl} alt="Business social media QR code" fill sizes="160px" className="object-contain p-2" /></div> : null}</div>
         </section>
       </div>
     </main>

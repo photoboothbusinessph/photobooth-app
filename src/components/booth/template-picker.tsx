@@ -15,7 +15,9 @@ export function TemplatePicker({ initialSelected = "double" }: { initialSelected
   const selectTemplate = useBoothStore((state) => state.selectTemplate);
   const beginCapture = useBoothStore((state) => state.beginCapture);
   const templates = useBusinessStore((state) => state.templates);
-  const [selected, setSelected] = React.useState(storedTemplateId ?? initialSelected);
+  const fallbackId = templates.find((template) => template.isDefault)?.id ?? templates[0]?.id ?? "";
+  const [selected, setSelected] = React.useState(() => storedTemplateId ?? (templates.some((template) => template.id === initialSelected) ? initialSelected : fallbackId));
+  const resolvedSelected = templates.some((template) => template.id === selected) ? selected : fallbackId;
 
   function chooseTemplate(templateId: string) {
     setSelected(templateId);
@@ -23,15 +25,16 @@ export function TemplatePicker({ initialSelected = "double" }: { initialSelected
   }
 
   function continueToCamera() {
-    selectTemplate(selected);
+    if (!resolvedSelected) return;
+    selectTemplate(resolvedSelected);
     beginCapture();
-    router.push(`/booth/camera?template=${selected}`);
+    router.push(`/booth/camera?template=${resolvedSelected}`);
   }
   return (
     <div className="flex flex-1 flex-col">
       <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
         {templates.map((template) => {
-          const active = selected === template.id;
+          const active = resolvedSelected === template.id;
           return (
             <button key={template.id} type="button" aria-pressed={active} onClick={() => chooseTemplate(template.id)} className={cn("group relative flex min-h-80 flex-col items-center border-2 p-4 text-left transition-all focus-visible:ring-4 focus-visible:ring-[var(--booth-accent)] sm:p-6", active ? "border-black bg-white text-black shadow-[8px_8px_0_#101010]" : "border-white/55 bg-white/8 hover:bg-white/15")}>
               {active ? <span className="absolute right-3 top-3 grid size-8 place-items-center rounded-full bg-[var(--booth-primary)] text-white"><Check className="size-4" /></span> : null}
@@ -45,7 +48,7 @@ export function TemplatePicker({ initialSelected = "double" }: { initialSelected
         })}
       </div>
       <div className="safe-bottom mt-8 flex justify-end">
-        <Button onClick={continueToCamera} className="h-14 w-full rounded-none border-2 border-black bg-[var(--booth-accent)] px-7 text-base font-black uppercase text-black hover:bg-white sm:w-auto">Continue <ArrowRight className="size-5" /></Button>
+        <Button onClick={continueToCamera} disabled={!resolvedSelected} className="h-14 w-full rounded-none border-2 border-black bg-[var(--booth-accent)] px-7 text-base font-black uppercase text-black hover:bg-white sm:w-auto">Continue <ArrowRight className="size-5" /></Button>
       </div>
     </div>
   );

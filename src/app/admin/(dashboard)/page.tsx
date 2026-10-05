@@ -1,22 +1,44 @@
 import Link from "next/link";
-import { ArrowUpRight, Cloud, HardDrive } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { PageHeader } from "@/components/admin/page-header";
+import { SyncStatusPanel } from "@/components/admin/sync-status-panel";
+import { StatusState } from "@/components/shared/status-state";
 import { SyncBadge } from "@/components/shared/sync-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { dashboardStats, sessions } from "@/config/mock-data";
-import { SyncStatusPanel } from "@/components/admin/sync-status-panel";
+import { requireAdmin } from "@/lib/auth/session";
+import { getDashboardOverview } from "@/lib/dashboard/overview";
 
-export default function AdminDashboardPage() {
+export default async function AdminDashboardPage() {
+  await requireAdmin();
+
+  let overview: Awaited<ReturnType<typeof getDashboardOverview>>;
+  try {
+    overview = await getDashboardOverview();
+  } catch {
+    return <StatusState type="error" title="Overview unavailable" description="The session archive could not be loaded. Check the database connection and refresh this page." action={<Button nativeButton={false} render={<a href="/admin" />}>Try again</Button>} />;
+  }
+
+  const stats = [
+    { label: "Sessions in 24 hours", value: String(overview.recentCount), detail: "Confirmed cloud sessions" },
+    { label: "Synced sessions", value: String(overview.syncedCount), detail: "Total saved in the cloud" },
+    { label: "Active template", value: overview.activeTemplateName ?? "None", detail: `${overview.templateCount} template${overview.templateCount === 1 ? "" : "s"} configured` },
+  ];
+
   return (
     <>
-      <PageHeader eyebrow="Live overview" title="Good evening." description="A quick view of tonight’s booth activity. Dashboard values are realistic mock data for this UI phase." action={<Button nativeButton={false} render={<Link href="/" />} className="h-11">Open booth <ArrowUpRight /></Button>} />
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Dashboard summary">
-        {dashboardStats.map((stat, index) => <Card key={stat.label} className="rounded-none border-black/15 shadow-none"><CardHeader><CardTitle className="text-xs font-bold uppercase tracking-[0.15em] text-muted-foreground">{stat.label}</CardTitle></CardHeader><CardContent><p className="text-5xl font-black tracking-[-0.07em]">{stat.value}</p><p className="mt-3 text-xs text-muted-foreground">{stat.detail}</p>{index === 0 ? <div className="mt-5 h-1 bg-muted"><div className="h-full w-3/4 bg-primary" /></div> : null}</CardContent></Card>)}
+      <PageHeader eyebrow="Live overview" title="Booth activity" description="Confirmed sessions and templates from the business database. Pending items on this device appear in Sync status." action={<Button nativeButton={false} render={<Link href="/" />} className="h-11">Open booth <ArrowUpRight /></Button>} />
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3" aria-label="Dashboard summary">
+        {stats.map((stat) => <Card key={stat.label} className="rounded-none border-black/15 shadow-none"><CardHeader><CardTitle className="text-xs font-bold uppercase tracking-[0.15em] text-muted-foreground">{stat.label}</CardTitle></CardHeader><CardContent><p className="break-words text-4xl font-black tracking-[-0.06em] sm:text-5xl">{stat.value}</p><p className="mt-3 text-xs text-muted-foreground">{stat.detail}</p></CardContent></Card>)}
       </section>
       <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_330px]">
-        <Card className="rounded-none border-black/15 shadow-none"><CardHeader className="flex-row items-center justify-between"><CardTitle>Recent sessions</CardTitle><Button nativeButton={false} render={<Link href="/admin/sessions" />} variant="ghost" size="sm">View all <ArrowUpRight /></Button></CardHeader><CardContent className="space-y-1">{sessions.slice(0, 4).map((session) => <Link key={session.id} href={`/admin/sessions/${session.id}`} className="grid gap-2 border-t py-4 text-sm transition-colors hover:bg-muted/50 sm:grid-cols-[1fr_1fr_auto] sm:items-center"><div><p className="font-bold">{session.id}</p><p className="text-xs text-muted-foreground">{session.createdAt}</p></div><p>{session.template}</p><SyncBadge status={session.syncStatus} /></Link>)}</CardContent></Card>
-        <div className="space-y-6"><SyncStatusPanel /><Card className="rounded-none border-black/15 shadow-none"><CardHeader><CardTitle>Storage</CardTitle></CardHeader><CardContent><div className="flex items-center gap-3 text-sm"><HardDrive className="size-5" /><span>1.8 GB of 5 GB</span></div><div className="mt-4 h-2 bg-muted"><div className="h-full w-[36%] bg-primary" /></div><p className="mt-3 flex items-center gap-2 text-xs text-muted-foreground"><Cloud className="size-3" /> Cloud usage estimate</p></CardContent></Card></div>
+        <Card className="rounded-none border-black/15 shadow-none">
+          <CardHeader className="flex-row items-center justify-between"><CardTitle>Recent sessions</CardTitle><Button nativeButton={false} render={<Link href="/admin/sessions" />} variant="ghost" size="sm">View all <ArrowUpRight /></Button></CardHeader>
+          <CardContent className="space-y-1">
+            {overview.recentSessions.length ? overview.recentSessions.map((session) => <Link key={session.id} href={`/admin/sessions/${session.id}`} className="grid gap-2 border-t py-4 text-sm transition-colors hover:bg-muted/50 sm:grid-cols-[1fr_1fr_auto] sm:items-center"><div className="min-w-0"><p className="truncate font-bold">{session.id}</p><p className="text-xs text-muted-foreground">{new Intl.DateTimeFormat("en-PH", { dateStyle: "medium", timeStyle: "short" }).format(session.createdAt)}</p></div><p>{session.templateName}</p><SyncBadge status={session.syncStatus} /></Link>) : <p className="border-t py-8 text-sm text-muted-foreground">No sessions have synced to the cloud yet.</p>}
+          </CardContent>
+        </Card>
+        <SyncStatusPanel />
       </div>
     </>
   );

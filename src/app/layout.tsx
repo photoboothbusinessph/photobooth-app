@@ -6,14 +6,15 @@ import { ThemeVariables } from "@/components/providers/theme-variables";
 import { OfflineDataProvider } from "@/components/providers/offline-data-provider";
 import { NetworkStatus } from "@/components/shared/network-status";
 import { SyncProvider } from "@/components/providers/sync-provider";
+import { KioskSessionManager } from "@/components/providers/kiosk-session-manager";
 import "./globals.css";
 
 const sans = Space_Grotesk({ variable: "--font-space-grotesk", subsets: ["latin"] });
 const display = Bodoni_Moda({ variable: "--font-bodoni", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  applicationName: "JJ NJJ Receipt Photobooth",
-  title: { default: "JJ NJJ Receipt Photobooth", template: "%s | JJ NJJ" },
+  applicationName: "Receipt Photobooth",
+  title: { default: "Receipt Photobooth", template: "%s | Receipt Photobooth" },
   description: "A reusable, touch-first receipt photobooth experience.",
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Receipt Booth" },
@@ -30,6 +31,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <ThemeVariables />
           <OfflineDataProvider />
           <SyncProvider />
+          <KioskSessionManager />
           {children}
           <NetworkStatus />
           <Toaster position="top-center" richColors />

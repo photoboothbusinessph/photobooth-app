@@ -3,8 +3,8 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { StatusState } from "@/components/shared/status-state";
-import { templates } from "@/config/mock-data";
 import { useBoothStore } from "@/stores/booth-store";
+import { useBusinessStore } from "@/stores/business-store";
 
 type Requirement = "session" | "template" | "photos";
 
@@ -13,6 +13,7 @@ export function BoothStepGuard({ children, requirement }: { children: React.Reac
   const sessionId = useBoothStore((state) => state.sessionId);
   const selectedTemplateId = useBoothStore((state) => state.selectedTemplateId);
   const capturedPhotos = useBoothStore((state) => state.capturedPhotos);
+  const templates = useBusinessStore((state) => state.templates);
   const template = templates.find((item) => item.id === selectedTemplateId);
   const valid = Boolean(
     sessionId

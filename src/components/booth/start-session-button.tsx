@@ -9,7 +9,10 @@ export function StartSessionButton() {
   const router = useRouter();
   const startBoothSession = useBoothStore((state) => state.startSession);
 
-  function startSession() {
+  async function startSession() {
+    if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+      await document.documentElement.requestFullscreen().catch(() => undefined);
+    }
     startBoothSession();
     sessionStorage.setItem(BOOTH_SESSION_DEADLINE_KEY, String(createBoothSessionDeadline()));
     sessionStorage.removeItem(BOOTH_SESSION_VOICE_WARNINGS_KEY);
@@ -19,7 +22,7 @@ export function StartSessionButton() {
   return (
     <button
       type="button"
-      onClick={startSession}
+      onClick={() => void startSession()}
       className="group flex min-h-24 min-w-72 items-center justify-between border-2 border-white px-7 text-xl font-black uppercase tracking-[-0.03em] transition-colors hover:bg-white hover:text-black focus-visible:ring-4 focus-visible:ring-[var(--booth-accent)] lg:min-h-32"
     >
       Tap to start

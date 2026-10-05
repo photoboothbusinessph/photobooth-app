@@ -20,7 +20,7 @@ async function postSession(session: LocalSessionRecord) {
 async function syncBusiness() {
   const settings = await photoboothDb.businessSettings.get("default");
   if (!settings) return;
-  const response = await fetch("/api/business", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ branding: settings.branding, palette: settings.palette, logoPublicId: settings.logoPublicId ?? null, socialQrUrl: settings.socialQrUrl ?? null, socialQrPublicId: settings.socialQrPublicId ?? null }) });
+  const response = await fetch("/api/business", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isConfigured: settings.isConfigured, branding: settings.branding, palette: settings.palette, logoPublicId: settings.logoPublicId ?? null, socialUrl: settings.socialUrl ?? null, socialQrUrl: settings.socialQrUrl ?? null, socialQrPublicId: settings.socialQrPublicId ?? null }) });
   if (!response.ok) throw new Error("Business settings sync failed.");
 }
 

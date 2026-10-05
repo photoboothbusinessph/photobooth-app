@@ -3,6 +3,7 @@ import type { BusinessBranding, CapturedPhoto, ReceiptTemplate, ThemePalette } f
 function loadImage(source: string) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
     const image = new Image();
+    if (/^https?:\/\//.test(source)) image.crossOrigin = "anonymous";
     image.onload = () => resolve(image);
     image.onerror = () => reject(new Error("Unable to load a receipt image."));
     image.src = source;
@@ -32,29 +33,44 @@ export async function renderReceiptImage({ template, photos, branding, palette, 
   canvas.height = height;
   const context = canvas.getContext("2d");
   if (!context) throw new Error("Image rendering is not supported in this browser.");
+  const brandContext = context;
 
   context.fillStyle = palette.background;
   context.fillRect(0, 0, width, height);
-  context.fillStyle = palette.text;
-  context.font = "700 34px sans-serif";
-  context.fillText(branding.name, 48, 68);
   context.textAlign = "right";
+  context.fillStyle = palette.text;
   context.font = "700 16px sans-serif";
   context.fillText("RECEIPT NO. " + new Date().getTime().toString().slice(-6), width - 48, 62);
   context.textAlign = "left";
 
-  if (branding.logoDataUrl) {
-    try {
-      const logo = await loadImage(branding.logoDataUrl);
-      context.drawImage(logo, 48, 82, 150, 54);
-    } catch {
-      // The business name remains as the accessible branding fallback.
+  async function drawBrandMark(x: number, y: number, maxWidth: number, maxHeight: number) {
+    if ((branding.logoMode ?? (branding.logoDataUrl ? "image" : "text")) === "image" && branding.logoDataUrl) {
+      try {
+        const logo = await loadImage(branding.logoDataUrl);
+        const ratio = Math.min(maxWidth / logo.naturalWidth, maxHeight / logo.naturalHeight);
+        brandContext.drawImage(logo, x, y, logo.naturalWidth * ratio, logo.naturalHeight * ratio);
+        return;
+      } catch {
+        // Keep the text mark when an uploaded image cannot be loaded.
+      }
     }
+    await document.fonts.ready;
+    const fonts = getComputedStyle(document.documentElement);
+    const family = branding.logoFont === "sans" ? fonts.getPropertyValue("--font-space-grotesk") || "sans-serif" : branding.logoFont === "mono" ? "monospace" : fonts.getPropertyValue("--font-bodoni") || "serif";
+    brandContext.fillStyle = branding.logoColor ?? palette.text;
+    brandContext.font = `${branding.logoFont === "sans" ? "700" : "400"} ${Math.min(maxHeight, 46)}px ${family.trim()}`;
+    brandContext.fillText(branding.monogram || branding.name, x, y + Math.min(maxHeight, 46), maxWidth);
   }
+
+  if (template.logoPlacement === "bottom") {
+    context.fillStyle = palette.text;
+    context.font = "700 24px sans-serif";
+    context.fillText("PHOTO RECEIPT", 48, 64);
+  } else await drawBrandMark(48, 12, 520, 56);
 
   const padding = 48;
   const gap = 14;
-  const top = branding.logoDataUrl ? 154 : 100;
+  const top = 100;
   const footerHeight = 92;
   const contentHeight = height - top - footerHeight - padding;
   const columns = template.layout === "quad" ? 2 : 1;
@@ -88,10 +104,13 @@ export async function renderReceiptImage({ template, photos, branding, palette, 
   context.globalAlpha = 0.65;
   context.fillText(new Date().toLocaleDateString("en-PH"), padding, height - 25);
   context.globalAlpha = 1;
-  context.fillStyle = palette.primary;
-  context.beginPath();
-  context.arc(width - 64, height - 50, 16, 0, Math.PI * 2);
-  context.fill();
+  if (template.logoPlacement === "bottom") await drawBrandMark(width - 220, height - 88, 172, 54);
+  else {
+    context.fillStyle = palette.primary;
+    context.beginPath();
+    context.arc(width - 64, height - 50, 16, 0, Math.PI * 2);
+    context.fill();
+  }
 
   return canvas.toDataURL("image/png");
 }

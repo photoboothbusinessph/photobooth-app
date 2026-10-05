@@ -11,8 +11,10 @@ export async function GET() {
     return apiSuccess(
       document ?? {
         _id: "default",
+        isConfigured: false,
         branding: { ...business, logoDataUrl: null },
         palette: defaultPalette,
+        socialUrl: null,
         socialQrUrl: null,
         socialQrPublicId: null,
         logoPublicId: null,

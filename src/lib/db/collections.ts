@@ -5,8 +5,10 @@ import type { BusinessBranding, ReceiptTemplate, ThemePalette } from "@/types";
 
 export interface BusinessDocument {
   _id: "default";
+  isConfigured: boolean;
   branding: BusinessBranding;
   palette: ThemePalette;
+  socialUrl?: string | null;
   socialQrUrl: string | null;
   socialQrPublicId: string | null;
   logoPublicId: string | null;

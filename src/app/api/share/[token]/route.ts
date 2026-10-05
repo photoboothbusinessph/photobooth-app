@@ -1,8 +1,10 @@
 import { apiError, apiSuccess, handleApiError } from "@/lib/api/responses";
 import { getCollections } from "@/lib/db/collections";
+import { enforceRateLimit } from "@/lib/security/rate-limit";
 
-export async function GET(_request: Request, context: RouteContext<"/api/share/[token]">) {
+export async function GET(request: Request, context: RouteContext<"/api/share/[token]">) {
   try {
+    enforceRateLimit(request, "public-share", 120, 60_000);
     const { token } = await context.params;
     if (!/^[A-Za-z0-9_-]{32,64}$/.test(token)) return apiError("Invalid share link.", 400);
     const { sessions, businesses } = await getCollections();
@@ -14,7 +16,7 @@ export async function GET(_request: Request, context: RouteContext<"/api/share/[
       colorImageUrl: session.colorImageUrl,
       bwImageUrl: session.bwImageUrl,
       createdAt: session.createdAt,
-      business: business ? { branding: business.branding, socialQrUrl: business.socialQrUrl } : null,
+      business: business ? { branding: business.branding, socialUrl: business.socialUrl ?? null, socialQrUrl: business.socialQrUrl } : null,
     });
   } catch (error) {
     return handleApiError(error);

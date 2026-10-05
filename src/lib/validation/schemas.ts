@@ -11,6 +11,9 @@ export const paletteSchema = z.object({
 export const brandingSchema = z.object({
   name: z.string().trim().min(1).max(80),
   monogram: z.string().trim().min(1).max(30),
+  logoMode: z.enum(["image", "text"]).optional(),
+  logoFont: z.enum(["editorial", "sans", "mono"]).optional(),
+  logoColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
   handle: z.string().trim().max(80),
   headerText: z.string().trim().max(120),
   footerText: z.string().trim().max(120),
@@ -19,8 +22,10 @@ export const brandingSchema = z.object({
 });
 
 export const businessSchema = z.object({
+  isConfigured: z.boolean().optional(),
   branding: brandingSchema,
   palette: paletteSchema,
+  socialUrl: z.url().max(2048).refine((value) => /^https?:$/.test(new URL(value).protocol), "Use an HTTP or HTTPS link.").nullable().optional(),
   socialQrUrl: z.url().nullable().optional(),
   socialQrPublicId: z.string().nullable().optional(),
   logoPublicId: z.string().nullable().optional(),

@@ -1,12 +1,6 @@
-import { BoothShell } from "@/components/layout/booth-shell";
-import { PreviewStudio } from "@/components/booth/preview-studio";
-import { templates } from "@/config/mock-data";
-import { BoothStepGuard } from "@/components/booth/booth-step-guard";
+import { PreviewStep } from "@/components/booth/preview-step";
 
 export default async function PreviewPage({ searchParams }: PageProps<"/booth/preview">) {
-  const { template: templateParam } = await searchParams;
-  const templateId = Array.isArray(templateParam) ? templateParam[0] : templateParam;
-  const template = templates.find((item) => item.id === templateId) ?? templates.find((item) => item.isDefault) ?? templates[0];
-
-  return <BoothShell title="Your receipt is ready" eyebrow="Review before continuing" backHref={`/booth/camera?template=${template.id}`} step="03 / 04"><BoothStepGuard requirement="photos"><PreviewStudio template={template} /></BoothStepGuard></BoothShell>;
+  const { template } = await searchParams;
+  return <PreviewStep requestedTemplateId={Array.isArray(template) ? template[0] : template} />;
 }

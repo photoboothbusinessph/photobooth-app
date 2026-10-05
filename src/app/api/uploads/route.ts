@@ -2,9 +2,11 @@ import { apiSuccess, handleApiError } from "@/lib/api/responses";
 import { requireAdmin } from "@/lib/auth/session";
 import { deleteImage, uploadImage } from "@/lib/cloudinary/client";
 import { assetUploadSchema } from "@/lib/validation/schemas";
+import { enforceRateLimit } from "@/lib/security/rate-limit";
 
 export async function POST(request: Request) {
   try {
+    enforceRateLimit(request, "asset-upload", 20, 60_000);
     await requireAdmin();
     const input = assetUploadSchema.parse(await request.json());
     const uploaded = await uploadImage(input.dataUrl, input.kind);
@@ -17,6 +19,7 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    enforceRateLimit(request, "asset-delete", 20, 60_000);
     await requireAdmin();
     const { publicId } = await request.json() as { publicId?: string };
     if (!publicId) return Response.json({ error: { message: "Asset ID is required." } }, { status: 400 });

@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "JJ NJJ Receipt Photobooth",
+    name: "Receipt Photobooth",
     short_name: "Receipt Booth",
     description: "A touch-first receipt photobooth for events and businesses.",
     start_url: "/",

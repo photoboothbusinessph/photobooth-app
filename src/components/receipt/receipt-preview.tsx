@@ -21,7 +21,7 @@ export function ReceiptPreview({ template, layout, palette, photos, branding, mo
       aria-label={`${count}-photo receipt preview`}
     >
       <header className="flex items-center justify-between gap-2 pb-[5%]">
-        {template?.logoPlacement !== "bottom" ? (branding?.logoDataUrl ? <Image src={branding.logoDataUrl} alt={`${branding.name} logo`} width={120} height={48} unoptimized className="max-h-10 w-auto object-contain" /> : branding ? <strong className={cn("text-xl", compact && "text-sm")}>{branding.name}</strong> : <BrandMark className={cn("text-[clamp(1rem,5vw,2rem)]", compact && "text-base")} />) : <span className="text-[8px] font-bold uppercase tracking-[0.18em]">Photo receipt</span>}
+        {template?.logoPlacement !== "bottom" ? <BrandMark branding={branding} inheritColor className={cn("text-[clamp(1rem,5vw,2rem)]", compact && "text-base")} /> : <span className="text-[8px] font-bold uppercase tracking-[0.18em]">Photo receipt</span>}
         <span className="text-[8px] font-bold uppercase tracking-[0.22em]">Receipt No. 0928</span>
       </header>
       <div className={cn("grid min-h-0 flex-1 gap-1.5", activeLayout === "single" && "grid-rows-1", activeLayout === "double" && "grid-rows-2", activeLayout === "triple" && "grid-rows-3", activeLayout === "quad" && "grid-cols-2 grid-rows-2")}>
@@ -34,10 +34,10 @@ export function ReceiptPreview({ template, layout, palette, photos, branding, mo
       </div>
       <footer className="flex items-end justify-between gap-3 pt-[5%]">
         <div>
-          <p className="text-[8px] font-bold uppercase tracking-[0.18em]">{branding?.footerText ?? "Keep the proof"}</p>
+          <p className="text-[8px] font-bold uppercase tracking-[0.18em]">{branding?.footerText ?? "Keep the moment"}</p>
           <p className="mt-0.5 text-[7px] opacity-60">{new Intl.DateTimeFormat("en-PH").format(new Date())}</p>
         </div>
-        {template?.logoPlacement === "bottom" ? <BrandMark className={cn("text-lg", compact && "text-sm")} /> : <span className="size-3 rounded-full" style={{ backgroundColor: colors.primary }} />}
+        {template?.logoPlacement === "bottom" ? <BrandMark branding={branding} inheritColor className={cn("text-lg", compact && "text-sm")} /> : <span className="size-3 rounded-full" style={{ backgroundColor: colors.primary }} />}
       </footer>
     </article>
   );

@@ -13,7 +13,7 @@ export default async function SharePage({ params }: PageProps<"/share/[token]">)
   try {
     const { sessions, businesses } = await getCollections();
     const [session, business] = await Promise.all([sessions.findOne({ shareToken: token, businessId: "default" }), businesses.findOne({ _id: "default" })]);
-    if (session) data = { sessionId: session._id, colorImageUrl: session.colorImageUrl, bwImageUrl: session.bwImageUrl, createdAt: session.createdAt.toISOString(), branding: business?.branding ?? { ...defaultBusiness, logoDataUrl: null }, socialQrUrl: business?.socialQrUrl ?? null };
+    if (session) data = { sessionId: session._id, colorImageUrl: session.colorImageUrl, bwImageUrl: session.bwImageUrl, createdAt: session.createdAt.toISOString(), branding: business?.branding ?? { ...defaultBusiness, logoDataUrl: null }, socialUrl: business?.socialUrl ?? null, socialQrUrl: business?.socialQrUrl ?? null };
   } catch {}
   return <PublicShare data={data} />;
 }

@@ -39,6 +39,7 @@
 - [x] Create logo upload UI
 - [x] Create logo preview
 - [x] Create replace/remove logo actions
+- [x] Offer image or styled text logo with font and color controls
 - [x] Create primary color picker
 - [x] Create secondary color picker
 - [x] Create background color picker
@@ -130,13 +131,14 @@
 - [x] Create receipt dimension controls
 - [x] Create logo placement controls
 - [x] Create template color controls
+- [x] Add receipt text color to the template editor and rendered receipt
 - [x] Create live template preview
 
 ## Phase 12 — Social QR Admin UI
 - [x] Create social QR settings UI
-- [x] Create QR upload field
+- [x] Create social link field with automatic QR generation
 - [x] Create QR preview
-- [x] Create Replace action
+- [x] Allow replacing the social link
 - [x] Create Remove action
 - [x] Create save state
 
@@ -332,25 +334,25 @@
 # REUSABILITY, QA, AND DELIVERY
 
 ## Phase 30 — Reusable Business Configuration
-- [ ] Remove hardcoded business name
-- [ ] Remove hardcoded logo
-- [ ] Remove hardcoded theme
-- [ ] Remove hardcoded social QR
-- [ ] Make templates business-configurable
-- [ ] Add initial business configuration flow
-- [ ] Verify a new business can reuse the app without code changes
+- [x] Remove hardcoded business name
+- [x] Remove hardcoded logo
+- [x] Remove hardcoded theme
+- [x] Remove hardcoded social QR
+- [x] Make templates business-configurable
+- [x] Add initial business configuration flow
+- [x] Verify a new business can reuse the app without code changes
 
 ## Phase 31 — UX and Kiosk Optimization
-- [ ] Optimize user flow for tablet
-- [ ] Optimize for mobile
-- [ ] Add large touch targets
-- [ ] Add fullscreen-friendly booth UI
-- [ ] Prevent accidental navigation during session
-- [ ] Add inactivity reset
+- [x] Optimize user flow for tablet
+- [x] Optimize for mobile
+- [x] Add large touch targets
+- [x] Add fullscreen-friendly booth UI
+- [x] Prevent accidental navigation during session
+- [x] Add inactivity reset
 - [x] Add 120-second session countdown
-- [ ] Add loading states
-- [ ] Add success states
-- [ ] Add error states
+- [x] Add loading states
+- [x] Add success states
+- [x] Add error states
 
 ## Phase 32 — Offline QA
 - [ ] Test first install online
@@ -385,7 +387,7 @@
 - [x] Validate MongoDB inputs
 - [x] Use non-guessable share tokens
 - [x] Prevent unauthorized admin changes
-- [ ] Add basic rate/error protection where required
+- [x] Add basic rate/error protection where required
 
 ## Phase 35 — Production Deployment
 - [ ] Configure production Vercel project
@@ -412,4 +414,4 @@
 - [ ] Test online sharing flow
 - [ ] Test printer
 - [ ] Provide admin credentials
-- [ ] Provide basic admin guide
+- [x] Provide basic admin guide

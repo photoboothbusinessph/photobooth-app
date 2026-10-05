@@ -5,6 +5,7 @@ import { deleteImage, uploadImage } from "@/lib/cloudinary/client";
 import { getCollections } from "@/lib/db/collections";
 import { getServerEnvironment } from "@/lib/server/env";
 import { sessionUploadSchema } from "@/lib/validation/schemas";
+import { enforceRateLimit } from "@/lib/security/rate-limit";
 
 export async function GET() {
   try {
@@ -20,6 +21,7 @@ export async function POST(request: Request) {
   let colorPublicId: string | null = null;
   let bwPublicId: string | null = null;
   try {
+    enforceRateLimit(request, "session-upload", 30, 60_000);
     const input = sessionUploadSchema.parse(await request.json());
     const { sessions } = await getCollections();
     const existing = await sessions.findOne({ _id: input.id, businessId: "default" });

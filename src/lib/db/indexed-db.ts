@@ -3,9 +3,11 @@ import type { BusinessBranding, CapturedPhoto, ReceiptTemplate, SyncStatus, Them
 
 export interface LocalBusinessSettings {
   id: "default";
+  isConfigured: boolean;
   branding: BusinessBranding;
   palette: ThemePalette;
   logoPublicId?: string | null;
+  socialUrl?: string | null;
   socialQrUrl?: string | null;
   socialQrPublicId?: string | null;
   updatedAt: number;
@@ -66,9 +68,10 @@ export const photoboothDb = new PhotoboothDatabase();
 export async function cacheBusinessSettings(
   branding: BusinessBranding,
   palette: ThemePalette,
-  assets: Pick<LocalBusinessSettings, "logoPublicId" | "socialQrUrl" | "socialQrPublicId"> = {},
+  assets: Pick<LocalBusinessSettings, "logoPublicId" | "socialUrl" | "socialQrUrl" | "socialQrPublicId"> = {},
+  isConfigured = false,
 ) {
-  await photoboothDb.businessSettings.put({ id: "default", branding, palette, ...assets, updatedAt: Date.now() });
+  await photoboothDb.businessSettings.put({ id: "default", isConfigured, branding, palette, ...assets, updatedAt: Date.now() });
 }
 
 export async function cacheTemplates(templates: ReceiptTemplate[]) {

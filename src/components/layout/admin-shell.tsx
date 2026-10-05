@@ -9,6 +9,7 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, Di
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { useAdminUiStore } from "@/stores/admin-ui-store";
+import { useBusinessStore } from "@/stores/business-store";
 
 const navigation = [
   { href: "/admin", label: "Overview", icon: BarChart3 },
@@ -39,6 +40,8 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const mobileNavigationOpen = useAdminUiStore((state) => state.mobileNavigationOpen);
   const setMobileNavigationOpen = useAdminUiStore((state) => state.setMobileNavigationOpen);
+  const businessName = useBusinessStore((state) => state.branding.name);
+  const isConfigured = useBusinessStore((state) => state.isConfigured);
 
   return (
     <div className="min-h-dvh bg-background">
@@ -62,8 +65,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             </Sheet>
             <span className="text-sm font-bold">Admin</span>
           </div>
-          <p className="hidden text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground lg:block">JJ NJJ / Booth control</p>
-          <div className="flex items-center gap-3"><span className="size-2 rounded-full bg-emerald-500" /><span className="text-xs font-bold">Demo mode</span></div>
+          <p className="hidden max-w-[55vw] truncate text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground lg:block">{businessName} / Booth control</p>
+          <div className="flex items-center gap-3"><span className={cn("size-2 rounded-full", isConfigured ? "bg-emerald-500" : "bg-amber-500")} /><span className="text-xs font-bold">{isConfigured ? "Configured" : "Setup needed"}</span></div>
         </header>
         <main className="mx-auto max-w-[1280px] p-4 sm:p-8 lg:p-10">{children}</main>
       </div>
@@ -82,7 +85,7 @@ function LogoutDialog() {
     <Dialog>
       <DialogTrigger render={<Button variant="ghost" className="h-11 w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground" />}><LogOut /> Log out</DialogTrigger>
       <DialogContent>
-        <DialogHeader><DialogTitle>Leave admin mode?</DialogTitle><DialogDescription>This mock does not have an active authenticated session. You will return to the login screen.</DialogDescription></DialogHeader>
+        <DialogHeader><DialogTitle>Leave admin mode?</DialogTitle><DialogDescription>Your secure admin session will end and you will return to the login screen.</DialogDescription></DialogHeader>
         <DialogFooter>
           <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
           <Button onClick={() => void logout()}>Log out</Button>

@@ -29,13 +29,12 @@ export function PreviewStudio({ template }: { template: ReceiptTemplate }) {
   const completeSession = useBoothStore((state) => state.completeSession);
   const setShareResult = useBoothStore((state) => state.setShareResult);
   const branding = useBusinessStore((state) => state.branding);
-  const palette = useBusinessStore((state) => state.palette);
 
   React.useEffect(() => {
     let cancelled = false;
     Promise.all([
-      renderReceiptImage({ template, photos, branding, palette, monochrome: false }),
-      renderReceiptImage({ template, photos, branding, palette, monochrome: true }),
+      renderReceiptImage({ template, photos, branding, palette: template.palette, monochrome: false }),
+      renderReceiptImage({ template, photos, branding, palette: template.palette, monochrome: true }),
     ])
       .then(([color, bw]) => {
         if (!cancelled) setGeneratedImages({ color, bw });
@@ -47,7 +46,7 @@ export function PreviewStudio({ template }: { template: ReceiptTemplate }) {
         if (!cancelled) setRendering(false);
       });
     return () => { cancelled = true; };
-  }, [branding, palette, photos, setGeneratedImages, template]);
+  }, [branding, photos, setGeneratedImages, template]);
 
   function retakePhotos() {
     beginCapture();
@@ -77,7 +76,7 @@ export function PreviewStudio({ template }: { template: ReceiptTemplate }) {
   return (
     <div className="grid flex-1 items-center gap-8 lg:grid-cols-[minmax(320px,0.8fr)_minmax(320px,1fr)]">
       <div className="flex justify-center bg-black/10 p-6 sm:p-10">
-        <ReceiptPreview template={{ ...template, palette }} photos={photos} branding={branding} monochrome={mode === "bw"} printable className="max-w-[360px]" />
+        <ReceiptPreview template={template} photos={photos} branding={branding} monochrome={mode === "bw"} printable className="max-w-[360px]" />
       </div>
       <div className="flex flex-col justify-center">
         <p className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--booth-accent)]">Final receipt</p>
