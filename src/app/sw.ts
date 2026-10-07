@@ -3,7 +3,7 @@
 
 import { defaultCache } from "@serwist/turbopack/worker";
 import type { PrecacheEntry, SerwistGlobalConfig } from "serwist";
-import { Serwist } from "serwist";
+import { NetworkOnly, Serwist } from "serwist";
 
 declare global {
   interface WorkerGlobalScope extends SerwistGlobalConfig {
@@ -19,10 +19,13 @@ const serwist = new Serwist({
   clientsClaim: true,
   navigationPreload: true,
   disableDevLogs: true,
-  runtimeCaching: defaultCache,
+  runtimeCaching: [
+    { matcher: ({ url, sameOrigin }) => sameOrigin && /^\/(?:admin|super-admin|share)(?:\/|$)/.test(url.pathname), handler: new NetworkOnly() },
+    ...defaultCache,
+  ],
   precacheOptions: {
     navigateFallback: "/~offline",
-    navigateFallbackDenylist: [/^\/api\//, /^\/admin(?:\/|$)/, /^\/share(?:\/|$)/],
+    navigateFallbackDenylist: [/^\/api\//, /^\/admin(?:\/|$)/, /^\/super-admin(?:\/|$)/, /^\/share(?:\/|$)/],
   },
   fallbacks: {
     entries: [{

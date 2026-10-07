@@ -23,6 +23,7 @@ pnpm build
 
 - [Admin guide](docs/ADMIN_GUIDE.md)
 - [Deployment guide](docs/DEPLOYMENT.md)
+- [Multi-business rollout](docs/MULTI_BUSINESS.md)
 - [QA checklist](docs/QA_CHECKLIST.md)
 
 Do not commit `.env.local`, production credentials, generated build output, or customer photos.

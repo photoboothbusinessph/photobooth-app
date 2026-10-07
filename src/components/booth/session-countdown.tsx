@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { boothBasePath } from "@/lib/booth-path";
 import { Clock3 } from "lucide-react";
 import { toast } from "sonner";
 import { BOOTH_SESSION_DEADLINE_KEY, BOOTH_SESSION_VOICE_WARNINGS_KEY } from "@/lib/booth-session";
@@ -43,6 +44,7 @@ function announceTimeWarning(remaining: number) {
 
 export function SessionCountdown() {
   const router = useRouter();
+  const pathname = usePathname();
   const resetSession = useBoothStore((state) => state.resetSession);
   const [remaining, setRemaining] = React.useState<number | null>(null);
 
@@ -64,14 +66,14 @@ export function SessionCountdown() {
         window.speechSynthesis?.cancel();
         resetSession();
         toast.error("Session expired. Start again when you’re ready.");
-        router.replace("/");
+        router.replace(boothBasePath(pathname) || "/");
       }
     }
 
     updateCountdown();
     const interval = window.setInterval(updateCountdown, 250);
     return () => window.clearInterval(interval);
-  }, [resetSession, router]);
+  }, [pathname, resetSession, router]);
 
   if (remaining === null) return null;
 

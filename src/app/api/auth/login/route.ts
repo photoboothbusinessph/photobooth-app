@@ -19,29 +19,26 @@ export async function POST(request: Request) {
 
     if (
       !admin &&
-      email === environment.ADMIN_EMAIL.toLowerCase() &&
-      input.password === environment.ADMIN_PASSWORD
+      environment.SUPER_ADMIN_EMAIL && environment.SUPER_ADMIN_PASSWORD &&
+      email === environment.SUPER_ADMIN_EMAIL.toLowerCase() &&
+      input.password === environment.SUPER_ADMIN_PASSWORD &&
+      (await admins.countDocuments({ role: "super_admin" })) === 0
     ) {
       const now = new Date();
       const passwordHash = await hash(input.password, 12);
-      await admins.insertOne({
-        _id: crypto.randomUUID(),
-        email,
-        passwordHash,
-        createdAt: now,
-        updatedAt: now,
-      });
+      await admins.updateOne({ email }, { $setOnInsert: { _id: crypto.randomUUID(), email, passwordHash, role: "super_admin", businessId: null, isEnabled: true, mustChangePassword: true, sessionVersion: 0, createdAt: now, updatedAt: now } }, { upsert: true });
       admin = await admins.findOne({ email });
     }
 
     if (!admin || !(await compare(input.password, admin.passwordHash)))
       return apiError("Invalid email or password.", 401);
-    await createAdminSession(admin._id, admin.email);
-    const configuredBusiness = await businesses.findOne(
-      { _id: "default" },
-      { projection: { isConfigured: 1 } },
-    );
-    return apiSuccess({ authenticated: true, requiresSetup: !configuredBusiness?.isConfigured });
+    if (admin.isEnabled === false) return apiError("This account is disabled.", 403);
+    if (!admin.role || (admin.role === "business_admin" && !admin.businessId)) return apiError("Account migration is required before login.", 403);
+    const role = admin.role;
+    const configuredBusiness = role === "business_admin" && admin.businessId ? await businesses.findOne({ _id: admin.businessId }, { projection: { isConfigured: 1 } }) : null;
+    if (role === "business_admin" && !configuredBusiness) return apiError("This account is not linked to an active business. Contact the super admin.", 403);
+    await createAdminSession(admin);
+    return apiSuccess({ authenticated: true, role, mustChangePassword: Boolean(admin.mustChangePassword), requiresSetup: role === "business_admin" && !configuredBusiness?.isConfigured });
   } catch (error) {
     return handleApiError(error);
   }

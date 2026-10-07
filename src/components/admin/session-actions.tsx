@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { printImageSource } from "@/lib/receipt/render-receipt";
-import { photoboothDb, queueSync } from "@/lib/db/indexed-db";
+import { activeBusinessId, photoboothDb, queueSync } from "@/lib/db/indexed-db";
 
 export function SessionActions({ sessionId, image }: { sessionId: string; image: string }) {
   const router = useRouter();
@@ -16,6 +16,8 @@ export function SessionActions({ sessionId, image }: { sessionId: string; image:
   }
   async function remove() {
     try {
+      const local = await photoboothDb.sessions.get(sessionId);
+      if (local && local.businessId !== activeBusinessId()) throw new Error("Session belongs to another business.");
       if (navigator.onLine) {
         const response = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}`, { method: "DELETE" });
         if (!response.ok && response.status !== 404) throw new Error("Cloud deletion failed.");
@@ -27,6 +29,7 @@ export function SessionActions({ sessionId, image }: { sessionId: string; image:
       toast.success(navigator.onLine ? "Session deleted" : "Session deletion queued");
       router.push("/admin/sessions");
     } catch (error) {
+      if (error instanceof Error && error.message === "Session belongs to another business.") { toast.error(error.message); return; }
       await queueSync("session", sessionId, "delete");
       toast.error(error instanceof Error ? `${error.message} It was queued for retry.` : "Deletion queued for retry.");
     }

@@ -1,12 +1,14 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { boothBasePath } from "@/lib/booth-path";
 import { ArrowDownRight } from "lucide-react";
 import { BOOTH_SESSION_DEADLINE_KEY, BOOTH_SESSION_VOICE_WARNINGS_KEY, createBoothSessionDeadline } from "@/lib/booth-session";
 import { useBoothStore } from "@/stores/booth-store";
 
 export function StartSessionButton() {
   const router = useRouter();
+  const pathname = usePathname();
   const startBoothSession = useBoothStore((state) => state.startSession);
 
   async function startSession() {
@@ -16,7 +18,7 @@ export function StartSessionButton() {
     startBoothSession();
     sessionStorage.setItem(BOOTH_SESSION_DEADLINE_KEY, String(createBoothSessionDeadline()));
     sessionStorage.removeItem(BOOTH_SESSION_VOICE_WARNINGS_KEY);
-    router.push("/booth/templates");
+    router.push(`${boothBasePath(pathname)}/booth/templates`);
   }
 
   return (

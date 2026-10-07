@@ -12,7 +12,6 @@ export const { dynamic, dynamicParams, revalidate, generateStaticParams, GET } =
     { url: "/booth/preview", revision: precacheRevision },
     { url: "/booth/photo-qr", revision: precacheRevision },
     { url: "/booth/social", revision: precacheRevision },
-    { url: "/admin", revision: precacheRevision },
   ],
   swSrc: "src/app/sw.ts",
   useNativeEsbuild: true,

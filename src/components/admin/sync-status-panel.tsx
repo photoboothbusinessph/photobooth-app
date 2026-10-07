@@ -7,11 +7,13 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { photoboothDb } from "@/lib/db/indexed-db";
+import { useBusinessStore } from "@/stores/business-store";
 import { retryFailedSync } from "@/lib/sync/client-sync";
 
 export function SyncStatusPanel() {
-  const pending = useLiveQuery(() => photoboothDb.syncQueue.where("status").equals("pending").count(), [], 0);
-  const failed = useLiveQuery(() => photoboothDb.syncQueue.where("status").equals("failed").count(), [], 0);
+  const businessId = useBusinessStore((state) => state.businessId);
+  const pending = useLiveQuery(() => businessId ? photoboothDb.syncQueue.where({ businessId, status: "pending" }).count() : 0, [businessId], 0);
+  const failed = useLiveQuery(() => businessId ? photoboothDb.syncQueue.where({ businessId, status: "failed" }).count() : 0, [businessId], 0);
   const [retrying, setRetrying] = React.useState(false);
 
   async function retry() {

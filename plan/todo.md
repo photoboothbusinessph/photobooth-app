@@ -413,5 +413,22 @@
 - [ ] Test offline flow
 - [ ] Test online sharing flow
 - [ ] Test printer
+
+## Phase 37 — Multi-business Access Rollout
+- [x] Add tenant IDs, unique business slugs, and tenant-scoped server queries
+- [x] Add super-admin and business-admin roles with server-side enabled checks and session revocation
+- [x] Reuse admin login and require a password change for temporary credentials
+- [x] Add super-admin business, admin-account, and kiosk controls without photo/session access
+- [x] Add tenant-bound kiosk pairing and reject uploads from revoked or unpaired devices
+- [x] Add business booth URLs, legacy URL redirects, and business-aware public share lookup
+- [x] Namespace new Cloudinary assets and local offline records/sync queues by business
+- [x] Add an idempotent migration script with dry-run and backup-confirmation gates
+- [ ] Rotate exposed MongoDB and Cloudinary credentials and replace `AUTH_SECRET`
+- [ ] Verify a restorable backup of the existing database
+- [ ] Run and review migration dry-run against the rotated, backed-up environment
+- [ ] Apply migration after the backup and verify existing sessions and QR/share links
+- [ ] Test two-business admin/API/upload/session isolation and disabled-account revocation
+- [ ] Test kiosk pairing, revocation, and recovery of unsynced offline photos on real devices
+- [ ] Test tenant-specific PWA installation and offline navigation in a browser
 - [ ] Provide admin credentials
 - [x] Provide basic admin guide

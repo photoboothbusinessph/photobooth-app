@@ -11,7 +11,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { StatusState } from "@/components/shared/status-state";
 import { cacheBusinessSettings } from "@/lib/db/indexed-db";
 import { useBusinessStore } from "@/stores/business-store";
-import type { ThemePalette } from "@/types";
+import type { BusinessBranding, ThemePalette } from "@/types";
+
+type SetupBrandingField = "name" | "monogram" | "handle" | "headerText" | "footerText" | "customMessage";
 
 const paletteFields: Array<{ key: keyof ThemePalette; label: string }> = [
   { key: "primary", label: "Primary" },
@@ -36,28 +38,32 @@ function HydratedBusinessSetupForm() {
   const updateBranding = useBusinessStore((state) => state.updateBranding);
   const updatePalette = useBusinessStore((state) => state.updatePalette);
   const setConfigured = useBusinessStore((state) => state.setConfigured);
+  const [draftBranding, setDraftBranding] = React.useState<BusinessBranding>(branding);
   const [palette, setPalette] = React.useState(storedPalette);
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState("");
 
+  function setField(field: SetupBrandingField, value: string) {
+    setDraftBranding((current) => ({ ...current, [field]: value }));
+  }
+
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    const name = String(form.get("name") ?? "").trim();
-    const monogram = String(form.get("monogram") ?? "").trim();
+    const name = draftBranding.name.trim();
+    const monogram = draftBranding.monogram.trim();
     if (!name || !monogram) {
       setError("Business name and monogram are required.");
       return;
     }
 
     const nextBranding = {
-      ...branding,
+      ...draftBranding,
       name,
       monogram,
-      handle: String(form.get("handle") ?? "").trim(),
-      headerText: String(form.get("headerText") ?? "").trim(),
-      footerText: String(form.get("footerText") ?? "").trim(),
-      customMessage: String(form.get("customMessage") ?? "").trim(),
+      handle: draftBranding.handle.trim(),
+      headerText: draftBranding.headerText.trim(),
+      footerText: draftBranding.footerText.trim(),
+      customMessage: draftBranding.customMessage.trim(),
     };
 
     setSaving(true);
@@ -99,14 +105,15 @@ function HydratedBusinessSetupForm() {
         <section className="grid gap-5 border border-black/15 bg-card p-5 sm:grid-cols-2 sm:p-7">
           <div className="space-y-2 sm:col-span-2">
             <Label htmlFor="name">Business name</Label>
-            <Input id="name" name="name" defaultValue={branding.name} maxLength={80} required />
+            <Input id="name" name="name" value={draftBranding.name} onChange={(event) => setField("name", event.target.value)} maxLength={80} required />
           </div>
           <div className="space-y-2">
             <Label htmlFor="monogram">Short logo text</Label>
             <Input
               id="monogram"
               name="monogram"
-              defaultValue={branding.monogram}
+              value={draftBranding.monogram}
+              onChange={(event) => setField("monogram", event.target.value)}
               maxLength={30}
               required
             />
@@ -116,7 +123,8 @@ function HydratedBusinessSetupForm() {
             <Input
               id="handle"
               name="handle"
-              defaultValue={branding.handle}
+              value={draftBranding.handle}
+              onChange={(event) => setField("handle", event.target.value)}
               maxLength={80}
               placeholder="@yourbusiness"
             />
@@ -126,7 +134,8 @@ function HydratedBusinessSetupForm() {
             <Input
               id="headerText"
               name="headerText"
-              defaultValue={branding.headerText}
+              value={draftBranding.headerText}
+              onChange={(event) => setField("headerText", event.target.value)}
               maxLength={120}
             />
           </div>
@@ -135,7 +144,8 @@ function HydratedBusinessSetupForm() {
             <Input
               id="footerText"
               name="footerText"
-              defaultValue={branding.footerText}
+              value={draftBranding.footerText}
+              onChange={(event) => setField("footerText", event.target.value)}
               maxLength={120}
             />
           </div>
@@ -144,7 +154,8 @@ function HydratedBusinessSetupForm() {
             <Textarea
               id="customMessage"
               name="customMessage"
-              defaultValue={branding.customMessage}
+              value={draftBranding.customMessage}
+              onChange={(event) => setField("customMessage", event.target.value)}
               maxLength={500}
               rows={3}
             />
@@ -199,7 +210,7 @@ function HydratedBusinessSetupForm() {
           className="grain flex aspect-[4/5] flex-col justify-between p-7"
           style={{ backgroundColor: palette.primary, color: "#fff" }}
         >
-          <strong className="display-serif text-5xl">{branding.monogram || "YB"}</strong>
+          <strong className="display-serif text-5xl">{draftBranding.monogram || "YB"}</strong>
           <div>
             <p
               className="text-xs font-bold uppercase tracking-[0.2em]"

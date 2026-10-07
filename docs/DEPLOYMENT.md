@@ -11,12 +11,14 @@ CLOUDINARY_CLOUD_NAME
 CLOUDINARY_API_KEY
 CLOUDINARY_API_SECRET
 AUTH_SECRET
-ADMIN_EMAIL
-ADMIN_PASSWORD
+SUPER_ADMIN_EMAIL
+SUPER_ADMIN_PASSWORD
 NEXT_PUBLIC_APP_URL
 ```
 
 `NEXT_PUBLIC_APP_URL` must be the final HTTPS origin without a trailing slash. Generate `AUTH_SECRET` as a high-entropy value of at least 32 characters. Restrict MongoDB network and database access to the minimum required by the deployment.
+
+For an existing installation, complete the credential rotation, backup, dry-run, and tenant migration in `docs/MULTI_BUSINESS.md` before deploying this version. `MONGODB_DB` remains an environment database setting.
 
 ## Vercel release procedure
 
@@ -24,12 +26,12 @@ NEXT_PUBLIC_APP_URL
 2. Add every variable above to the Production environment. Do not paste secrets into source files or build logs.
 3. Deploy and confirm the build completes successfully.
 4. Open the production HTTPS URL once while online and confirm the service worker registers.
-5. Sign in, finish first-run business setup, upload the logo, add a social link for the QR code, configure templates, and select the default template.
+5. Sign in as super admin, change the temporary password, create/assign business admins, then let each business admin finish setup and pair a kiosk.
 6. Run the online and offline acceptance checklist in `docs/QA_CHECKLIST.md` on the target device.
 
 ## Release checks
 
-- `/`, all `/booth/*` routes, `/admin/login`, and a valid `/share/[token]` load without console errors.
+- `/`, `/b/[slug]`, all `/b/[slug]/booth/*` routes, `/admin/login`, `/super-admin`, and a valid `/share/[token]` load without console errors.
 - Camera permission is available only on the production HTTPS origin.
 - The manifest is detected and the app can be installed.
 - After one successful online load, cached booth routes reopen with the network disabled.

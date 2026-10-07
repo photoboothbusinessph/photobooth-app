@@ -1,10 +1,10 @@
 import "server-only";
 
 import { getCollections } from "@/lib/db/collections";
+import { templateDocumentId } from "@/lib/db/tenant";
 
-export async function getDashboardOverview() {
+export async function getDashboardOverview(businessId: string) {
   const { sessions, templates } = await getCollections();
-  const businessId = "default";
   const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
   const [recentCount, syncedCount, recentSessions, businessTemplates] = await Promise.all([
@@ -31,7 +31,7 @@ export async function getDashboardOverview() {
     recentSessions: recentSessions.map((session) => ({
       id: session._id,
       createdAt: session.createdAt,
-      templateName: templateNames.get(session.templateId) ?? session.templateId,
+      templateName: templateNames.get(templateDocumentId(businessId, session.templateId)) ?? session.templateId,
       syncStatus: session.syncStatus,
     })),
   };

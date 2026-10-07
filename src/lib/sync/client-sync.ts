@@ -1,24 +1,30 @@
 "use client";
 
-import { photoboothDb, type LocalSessionRecord, type SyncQueueRecord } from "@/lib/db/indexed-db";
+import { activeBusinessId, activeTenantKey, photoboothDb, type LocalSessionRecord, type SyncQueueRecord } from "@/lib/db/indexed-db";
 
 const MAX_SYNC_ATTEMPTS = 3;
 let processing = false;
 
+class SyncHttpError extends Error {
+  constructor(message: string, readonly status: number) { super(message); }
+}
+
 async function postSession(session: LocalSessionRecord) {
-  const response = await fetch("/api/sessions", {
+  if (!session.businessSlug || session.businessId !== activeBusinessId()) throw new Error("This session belongs to another business.");
+  const response = await fetch(`/api/sessions?slug=${encodeURIComponent(session.businessSlug)}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ id: session.id, templateId: session.templateId, photoCount: session.photoCount, colorImage: session.colorImage, bwImage: session.bwImage }),
   });
   const result = await response.json() as { data?: { shareToken: string; shareUrl: string }; error?: { message?: string } };
-  if (!response.ok || !result.data) throw new Error(result.error?.message ?? "Session sync failed.");
+  if (!response.ok || !result.data) throw new SyncHttpError(response.status === 403 ? "Kiosk access was revoked. This photo remains on the device for an operator." : result.error?.message ?? "Session sync failed.", response.status);
   await photoboothDb.sessions.update(session.id, { syncStatus: "synced", shareToken: result.data.shareToken });
   return result.data;
 }
 
 async function syncBusiness() {
-  const settings = await photoboothDb.businessSettings.get("default");
+  const tenantKey = activeTenantKey();
+  const settings = tenantKey ? await photoboothDb.businessSettings.get(tenantKey) : null;
   if (!settings) return;
   const response = await fetch("/api/business", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isConfigured: settings.isConfigured, branding: settings.branding, palette: settings.palette, logoPublicId: settings.logoPublicId ?? null, socialUrl: settings.socialUrl ?? null, socialQrUrl: settings.socialQrUrl ?? null, socialQrPublicId: settings.socialQrPublicId ?? null }) });
   if (!response.ok) throw new Error("Business settings sync failed.");
@@ -30,7 +36,8 @@ async function syncTemplate(templateId: string, operation: SyncQueueRecord["oper
     if (!response.ok && response.status !== 404) throw new Error("Template deletion sync failed.");
     return;
   }
-  const template = await photoboothDb.templates.get(templateId);
+  const tenantKey = activeTenantKey();
+  const template = tenantKey ? await photoboothDb.cachedTemplates.get(`${tenantKey}:${templateId}`) : null;
   if (!template) return;
   let response = await fetch(`/api/templates/${encodeURIComponent(templateId)}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(template) });
   if (response.status === 404) response = await fetch("/api/templates", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(template) });
@@ -38,6 +45,7 @@ async function syncTemplate(templateId: string, operation: SyncQueueRecord["oper
 }
 
 async function processItem(item: SyncQueueRecord) {
+  if (item.tenantKey !== activeTenantKey() || item.businessId !== activeBusinessId()) throw new Error("Business context changed; item was not synced.");
   if (item.entityType === "session") {
     if (item.operation === "delete") {
       const response = await fetch(`/api/sessions/${encodeURIComponent(item.entityId)}`, { method: "DELETE" });
@@ -45,16 +53,18 @@ async function processItem(item: SyncQueueRecord) {
       return;
     }
     const session = await photoboothDb.sessions.get(item.entityId);
-    if (session) await postSession(session);
+    if (session && session.businessId === item.businessId) await postSession(session);
   } else if (item.entityType === "business") await syncBusiness();
   else await syncTemplate(item.entityId, item.operation);
 }
 
 export async function processSyncQueue() {
-  if (processing || !navigator.onLine) return;
+  const tenantKey = activeTenantKey();
+  const businessId = activeBusinessId();
+  if (processing || !navigator.onLine || !tenantKey || !businessId) return;
   processing = true;
   try {
-    const items = await photoboothDb.syncQueue.where("status").anyOf("pending", "failed").sortBy("createdAt");
+    const items = (await photoboothDb.syncQueue.where("status").anyOf("pending", "failed").sortBy("createdAt")).filter((item) => item.tenantKey === tenantKey && item.businessId === businessId);
     for (const item of items) {
       if (!item.id || item.attempts >= MAX_SYNC_ATTEMPTS) continue;
       await photoboothDb.syncQueue.update(item.id, { status: "processing", updatedAt: Date.now() });
@@ -62,8 +72,10 @@ export async function processSyncQueue() {
         await processItem(item);
         await photoboothDb.syncQueue.delete(item.id);
       } catch (error) {
-        const attempts = item.attempts + 1;
-        await photoboothDb.syncQueue.update(item.id, { attempts, status: attempts >= MAX_SYNC_ATTEMPTS ? "failed" : "pending", lastError: error instanceof Error ? error.message : "Sync failed", updatedAt: Date.now() });
+        const attempts = error instanceof SyncHttpError && [401, 403].includes(error.status) ? MAX_SYNC_ATTEMPTS : item.attempts + 1;
+        const failed = attempts >= MAX_SYNC_ATTEMPTS;
+        await photoboothDb.syncQueue.update(item.id, { attempts, status: failed ? "failed" : "pending", lastError: error instanceof Error ? error.message : "Sync failed", updatedAt: Date.now() });
+        if (failed && item.entityType === "session" && item.operation === "upsert") await photoboothDb.sessions.update(item.entityId, { syncStatus: "failed" });
       }
     }
   } finally {
@@ -74,15 +86,16 @@ export async function processSyncQueue() {
 
 export async function syncSessionNow(sessionId: string) {
   const session = await photoboothDb.sessions.get(sessionId);
-  if (!session || !navigator.onLine) return null;
+  if (!session || !navigator.onLine || session.businessId !== activeBusinessId()) return null;
   const result = await postSession(session);
-  await photoboothDb.syncQueue.where({ entityType: "session", entityId: sessionId }).delete();
+  await photoboothDb.syncQueue.where({ businessId: session.businessId, entityType: "session", entityId: sessionId }).delete();
   window.dispatchEvent(new Event("photobooth-sync-updated"));
   return result;
 }
 
 export async function retryFailedSync() {
-  const failed = await photoboothDb.syncQueue.where("status").equals("failed").toArray();
+  const businessId = activeBusinessId();
+  const failed = (await photoboothDb.syncQueue.where("status").equals("failed").toArray()).filter((item) => item.businessId === businessId);
   await Promise.all(failed.filter((item) => item.id).map((item) => photoboothDb.syncQueue.update(item.id!, { attempts: 0, status: "pending", lastError: undefined, updatedAt: Date.now() })));
   await processSyncQueue();
 }

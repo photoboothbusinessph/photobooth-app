@@ -7,7 +7,13 @@ declare global {
 }
 
 export async function getDatabase(): Promise<Db> {
-  const { MONGODB_URI, MONGODB_DB } = getServerEnvironment();
+  const { MONGODB_DB } = getServerEnvironment();
+  const client = await getMongoClient();
+  return client.db(MONGODB_DB);
+}
+
+export async function getMongoClient(): Promise<MongoClient> {
+  const { MONGODB_URI } = getServerEnvironment();
   if (!global.photoboothMongoClientPromise) {
     const client = new MongoClient(MONGODB_URI, {
       maxPoolSize: 10,
@@ -15,6 +21,5 @@ export async function getDatabase(): Promise<Db> {
     });
     global.photoboothMongoClientPromise = client.connect();
   }
-  const client = await global.photoboothMongoClientPromise;
-  return client.db(MONGODB_DB);
+  return global.photoboothMongoClientPromise;
 }

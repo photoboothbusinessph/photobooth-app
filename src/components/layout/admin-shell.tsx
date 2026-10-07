@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { BarChart3, Brush, ExternalLink, Grid2X2, Images, LogOut, Menu, QrCode, Settings, SlidersHorizontal } from "lucide-react";
+import { BarChart3, Brush, ExternalLink, Grid2X2, Images, LogOut, Menu, Monitor, QrCode, Settings, SlidersHorizontal } from "lucide-react";
 import { BrandMark } from "@/components/shared/brand-mark";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -19,6 +19,7 @@ const navigation = [
   { href: "/admin/social-qr", label: "Social QR", icon: QrCode },
   { href: "/admin/sessions", label: "Sessions", icon: Images },
   { href: "/admin/settings", label: "Settings", icon: Settings },
+  { href: "/admin/kiosks", label: "Kiosks", icon: Monitor },
 ];
 
 function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
@@ -41,6 +42,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const mobileNavigationOpen = useAdminUiStore((state) => state.mobileNavigationOpen);
   const setMobileNavigationOpen = useAdminUiStore((state) => state.setMobileNavigationOpen);
   const businessName = useBusinessStore((state) => state.branding.name);
+  const businessSlug = useBusinessStore((state) => state.businessSlug);
   const isConfigured = useBusinessStore((state) => state.isConfigured);
 
   return (
@@ -49,7 +51,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         <BrandMark inverse className="mb-10 text-2xl" />
         <NavLinks />
         <div className="mt-auto space-y-2">
-          <Button nativeButton={false} render={<Link href="/" />} variant="ghost" className="h-11 w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"><ExternalLink /> Open booth</Button>
+          <Button nativeButton={false} render={<Link href={businessSlug ? `/b/${businessSlug}` : "/"} />} variant="ghost" className="h-11 w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"><ExternalLink /> Open booth</Button>
           <LogoutDialog />
         </div>
       </aside>

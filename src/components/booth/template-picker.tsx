@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { boothBasePath } from "@/lib/booth-path";
 import { ArrowRight, Check } from "lucide-react";
 import { ReceiptPreview } from "@/components/receipt/receipt-preview";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,7 @@ import { useBusinessStore } from "@/stores/business-store";
 
 export function TemplatePicker({ initialSelected = "double" }: { initialSelected?: string }) {
   const router = useRouter();
+  const pathname = usePathname();
   const storedTemplateId = useBoothStore((state) => state.selectedTemplateId);
   const selectTemplate = useBoothStore((state) => state.selectTemplate);
   const beginCapture = useBoothStore((state) => state.beginCapture);
@@ -28,7 +30,8 @@ export function TemplatePicker({ initialSelected = "double" }: { initialSelected
     if (!resolvedSelected) return;
     selectTemplate(resolvedSelected);
     beginCapture();
-    router.push(`/booth/camera?template=${resolvedSelected}`);
+    const base = boothBasePath(pathname);
+    router.push(`${base}/booth/camera${base ? "" : `?template=${encodeURIComponent(resolvedSelected)}`}`);
   }
   return (
     <div className="flex flex-1 flex-col">

@@ -8,9 +8,9 @@ export async function GET(request: Request, context: RouteContext<"/api/share/[t
     const { token } = await context.params;
     if (!/^[A-Za-z0-9_-]{32,64}$/.test(token)) return apiError("Invalid share link.", 400);
     const { sessions, businesses } = await getCollections();
-    const session = await sessions.findOne({ shareToken: token, businessId: "default" });
+    const session = await sessions.findOne({ shareToken: token });
     if (!session) return apiError("This photo link is unavailable or expired.", 404);
-    const business = await businesses.findOne({ _id: "default" });
+    const business = await businesses.findOne({ _id: session.businessId });
     return apiSuccess({
       sessionId: session._id,
       colorImageUrl: session.colorImageUrl,

@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { boothBasePath } from "@/lib/booth-path";
 import { ArrowRight, CameraOff, RefreshCcw, RotateCcw, SwitchCamera } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,7 @@ function captureVideoFrame(video: HTMLVideoElement) {
 
 export function CameraCapture({ photoCount, templateId, templateName }: { photoCount: number; templateId: string; templateName: string }) {
   const router = useRouter();
+  const pathname = usePathname();
   const videoRef = React.useRef<HTMLVideoElement>(null);
   const streamRef = React.useRef<MediaStream | null>(null);
   const cameraRequestRef = React.useRef(0);
@@ -134,7 +136,8 @@ export function CameraCapture({ photoCount, templateId, templateName }: { photoC
 
   function reviewShots() {
     beginReview();
-    router.push(`/booth/preview?template=${templateId}`);
+    const base = boothBasePath(pathname);
+    router.push(`${base}/booth/preview${base ? "" : `?template=${encodeURIComponent(templateId)}`}`);
   }
 
   return (

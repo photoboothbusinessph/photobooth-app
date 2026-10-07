@@ -8,10 +8,10 @@ const serverEnvironmentSchema = z.object({
   CLOUDINARY_API_KEY: z.string().min(1),
   CLOUDINARY_API_SECRET: z.string().min(1),
   AUTH_SECRET: z.string().min(32),
-  ADMIN_EMAIL: z.email(),
-  ADMIN_PASSWORD: z.string().min(12),
+  SUPER_ADMIN_EMAIL: z.email().optional(),
+  SUPER_ADMIN_PASSWORD: z.string().min(12).optional(),
   NEXT_PUBLIC_APP_URL: z.url().default("http://localhost:3000"),
-});
+}).refine((environment) => Boolean(environment.SUPER_ADMIN_EMAIL) === Boolean(environment.SUPER_ADMIN_PASSWORD), "Set both super-admin bootstrap variables or neither.");
 
 export type ServerEnvironment = z.infer<typeof serverEnvironmentSchema>;
 

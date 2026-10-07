@@ -4,6 +4,7 @@ import * as React from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { BOOTH_SESSION_DEADLINE_KEY, BOOTH_SESSION_VOICE_WARNINGS_KEY } from "@/lib/booth-session";
+import { boothBasePath } from "@/lib/booth-path";
 import { useBoothStore } from "@/stores/booth-store";
 
 const INACTIVITY_LIMIT_MS = 60_000;
@@ -13,7 +14,8 @@ export function KioskSessionManager() {
   const pathname = usePathname();
   const router = useRouter();
   const resetSession = useBoothStore((state) => state.resetSession);
-  const active = timedRoutes.has(pathname);
+  const base = boothBasePath(pathname);
+  const active = timedRoutes.has(pathname.slice(base.length));
 
   React.useEffect(() => {
     if (!active) return;
@@ -25,7 +27,7 @@ export function KioskSessionManager() {
       window.speechSynthesis?.cancel();
       resetSession();
       toast.info("Session reset after 60 seconds without activity.");
-      router.replace("/");
+      router.replace(base || "/");
     }
 
     function restartInactivityTimer() {
@@ -46,7 +48,7 @@ export function KioskSessionManager() {
       activityEvents.forEach((eventName) => window.removeEventListener(eventName, restartInactivityTimer));
       window.removeEventListener("beforeunload", protectActiveSession);
     };
-  }, [active, resetSession, router]);
+  }, [active, base, resetSession, router]);
 
   return null;
 }

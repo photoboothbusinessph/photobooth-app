@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { boothBasePath, boothSlug } from "@/lib/booth-path";
 import { ArrowRight, Check, LoaderCircle, Printer, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { ReceiptPreview } from "@/components/receipt/receipt-preview";
@@ -9,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { BOOTH_SESSION_DEADLINE_KEY, BOOTH_SESSION_VOICE_WARNINGS_KEY } from "@/lib/booth-session";
 import { renderReceiptImage } from "@/lib/receipt/render-receipt";
 import { saveLocalSession } from "@/lib/db/indexed-db";
-import { syncSessionNow } from "@/lib/sync/client-sync";
+import { processSyncQueue, syncSessionNow } from "@/lib/sync/client-sync";
 import { cn } from "@/lib/utils";
 import { useBoothStore } from "@/stores/booth-store";
 import { useBusinessStore } from "@/stores/business-store";
@@ -17,6 +18,8 @@ import type { ReceiptTemplate } from "@/types";
 
 export function PreviewStudio({ template }: { template: ReceiptTemplate }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const base = boothBasePath(pathname);
   const [rendering, setRendering] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const sessionId = useBoothStore((state) => state.sessionId);
@@ -29,6 +32,7 @@ export function PreviewStudio({ template }: { template: ReceiptTemplate }) {
   const completeSession = useBoothStore((state) => state.completeSession);
   const setShareResult = useBoothStore((state) => state.setShareResult);
   const branding = useBusinessStore((state) => state.branding);
+  const businessId = useBusinessStore((state) => state.businessId);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -50,15 +54,17 @@ export function PreviewStudio({ template }: { template: ReceiptTemplate }) {
 
   function retakePhotos() {
     beginCapture();
-    router.push(`/booth/camera?template=${template.id}`);
+    router.push(`${base}/booth/camera${base ? "" : `?template=${encodeURIComponent(template.id)}`}`);
   }
 
   async function confirmReceipt() {
     if (!sessionId || !generatedImages || saving) return;
+    const businessSlug = boothSlug(pathname);
+    if (!businessId || !businessSlug) { toast.error("This kiosk needs a completed online setup before saving photos."); return; }
     setSaving(true);
     try {
-      await saveLocalSession({ id: sessionId, templateId: template.id, photos, colorImage: generatedImages.color, bwImage: generatedImages.bw });
-      const shareResult = await syncSessionNow(sessionId).catch(() => null);
+      await saveLocalSession({ id: sessionId, businessId, businessSlug, templateId: template.id, photos, colorImage: generatedImages.color, bwImage: generatedImages.bw });
+      const shareResult = await syncSessionNow(sessionId).catch(async () => { await processSyncQueue(); return null; });
       setShareResult(shareResult);
       if (!shareResult) toast.info("Saved locally. Online sharing will appear after sync.");
     } catch {
@@ -70,7 +76,7 @@ export function PreviewStudio({ template }: { template: ReceiptTemplate }) {
     sessionStorage.removeItem(BOOTH_SESSION_VOICE_WARNINGS_KEY);
     window.speechSynthesis?.cancel();
     completeSession();
-    router.push(`/booth/photo-qr?template=${template.id}`);
+    router.push(`${base}/booth/photo-qr${base ? "" : `?template=${encodeURIComponent(template.id)}`}`);
   }
 
   return (

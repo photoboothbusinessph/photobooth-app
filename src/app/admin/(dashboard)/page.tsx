@@ -6,15 +6,15 @@ import { StatusState } from "@/components/shared/status-state";
 import { SyncBadge } from "@/components/shared/sync-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { requireAdmin } from "@/lib/auth/session";
+import { requireBusinessAdmin } from "@/lib/auth/session";
 import { getDashboardOverview } from "@/lib/dashboard/overview";
 
 export default async function AdminDashboardPage() {
-  await requireAdmin();
+  const admin = await requireBusinessAdmin();
 
   let overview: Awaited<ReturnType<typeof getDashboardOverview>>;
   try {
-    overview = await getDashboardOverview();
+    overview = await getDashboardOverview(admin.businessId);
   } catch {
     return <StatusState type="error" title="Overview unavailable" description="The session archive could not be loaded. Check the database connection and refresh this page." action={<Button nativeButton={false} render={<a href="/admin" />}>Try again</Button>} />;
   }

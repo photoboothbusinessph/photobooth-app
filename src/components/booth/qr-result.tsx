@@ -3,6 +3,8 @@
 import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { boothBasePath } from "@/lib/booth-path";
 import { ArrowRight, CloudOff, LoaderCircle, Wifi } from "lucide-react";
 import QRCode from "qrcode";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -11,6 +13,7 @@ import { photoboothDb } from "@/lib/db/indexed-db";
 import { useBoothStore } from "@/stores/booth-store";
 
 export function QrResult({ templateId }: { templateId?: string }) {
+  const base = boothBasePath(usePathname());
   const sessionId = useBoothStore((state) => state.sessionId);
   const immediateShareUrl = useBoothStore((state) => state.shareUrl);
   const localSession = useLiveQuery(() => sessionId ? photoboothDb.sessions.get(sessionId) : undefined, [sessionId]);
@@ -37,7 +40,7 @@ export function QrResult({ templateId }: { templateId?: string }) {
         <div className="inline-flex items-center gap-3 border border-white/50 px-4 py-3">{synced ? <Wifi className="size-5 text-[var(--booth-accent)]" /> : <CloudOff className="size-5 text-orange-300" />}<span className="text-sm font-bold">{synced ? "Private link ready" : "Waiting for online sync"}</span></div>
         <h2 className="mt-7 max-w-2xl text-4xl font-black uppercase leading-[0.92] tracking-[-0.065em] sm:text-5xl">Scan this QR code to download the soft copy of your photos.</h2>
         <p className="mt-5 max-w-lg text-base leading-7 text-white/75">The private page includes both color and black-and-white versions.</p>
-        <Button nativeButton={false} render={<Link href={templateId ? `/booth/social?template=${templateId}` : "/booth/social"} />} className="mt-8 h-14 w-full rounded-none bg-[var(--booth-accent)] px-7 font-black uppercase text-black hover:bg-white sm:w-auto">Continue <ArrowRight /></Button>
+        <Button nativeButton={false} render={<Link href={`${base}/booth/social${!base && templateId ? `?template=${encodeURIComponent(templateId)}` : ""}`} />} className="mt-8 h-14 w-full rounded-none bg-[var(--booth-accent)] px-7 font-black uppercase text-black hover:bg-white sm:w-auto">Continue <ArrowRight /></Button>
       </div>
     </div>
   );

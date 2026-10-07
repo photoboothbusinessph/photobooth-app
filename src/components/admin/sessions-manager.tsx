@@ -13,6 +13,7 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, Di
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { photoboothDb, queueSync } from "@/lib/db/indexed-db";
+import { useBusinessStore } from "@/stores/business-store";
 import type { BoothSession, SyncStatus } from "@/types";
 
 interface RemoteSession {
@@ -25,7 +26,8 @@ interface RemoteSession {
 }
 
 export function SessionsManager() {
-  const localSessions = useLiveQuery(() => photoboothDb.sessions.orderBy("createdAt").reverse().toArray(), []);
+  const businessId = useBusinessStore((state) => state.businessId);
+  const localSessions = useLiveQuery(() => businessId ? photoboothDb.sessions.where("businessId").equals(businessId).reverse().sortBy("createdAt") : [], [businessId]);
   const [remoteSessions, setRemoteSessions] = React.useState<RemoteSession[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [loadError, setLoadError] = React.useState(false);
@@ -64,6 +66,8 @@ export function SessionsManager() {
     if (!deleteTarget) return;
     const target = deleteTarget;
     try {
+      const localRecord = await photoboothDb.sessions.get(target.id);
+      if (localRecord && localRecord.businessId !== useBusinessStore.getState().businessId) throw new Error("Session belongs to another business.");
       if (navigator.onLine) {
         const response = await fetch(`/api/sessions/${encodeURIComponent(target.id)}`, { method: "DELETE" });
         if (!response.ok && response.status !== 404) throw new Error("Cloud deletion failed.");
@@ -78,6 +82,7 @@ export function SessionsManager() {
       setDeleteTarget(null);
       toast.success(navigator.onLine ? "Session deleted" : "Session deletion queued");
     } catch (error) {
+      if (error instanceof Error && error.message === "Session belongs to another business.") { toast.error(error.message); return; }
       await queueSync("session", target.id, "delete");
       toast.error(error instanceof Error ? `${error.message} It was queued for retry.` : "Deletion queued for retry.");
     }

@@ -10,7 +10,7 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, Di
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { cacheTemplates, photoboothDb, queueSync } from "@/lib/db/indexed-db";
+import { activeTenantKey, cacheTemplates, photoboothDb, queueSync } from "@/lib/db/indexed-db";
 import { useBusinessStore } from "@/stores/business-store";
 import type { ReceiptTemplate, TemplateLayout } from "@/types";
 
@@ -65,7 +65,9 @@ export function TemplateManager() {
     const target = deleteTarget;
     const next = items.filter((item) => item.id !== target.id);
     setStoredTemplates(next);
-    await photoboothDb.templates.delete(target.id);
+    const tenantKey = activeTenantKey();
+    if (!tenantKey) throw new Error("Business context unavailable.");
+    await photoboothDb.cachedTemplates.delete(`${tenantKey}:${target.id}`);
     await queueSync("template", target.id, "delete");
     setDeleteTarget(null);
     toast.success(navigator.onLine ? "Template deletion queued" : "Template removed offline");

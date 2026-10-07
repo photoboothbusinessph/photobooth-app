@@ -26,10 +26,10 @@ export function LoginForm() {
     setLoading(true);
     try {
       const response = await fetch("/api/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password }) });
-      const result = await response.json() as { data?: { requiresSetup?: boolean }; error?: { message?: string } };
+      const result = await response.json() as { data?: { role?: "super_admin" | "business_admin"; mustChangePassword?: boolean; requiresSetup?: boolean }; error?: { message?: string } };
       if (!response.ok) throw new Error(result.error?.message ?? "Unable to sign in.");
       toast.success("Signed in securely");
-      router.replace(result.data?.requiresSetup ? "/admin/setup" : "/admin");
+      router.replace(result.data?.mustChangePassword ? "/admin/change-password" : result.data?.role === "super_admin" ? "/super-admin" : result.data?.requiresSetup ? "/admin/setup" : "/admin");
       router.refresh();
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Unable to sign in.");
@@ -39,7 +39,7 @@ export function LoginForm() {
   return (
     <form onSubmit={submit} className="mt-9 space-y-5" noValidate>
       <div className="space-y-2"><Label htmlFor="email">Email address</Label><Input id="email" name="email" type="email" placeholder="admin@yourbusiness.com" className="h-12 bg-white" aria-invalid={Boolean(error)} /></div>
-      <div className="space-y-2"><Label htmlFor="password">Password</Label><div className="relative"><Input id="password" name="password" type={showPassword ? "text" : "password"} placeholder="Enter demo password" className="h-12 bg-white pr-12" aria-invalid={Boolean(error)} /><button type="button" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? "Hide password" : "Show password"} className="absolute inset-y-0 right-0 grid w-12 place-items-center">{showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}</button></div></div>
+      <div className="space-y-2"><Label htmlFor="password">Password</Label><div className="relative"><Input id="password" name="password" type={showPassword ? "text" : "password"} placeholder="Enter your password" className="h-12 bg-white pr-12" aria-invalid={Boolean(error)} /><button type="button" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? "Hide password" : "Show password"} className="absolute inset-y-0 right-0 grid w-12 place-items-center">{showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}</button></div></div>
       {error ? <p role="alert" className="flex items-center gap-2 text-sm font-bold text-destructive"><LockKeyhole className="size-4" />{error}</p> : null}
       <Button type="submit" disabled={loading} className="h-12 w-full rounded-none font-black uppercase">{loading ? <><LoaderCircle className="animate-spin" /> Signing in</> : "Enter admin"}</Button>
       <p className="text-center text-xs leading-5 text-muted-foreground">Credentials are sent only to the secure application login endpoint.</p>

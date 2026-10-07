@@ -10,6 +10,7 @@ import { StatusState } from "@/components/shared/status-state";
 import { SyncBadge } from "@/components/shared/sync-badge";
 import { Button } from "@/components/ui/button";
 import { photoboothDb } from "@/lib/db/indexed-db";
+import { useBusinessStore } from "@/stores/business-store";
 import type { SyncStatus } from "@/types";
 
 interface SessionDetailData {
@@ -23,7 +24,8 @@ interface SessionDetailData {
 }
 
 export function SessionDetail({ id }: { id: string }) {
-  const local = useLiveQuery(() => photoboothDb.sessions.get(id), [id]);
+  const businessId = useBusinessStore((state) => state.businessId);
+  const local = useLiveQuery(async () => { const record = await photoboothDb.sessions.get(id); return record?.businessId === businessId ? record : null; }, [id, businessId]);
   const [remote, setRemote] = React.useState<SessionDetailData | null>(null);
   const [loading, setLoading] = React.useState(true);
 
