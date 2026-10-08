@@ -1,13 +1,14 @@
 "use client";
 
 import * as React from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
+import { useBoothRouter } from "@/hooks/use-booth-router";
 import { boothBasePath } from "@/lib/booth-path";
 import { Clock3 } from "lucide-react";
 import { toast } from "sonner";
-import { BOOTH_SESSION_DEADLINE_KEY, BOOTH_SESSION_VOICE_WARNINGS_KEY } from "@/lib/booth-session";
+import { BOOTH_SESSION_DEADLINE_KEY, BOOTH_SESSION_DURATION_SECONDS, BOOTH_SESSION_VOICE_WARNINGS_KEY } from "@/lib/booth-session";
 import { cn } from "@/lib/utils";
-import { useBoothStore } from "@/stores/booth-store";
+import { flushBoothSessionPersistence, useBoothStore } from "@/stores/booth-store";
 
 const voiceWarnings = [
   { seconds: 30, message: "Warning. Your session will end in 30 seconds." },
@@ -43,16 +44,31 @@ function announceTimeWarning(remaining: number) {
 }
 
 export function SessionCountdown() {
-  const router = useRouter();
+  const router = useBoothRouter();
   const pathname = usePathname();
   const resetSession = useBoothStore((state) => state.resetSession);
+  const sessionHydrated = useBoothStore((state) => state.isHydrated);
+  const startedAt = useBoothStore((state) => state.startedAt);
   const [remaining, setRemaining] = React.useState<number | null>(null);
 
   React.useEffect(() => {
+    if (!sessionHydrated || !startedAt) return;
     let expired = false;
     const storedDeadline = Number(sessionStorage.getItem(BOOTH_SESSION_DEADLINE_KEY));
-    if (!Number.isFinite(storedDeadline) || storedDeadline <= Date.now()) return;
-    const deadline = storedDeadline;
+    const deadline = Number.isFinite(storedDeadline) && storedDeadline > 0
+      ? storedDeadline
+      : startedAt + BOOTH_SESSION_DURATION_SECONDS * 1000;
+    sessionStorage.setItem(BOOTH_SESSION_DEADLINE_KEY, String(deadline));
+
+    async function expireSession() {
+      sessionStorage.removeItem(BOOTH_SESSION_DEADLINE_KEY);
+      sessionStorage.removeItem(BOOTH_SESSION_VOICE_WARNINGS_KEY);
+      window.speechSynthesis?.cancel();
+      resetSession();
+      await flushBoothSessionPersistence();
+      toast.error("Session expired. Start again when you’re ready.");
+      router.replace(boothBasePath(pathname) || "/");
+    }
 
     function updateCountdown() {
       const nextRemaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
@@ -61,19 +77,14 @@ export function SessionCountdown() {
 
       if (nextRemaining === 0 && !expired) {
         expired = true;
-        sessionStorage.removeItem(BOOTH_SESSION_DEADLINE_KEY);
-        sessionStorage.removeItem(BOOTH_SESSION_VOICE_WARNINGS_KEY);
-        window.speechSynthesis?.cancel();
-        resetSession();
-        toast.error("Session expired. Start again when you’re ready.");
-        router.replace(boothBasePath(pathname) || "/");
+        void expireSession();
       }
     }
 
     updateCountdown();
     const interval = window.setInterval(updateCountdown, 250);
     return () => window.clearInterval(interval);
-  }, [pathname, resetSession, router]);
+  }, [pathname, resetSession, router, sessionHydrated, startedAt]);
 
   if (remaining === null) return null;
 

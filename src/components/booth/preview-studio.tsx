@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
+import { useBoothRouter } from "@/hooks/use-booth-router";
 import { boothBasePath, boothSlug } from "@/lib/booth-path";
 import { ArrowRight, Check, LoaderCircle, Printer, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
@@ -12,12 +13,12 @@ import { renderReceiptImage } from "@/lib/receipt/render-receipt";
 import { saveLocalSession } from "@/lib/db/indexed-db";
 import { processSyncQueue, syncSessionNow } from "@/lib/sync/client-sync";
 import { cn } from "@/lib/utils";
-import { useBoothStore } from "@/stores/booth-store";
+import { flushBoothSessionPersistence, useBoothStore } from "@/stores/booth-store";
 import { useBusinessStore } from "@/stores/business-store";
 import type { ReceiptTemplate } from "@/types";
 
 export function PreviewStudio({ template }: { template: ReceiptTemplate }) {
-  const router = useRouter();
+  const router = useBoothRouter();
   const pathname = usePathname();
   const base = boothBasePath(pathname);
   const [rendering, setRendering] = React.useState(true);
@@ -52,8 +53,9 @@ export function PreviewStudio({ template }: { template: ReceiptTemplate }) {
     return () => { cancelled = true; };
   }, [branding, photos, setGeneratedImages, template]);
 
-  function retakePhotos() {
+  async function retakePhotos() {
     beginCapture();
+    await flushBoothSessionPersistence();
     router.push(`${base}/booth/camera${base ? "" : `?template=${encodeURIComponent(template.id)}`}`);
   }
 
@@ -76,6 +78,7 @@ export function PreviewStudio({ template }: { template: ReceiptTemplate }) {
     sessionStorage.removeItem(BOOTH_SESSION_VOICE_WARNINGS_KEY);
     window.speechSynthesis?.cancel();
     completeSession();
+    await flushBoothSessionPersistence();
     router.push(`${base}/booth/photo-qr${base ? "" : `?template=${encodeURIComponent(template.id)}`}`);
   }
 
@@ -91,7 +94,7 @@ export function PreviewStudio({ template }: { template: ReceiptTemplate }) {
           {(["color", "bw"] as const).map((value) => <button key={value} type="button" aria-pressed={mode === value} onClick={() => setMode(value)} className={cn("min-h-12 px-4 text-sm font-black uppercase", mode === value ? "bg-white text-black" : "text-white hover:bg-white/10")}>{value === "color" ? "Color" : "B&W"}</button>)}
         </div>
         <div className="mt-8 grid gap-3 sm:grid-cols-2">
-          <Button onClick={retakePhotos} variant="outline" className="h-14 rounded-none border-white bg-transparent font-black uppercase text-white hover:bg-white hover:text-black"><RotateCcw /> Retake</Button>
+          <Button onClick={() => void retakePhotos()} variant="outline" className="h-14 rounded-none border-white bg-transparent font-black uppercase text-white hover:bg-white hover:text-black"><RotateCcw /> Retake</Button>
           <Button onClick={() => window.print()} variant="outline" className="h-14 rounded-none border-white bg-transparent font-black uppercase text-white hover:bg-white hover:text-black"><Printer /> Print</Button>
           <Button onClick={() => void confirmReceipt()} disabled={rendering || saving || !generatedImages} className="h-14 rounded-none bg-[var(--booth-accent)] font-black uppercase text-black hover:bg-white sm:col-span-2">{saving ? <LoaderCircle className="animate-spin" /> : <Check />} {saving ? "Saving locally" : "Confirm receipt"} {!saving ? <ArrowRight /> : null}</Button>
         </div>

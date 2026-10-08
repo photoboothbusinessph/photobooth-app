@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "preview:pwa": "pnpm build && next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:offline": "node --test scripts/test-offline.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

@@ -2,14 +2,15 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
+import { useBoothRouter } from "@/hooks/use-booth-router";
 import { boothBasePath } from "@/lib/booth-path";
 import { ArrowRight, CameraOff, RefreshCcw, RotateCcw, SwitchCamera } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { StatusState } from "@/components/shared/status-state";
 import { cn } from "@/lib/utils";
-import { useBoothStore } from "@/stores/booth-store";
+import { flushBoothSessionPersistence, useBoothStore } from "@/stores/booth-store";
 
 type CameraState = "requesting" | "ready" | "denied" | "missing" | "error";
 
@@ -31,7 +32,7 @@ function captureVideoFrame(video: HTMLVideoElement) {
 }
 
 export function CameraCapture({ photoCount, templateId, templateName }: { photoCount: number; templateId: string; templateName: string }) {
-  const router = useRouter();
+  const router = useBoothRouter();
   const pathname = usePathname();
   const videoRef = React.useRef<HTMLVideoElement>(null);
   const streamRef = React.useRef<MediaStream | null>(null);
@@ -134,8 +135,9 @@ export function CameraCapture({ photoCount, templateId, templateName }: { photoC
     toast.success(`Switched to ${nextDevice.label || "another camera"}`);
   }
 
-  function reviewShots() {
+  async function reviewShots() {
     beginReview();
+    await flushBoothSessionPersistence();
     const base = boothBasePath(pathname);
     router.push(`${base}/booth/preview${base ? "" : `?template=${encodeURIComponent(templateId)}`}`);
   }
@@ -174,7 +176,7 @@ export function CameraCapture({ photoCount, templateId, templateName }: { photoC
           </div>)}
         </div>
         <p className="mt-4 text-xs leading-5 text-white/60">Camera access stays on this device. Photos are held only in the current browser session.</p>
-        <Button onClick={reviewShots} disabled={captured < photoCount} className="mt-auto h-14 rounded-none bg-[var(--booth-accent)] font-black uppercase text-black hover:bg-white">{captured < photoCount ? `Take ${photoCount - captured} more` : "Review shots"} <ArrowRight /></Button>
+        <Button onClick={() => void reviewShots()} disabled={captured < photoCount} className="mt-auto h-14 rounded-none bg-[var(--booth-accent)] font-black uppercase text-black hover:bg-white">{captured < photoCount ? `Take ${photoCount - captured} more` : "Review shots"} <ArrowRight /></Button>
       </aside>
     </div>
   );

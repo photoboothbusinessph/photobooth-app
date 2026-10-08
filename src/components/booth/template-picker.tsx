@@ -1,17 +1,18 @@
 "use client";
 
 import * as React from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
+import { useBoothRouter } from "@/hooks/use-booth-router";
 import { boothBasePath } from "@/lib/booth-path";
 import { ArrowRight, Check } from "lucide-react";
 import { ReceiptPreview } from "@/components/receipt/receipt-preview";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useBoothStore } from "@/stores/booth-store";
+import { flushBoothSessionPersistence, useBoothStore } from "@/stores/booth-store";
 import { useBusinessStore } from "@/stores/business-store";
 
 export function TemplatePicker({ initialSelected = "double" }: { initialSelected?: string }) {
-  const router = useRouter();
+  const router = useBoothRouter();
   const pathname = usePathname();
   const storedTemplateId = useBoothStore((state) => state.selectedTemplateId);
   const selectTemplate = useBoothStore((state) => state.selectTemplate);
@@ -26,15 +27,17 @@ export function TemplatePicker({ initialSelected = "double" }: { initialSelected
     selectTemplate(templateId);
   }
 
-  function continueToCamera() {
+  async function continueToCamera() {
     if (!resolvedSelected) return;
     selectTemplate(resolvedSelected);
     beginCapture();
+    await flushBoothSessionPersistence();
     const base = boothBasePath(pathname);
     router.push(`${base}/booth/camera${base ? "" : `?template=${encodeURIComponent(resolvedSelected)}`}`);
   }
   return (
     <div className="flex flex-1 flex-col">
+      {!templates.length ? <p role="alert" className="border border-current p-5">No receipt layouts are saved for this business. Connect to the internet and ask the administrator to configure a layout.</p> : null}
       <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
         {templates.map((template) => {
           const active = resolvedSelected === template.id;
@@ -51,7 +54,7 @@ export function TemplatePicker({ initialSelected = "double" }: { initialSelected
         })}
       </div>
       <div className="safe-bottom mt-8 flex justify-end">
-        <Button onClick={continueToCamera} disabled={!resolvedSelected} className="h-14 w-full rounded-none border-2 border-black bg-[var(--booth-accent)] px-7 text-base font-black uppercase text-black hover:bg-white sm:w-auto">Continue <ArrowRight className="size-5" /></Button>
+        <Button onClick={() => void continueToCamera()} disabled={!resolvedSelected} className="h-14 w-full rounded-none border-2 border-black bg-[var(--booth-accent)] px-7 text-base font-black uppercase text-black hover:bg-white sm:w-auto">Continue <ArrowRight className="size-5" /></Button>
       </div>
     </div>
   );

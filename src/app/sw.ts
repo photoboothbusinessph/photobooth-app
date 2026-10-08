@@ -3,7 +3,7 @@
 
 import { defaultCache } from "@serwist/turbopack/worker";
 import type { PrecacheEntry, SerwistGlobalConfig } from "serwist";
-import { NetworkOnly, Serwist } from "serwist";
+import { NetworkFirst, NetworkOnly, Serwist } from "serwist";
 
 declare global {
   interface WorkerGlobalScope extends SerwistGlobalConfig {
@@ -20,13 +20,29 @@ const serwist = new Serwist({
   navigationPreload: true,
   disableDevLogs: true,
   runtimeCaching: [
-    { matcher: ({ url, sameOrigin }) => sameOrigin && /^\/(?:admin|super-admin|share)(?:\/|$)/.test(url.pathname), handler: new NetworkOnly() },
+    {
+      matcher: ({ url, sameOrigin }) => sameOrigin && (
+        /^\/(?:api|admin|super-admin|share)(?:\/|$)/.test(url.pathname)
+        || /^\/b\/[a-z0-9-]+\/pair$/.test(url.pathname)
+      ),
+      handler: new NetworkOnly(),
+    },
+    {
+      matcher: ({ url, request, sameOrigin }) => sameOrigin
+        && /^\/b\/[a-z0-9-]+(?:\/booth\/(?:templates|camera|preview|photo-qr|social))?$/.test(url.pathname)
+        && !request.headers.has("rsc")
+        && (request.mode === "navigate" || request.headers.get("accept")?.includes("text/html") === true),
+      handler: new NetworkFirst({
+        cacheName: "paired-booth-documents-v1",
+        networkTimeoutSeconds: 3,
+        plugins: [{
+          cacheWillUpdate: async ({ response }) => response.ok && !response.redirected
+            && response.headers.get("content-type")?.includes("text/html") ? response : null,
+        }],
+      }),
+    },
     ...defaultCache,
   ],
-  precacheOptions: {
-    navigateFallback: "/~offline",
-    navigateFallbackDenylist: [/^\/api\//, /^\/admin(?:\/|$)/, /^\/super-admin(?:\/|$)/, /^\/share(?:\/|$)/],
-  },
   fallbacks: {
     entries: [{
       url: "/~offline",

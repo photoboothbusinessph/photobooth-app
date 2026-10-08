@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Image from "next/image";
-import Link from "next/link";
+import { BoothLink as Link } from "@/components/booth/booth-link";
 import { usePathname } from "next/navigation";
 import { boothBasePath } from "@/lib/booth-path";
 import { ArrowRight, CloudOff, LoaderCircle, Wifi } from "lucide-react";

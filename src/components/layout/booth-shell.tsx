@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { BoothLink as Link } from "@/components/booth/booth-link";
 import { ArrowLeft, LockKeyhole } from "lucide-react";
 import { BrandMark } from "@/components/shared/brand-mark";
 import { SessionCountdown } from "@/components/booth/session-countdown";

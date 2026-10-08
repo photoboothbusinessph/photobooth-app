@@ -1,16 +1,15 @@
 "use client";
 
 import * as React from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
+import { toast } from "sonner";
 import { boothSlug } from "@/lib/booth-path";
 import { bindCachedBusinessId, cacheBusinessSettings, cacheTemplates, migrateLegacyOfflineData, photoboothDb } from "@/lib/db/indexed-db";
 import { useBusinessStore } from "@/stores/business-store";
-import { templates as defaultTemplates } from "@/config/mock-data";
 import type { ReceiptTemplate } from "@/types";
 
 export function OfflineDataProvider() {
   const pathname = usePathname();
-  const router = useRouter();
   const warmedSlug = React.useRef<string | null>(null);
   const routeSlug = boothSlug(pathname);
   const adminRoute = pathname === "/admin" || pathname.startsWith("/admin/") && pathname !== "/admin/login" && pathname !== "/admin/change-password";
@@ -37,15 +36,14 @@ export function OfflineDataProvider() {
         photoboothDb.cachedTemplates.where("tenantKey").equals(routeSlug).toArray(),
       ]).catch(() => [null, []] as [null, ReceiptTemplate[]]) : [null, []];
       if (!active) return;
-      if (settings) {
+      if (settings?.identityVerified) {
         setBusinessId(settings.identityVerified ? settings.businessId : null);
         setConfigured(Boolean(settings.isConfigured));
         updateBranding(settings.branding);
         updatePalette(settings.palette);
         setAssetReferences({ logoPublicId: settings.logoPublicId ?? null, socialUrl: settings.socialUrl ?? null, socialQrUrl: settings.socialQrUrl ?? null, socialQrPublicId: settings.socialQrPublicId ?? null });
       }
-      if (cachedTemplates.length) setTemplates(cachedTemplates);
-      else if (routeSlug) setTemplates(defaultTemplates);
+      if (routeSlug) setTemplates(cachedTemplates.filter((template) => "businessId" in template && template.businessId === settings?.businessId));
 
       if (!navigator.onLine) {
         setHydrated(true);
@@ -68,18 +66,21 @@ export function OfflineDataProvider() {
           setAssetReferences(assets);
           setHydrated(true);
           try {
-            if (routeSlug && data._id === "default") await migrateLegacyOfflineData(routeSlug);
+            if (routeSlug && data._id === "default") await migrateLegacyOfflineData(routeSlug).catch(() => undefined);
+            await cacheBusinessSettings(data.branding, data.palette, assets, Boolean(data.isConfigured), tenantKey, data._id);
             await bindCachedBusinessId(tenantKey, data._id);
-            await cacheBusinessSettings(data.branding, data.palette, assets, Boolean(data.isConfigured), tenantKey);
           } catch {
-            // Browser storage may be unavailable; a verified server response can still render.
+            toast.error("Offline setup could not be saved. Check browser storage and reload while online.");
           }
         }
         if (templatesResponse.ok) {
           const { data } = await templatesResponse.json() as { data: ReturnType<typeof useBusinessStore.getState>["templates"] };
-          if (data.length && active) {
+          if (active) {
             setTemplates(data);
-            await cacheTemplates(data, routeSlug ?? useBusinessStore.getState().tenantKey).catch(() => undefined);
+            const { tenantKey, businessId } = useBusinessStore.getState();
+            await cacheTemplates(data, routeSlug ?? tenantKey, businessId).catch(() => {
+              toast.error("Receipt layouts could not be saved for offline use.");
+            });
           }
         }
       } catch {
@@ -97,20 +98,27 @@ export function OfflineDataProvider() {
     let cancelled = false;
     async function warmTenantRoutes() {
       await navigator.serviceWorker.ready;
+      if (!navigator.serviceWorker.controller && !cancelled) {
+        await new Promise<void>((resolve) => {
+          navigator.serviceWorker.addEventListener("controllerchange", () => resolve(), { once: true });
+        });
+      }
       if (cancelled || !navigator.serviceWorker.controller) return;
       const status = await fetch(`/api/kiosks/status?slug=${encodeURIComponent(routeSlug!)}`, { cache: "no-store" });
       if (!status.ok || cancelled) return;
       const base = `/b/${routeSlug}`;
       for (const path of [base, ...["templates", "camera", "preview", "photo-qr", "social"].map((step) => `${base}/booth/${step}`)]) {
         if (cancelled) break;
-        router.prefetch(path);
-        await fetch(path, { headers: { Accept: "text/html" }, credentials: "same-origin" }).catch(() => undefined);
+        const response = await fetch(path, { headers: { Accept: "text/html" }, credentials: "same-origin" });
+        if (!response.ok || response.redirected) throw new Error("Booth screen unavailable");
       }
       if (!cancelled) warmedSlug.current = routeSlug;
     }
-    void warmTenantRoutes().catch(() => undefined);
+    void warmTenantRoutes().catch(() => {
+      if (!cancelled) toast.error("Offline screens are not ready. Reload the booth while online.");
+    });
     return () => { cancelled = true; };
-  }, [pathname, routeSlug, router]);
+  }, [pathname, routeSlug]);
 
   return null;
 }

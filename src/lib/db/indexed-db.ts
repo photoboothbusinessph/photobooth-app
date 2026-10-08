@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from "dexie";
-import type { BusinessBranding, CapturedPhoto, ReceiptTemplate, SyncStatus, ThemePalette } from "@/types";
+import type { BoothStep, BusinessBranding, CapturedPhoto, PhotoMode, ReceiptTemplate, SyncStatus, ThemePalette } from "@/types";
 import { boothSlug } from "@/lib/booth-path";
 import { useBusinessStore } from "@/stores/business-store";
 
@@ -61,12 +61,28 @@ export interface SyncQueueRecord {
   updatedAt: number;
 }
 
+export interface LocalBoothDraft {
+  tenantKey: string;
+  businessId: string;
+  sessionId: string;
+  startedAt: number;
+  step: BoothStep;
+  selectedTemplateId: string | null;
+  capturedPhotos: CapturedPhoto[];
+  previewMode: PhotoMode;
+  generatedImages: { color: string; bw: string } | null;
+  shareUrl: string | null;
+  shareToken: string | null;
+  updatedAt: number;
+}
+
 class PhotoboothDatabase extends Dexie {
   businessSettings!: EntityTable<LocalBusinessSettings, "id">;
   cachedTemplates!: EntityTable<LocalTemplateRecord, "cacheKey">;
   sessions!: EntityTable<LocalSessionRecord, "id">;
   photos!: EntityTable<LocalPhotoRecord, "id">;
   syncQueue!: EntityTable<SyncQueueRecord, "id">;
+  boothDrafts!: EntityTable<LocalBoothDraft, "tenantKey">;
 
   constructor() {
     super("receipt-photobooth");
@@ -106,6 +122,9 @@ class PhotoboothDatabase extends Dexie {
         item.businessId ??= "default";
         item.tenantKey ??= item.businessId;
       });
+    });
+    this.version(5).stores({
+      boothDrafts: "tenantKey, businessId, updatedAt",
     });
   }
 }
@@ -147,16 +166,15 @@ export async function cacheBusinessSettings(
   assets: Pick<LocalBusinessSettings, "logoPublicId" | "socialUrl" | "socialQrUrl" | "socialQrPublicId"> = {},
   isConfigured = false,
   tenantKey = activeTenantKey(),
+  businessId = activeBusinessId(),
 ) {
   if (!tenantKey) throw new Error("Business context unavailable.");
-  const businessId = activeBusinessId();
   if (!businessId) throw new Error("Business identity unavailable.");
   await photoboothDb.businessSettings.put({ id: tenantKey, businessId, identityVerified: true, isConfigured, branding, palette, ...assets, updatedAt: Date.now() });
 }
 
-export async function cacheTemplates(templates: ReceiptTemplate[], tenantKey = activeTenantKey()) {
+export async function cacheTemplates(templates: ReceiptTemplate[], tenantKey = activeTenantKey(), businessId = activeBusinessId()) {
   if (!tenantKey) throw new Error("Business context unavailable.");
-  const businessId = activeBusinessId();
   if (!businessId) throw new Error("Business identity unavailable.");
   await photoboothDb.transaction("rw", photoboothDb.cachedTemplates, async () => {
     await photoboothDb.cachedTemplates.where("tenantKey").equals(tenantKey).delete();
@@ -199,6 +217,7 @@ export async function resetLocalData() {
       photoboothDb.sessions.where("businessId").equals(businessId).delete(),
       photoboothDb.photos.where("businessId").equals(businessId).delete(),
       photoboothDb.syncQueue.where("businessId").equals(businessId).delete(),
+      photoboothDb.boothDrafts.where("businessId").equals(businessId).delete(),
     ]);
   });
 }
