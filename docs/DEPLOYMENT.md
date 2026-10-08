@@ -20,14 +20,17 @@ NEXT_PUBLIC_APP_URL
 
 For an existing installation, complete the credential rotation, backup, dry-run, and tenant migration in `docs/MULTI_BUSINESS.md` before deploying this version. `MONGODB_DB` remains an environment database setting.
 
-## Vercel release procedure
+## Netlify release procedure
 
-1. Import the repository into the intended Vercel project without changing the package manager or build command.
-2. Add every variable above to the Production environment. Do not paste secrets into source files or build logs.
-3. Deploy and confirm the build completes successfully.
-4. Open the production HTTPS URL once while online and confirm the service worker registers.
-5. Sign in as super admin, change the temporary password, create/assign business admins, then let each business admin finish setup and pair a kiosk.
-6. Run the online and offline acceptance checklist in `docs/QA_CHECKLIST.md` on the target device.
+1. Import the repository into the intended Netlify project. The committed `netlify.toml` uses `pnpm build` and publishes `.next`; do not override these with a static-site output folder.
+2. In **Project configuration > Environment variables**, add every variable above for the Production deploy context. Do not paste secrets into source files or build logs.
+3. Set `NEXT_PUBLIC_APP_URL` to the final Netlify or custom HTTPS origin without a trailing slash.
+4. In **Deploys**, choose **Trigger deploy > Clear cache and deploy site**, then confirm that the deploy log identifies Next.js and creates Netlify functions.
+5. Open the published deploy and use **Deploy File Explorer** to confirm that the Next.js output was included. A Netlify-branded 404 on every route indicates an incorrect publish directory or missing Next.js handler, not an application 404.
+6. Open `/admin/login` and `/` on the production domain before continuing setup.
+7. Open the production HTTPS URL once while online and confirm the service worker registers.
+8. Sign in as super admin, change the temporary password, create/assign business admins, then let each business admin finish setup and pair a kiosk.
+9. Run the online and offline acceptance checklist in `docs/QA_CHECKLIST.md` on the target device.
 
 ## Release checks
 
