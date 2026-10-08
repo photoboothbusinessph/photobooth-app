@@ -7,9 +7,15 @@ const serverEnvironmentSchema = z.object({
   CLOUDINARY_CLOUD_NAME: z.string().min(1),
   CLOUDINARY_API_KEY: z.string().min(1),
   CLOUDINARY_API_SECRET: z.string().min(1),
-  AUTH_SECRET: z.string().min(32),
+  AUTH_SECRET: z.string().min(32).refine(
+    (value) => !/^(?:replace|change|example|your-)/i.test(value),
+    "AUTH_SECRET must be a generated high-entropy value.",
+  ),
   SUPER_ADMIN_EMAIL: z.email().optional(),
-  SUPER_ADMIN_PASSWORD: z.string().min(12).optional(),
+  SUPER_ADMIN_PASSWORD: z.string().min(12).refine(
+    (value) => !/^(?:replace|change|example|securepass)/i.test(value),
+    "SUPER_ADMIN_PASSWORD must not be a placeholder.",
+  ).optional(),
   NEXT_PUBLIC_APP_URL: z.url().default("http://localhost:3000"),
 }).refine((environment) => Boolean(environment.SUPER_ADMIN_EMAIL) === Boolean(environment.SUPER_ADMIN_PASSWORD), "Set both super-admin bootstrap variables or neither.");
 
