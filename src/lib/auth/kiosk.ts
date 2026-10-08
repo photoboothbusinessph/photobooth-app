@@ -3,7 +3,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
 import { getCollections } from "@/lib/db/collections";
 import { getBusinessBySlug } from "@/lib/db/tenant";
-import { getServerEnvironment } from "@/lib/server/env";
+import { getApplicationEnvironment } from "@/lib/server/env";
 
 const KIOSK_COOKIE = "photobooth-kiosk";
 
@@ -18,7 +18,7 @@ export function newKioskSecret() {
 export async function setKioskCookie(token: string) {
   (await cookies()).set(KIOSK_COOKIE, token, {
     httpOnly: true,
-    secure: getServerEnvironment().NEXT_PUBLIC_APP_URL.startsWith("https://"),
+    secure: getApplicationEnvironment().NEXT_PUBLIC_APP_URL.startsWith("https://"),
     sameSite: "lax",
     path: "/",
     maxAge: 60 * 60 * 24 * 365,

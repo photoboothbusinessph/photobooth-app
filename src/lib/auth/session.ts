@@ -1,7 +1,7 @@
 import "server-only";
 import { cookies } from "next/headers";
 import { getCollections, type AdminDocument } from "@/lib/db/collections";
-import { getServerEnvironment } from "@/lib/server/env";
+import { getApplicationEnvironment } from "@/lib/server/env";
 import {
   ADMIN_SESSION_COOKIE,
   ADMIN_SESSION_DURATION_SECONDS,
@@ -12,7 +12,7 @@ import {
 export { ADMIN_SESSION_COOKIE, verifyAdminToken } from "@/lib/auth/session-token";
 
 export async function createAdminSession(admin: AdminDocument) {
-  const secureCookie = getServerEnvironment().NEXT_PUBLIC_APP_URL.startsWith("https://");
+  const secureCookie = getApplicationEnvironment().NEXT_PUBLIC_APP_URL.startsWith("https://");
   const token = await createAdminToken(admin._id, admin.sessionVersion ?? 0);
   (await cookies()).set(ADMIN_SESSION_COOKIE, token, {
     httpOnly: true, sameSite: "lax", secure: secureCookie, path: "/",

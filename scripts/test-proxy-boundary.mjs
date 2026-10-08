@@ -37,3 +37,18 @@ test("the environment example does not contain scannable secret placeholders", a
     "MIGRATION_FIRST_BUSINESS_SLUG",
   ]) assert.equal(values[key], "", `${key} must be blank in .env.example`);
 });
+
+test("runtime services validate only their own environment variables", async () => {
+  const [databaseClient, cloudinaryClient, adminSession] = await Promise.all([
+    readFile("src/lib/db/mongodb.ts", "utf8"),
+    readFile("src/lib/cloudinary/client.ts", "utf8"),
+    readFile("src/lib/auth/session.ts", "utf8"),
+  ]);
+
+  assert.match(databaseClient, /getDatabaseEnvironment/);
+  assert.doesNotMatch(databaseClient, /getCloudinaryEnvironment|getApplicationEnvironment/);
+  assert.match(cloudinaryClient, /getCloudinaryEnvironment/);
+  assert.doesNotMatch(cloudinaryClient, /getDatabaseEnvironment|getApplicationEnvironment/);
+  assert.match(adminSession, /getApplicationEnvironment/);
+  assert.doesNotMatch(adminSession, /getDatabaseEnvironment|getCloudinaryEnvironment/);
+});

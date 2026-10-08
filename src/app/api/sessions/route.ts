@@ -4,7 +4,7 @@ import { requireBusinessAdmin } from "@/lib/auth/session";
 import { requireKiosk } from "@/lib/auth/kiosk";
 import { deleteImage, uploadImage } from "@/lib/cloudinary/client";
 import { getCollections } from "@/lib/db/collections";
-import { getServerEnvironment } from "@/lib/server/env";
+import { getApplicationEnvironment } from "@/lib/server/env";
 import { sessionUploadSchema } from "@/lib/validation/schemas";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 
@@ -62,6 +62,6 @@ export async function POST(request: Request) {
 }
 
 function toShareResult(shareToken: string) {
-  const baseUrl = getServerEnvironment().NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
+  const baseUrl = getApplicationEnvironment().NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
   return { shareToken, shareUrl: `${baseUrl}/share/${shareToken}` };
 }

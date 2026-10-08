@@ -3,7 +3,7 @@ import { z } from "zod";
 import { apiError, apiSuccess, handleApiError } from "@/lib/api/responses";
 import { createAdminSession } from "@/lib/auth/session";
 import { getCollections } from "@/lib/db/collections";
-import { getServerEnvironment } from "@/lib/server/env";
+import { getSuperAdminBootstrapEnvironment } from "@/lib/server/env";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 
 const loginSchema = z.object({ email: z.email(), password: z.string().min(8).max(128) });
@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     const email = input.email.toLowerCase();
     const { admins, businesses } = await getCollections();
     let admin = await admins.findOne({ email });
-    const environment = getServerEnvironment();
+    const environment = getSuperAdminBootstrapEnvironment();
 
     if (
       !admin &&

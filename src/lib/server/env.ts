@@ -1,28 +1,56 @@
 import "server-only";
 import { z } from "zod";
 
-const serverEnvironmentSchema = z.object({
-  MONGODB_URI: z.string().min(1),
-  MONGODB_DB: z.string().min(1).default("dev"),
-  CLOUDINARY_CLOUD_NAME: z.string().min(1),
-  CLOUDINARY_API_KEY: z.string().min(1),
-  CLOUDINARY_API_SECRET: z.string().min(1),
-  AUTH_SECRET: z.string().min(32).refine(
-    (value) => !/^(?:replace|change|example|your-)/i.test(value),
-    "AUTH_SECRET must be a generated high-entropy value.",
-  ),
-  SUPER_ADMIN_EMAIL: z.email().optional(),
-  SUPER_ADMIN_PASSWORD: z.string().min(12).refine(
-    (value) => !/^(?:replace|change|example|securepass)/i.test(value),
-    "SUPER_ADMIN_PASSWORD must not be a placeholder.",
-  ).optional(),
+const requiredValue = z.string().trim().min(1);
+const optionalValue = <T extends z.ZodType>(schema: T) =>
+  z.preprocess((value) => (typeof value === "string" && value.trim() === "" ? undefined : value), schema.optional());
+
+const databaseEnvironmentSchema = z.object({
+  MONGODB_URI: requiredValue,
+  MONGODB_DB: requiredValue.default("dev"),
+});
+
+const cloudinaryEnvironmentSchema = z.object({
+  CLOUDINARY_CLOUD_NAME: requiredValue,
+  CLOUDINARY_API_KEY: requiredValue,
+  CLOUDINARY_API_SECRET: requiredValue,
+});
+
+const applicationEnvironmentSchema = z.object({
   NEXT_PUBLIC_APP_URL: z.url().default("http://localhost:3000"),
-}).refine((environment) => Boolean(environment.SUPER_ADMIN_EMAIL) === Boolean(environment.SUPER_ADMIN_PASSWORD), "Set both super-admin bootstrap variables or neither.");
+});
 
-export type ServerEnvironment = z.infer<typeof serverEnvironmentSchema>;
+const superAdminBootstrapEnvironmentSchema = z.object({
+  SUPER_ADMIN_EMAIL: optionalValue(z.email()),
+  SUPER_ADMIN_PASSWORD: optionalValue(
+    z.string().min(12).refine(
+      (value) => !/^(?:replace|change|example|securepass)/i.test(value),
+      "SUPER_ADMIN_PASSWORD must not be a placeholder.",
+    ),
+  ),
+}).refine(
+  (environment) => Boolean(environment.SUPER_ADMIN_EMAIL) === Boolean(environment.SUPER_ADMIN_PASSWORD),
+  "Set both super-admin bootstrap variables or neither.",
+);
 
-export function getServerEnvironment(): ServerEnvironment {
-  const result = serverEnvironmentSchema.safeParse(process.env);
+function parseEnvironment<T>(schema: z.ZodType<T>): T {
+  const result = schema.safeParse(process.env);
   if (!result.success) throw new Error("Server environment is not configured.");
   return result.data;
+}
+
+export function getDatabaseEnvironment() {
+  return parseEnvironment(databaseEnvironmentSchema);
+}
+
+export function getCloudinaryEnvironment() {
+  return parseEnvironment(cloudinaryEnvironmentSchema);
+}
+
+export function getApplicationEnvironment() {
+  return parseEnvironment(applicationEnvironmentSchema);
+}
+
+export function getSuperAdminBootstrapEnvironment() {
+  return parseEnvironment(superAdminBootstrapEnvironmentSchema);
 }

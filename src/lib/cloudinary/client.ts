@@ -1,12 +1,12 @@
 import "server-only";
 import { v2 as cloudinary } from "cloudinary";
-import { getServerEnvironment } from "@/lib/server/env";
+import { getCloudinaryEnvironment } from "@/lib/server/env";
 
 const allowedDataUrl = /^data:image\/(png|jpeg|webp);base64,([A-Za-z0-9+/=]+)$/;
 const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
 
 function configureCloudinary() {
-  const environment = getServerEnvironment();
+  const environment = getCloudinaryEnvironment();
   cloudinary.config({
     cloud_name: environment.CLOUDINARY_CLOUD_NAME,
     api_key: environment.CLOUDINARY_API_KEY,
