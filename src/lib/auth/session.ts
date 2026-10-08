@@ -1,38 +1,27 @@
 import "server-only";
 import { cookies } from "next/headers";
-import { SignJWT, jwtVerify } from "jose";
 import { getCollections, type AdminDocument } from "@/lib/db/collections";
 import { getServerEnvironment } from "@/lib/server/env";
+import {
+  ADMIN_SESSION_COOKIE,
+  ADMIN_SESSION_DURATION_SECONDS,
+  createAdminToken,
+  verifyAdminToken,
+} from "@/lib/auth/session-token";
 
-export const ADMIN_SESSION_COOKIE = "photobooth-admin-session";
-const SESSION_DURATION_SECONDS = 60 * 60 * 8;
-
-function secretKey() {
-  return new TextEncoder().encode(getServerEnvironment().AUTH_SECRET);
-}
+export { ADMIN_SESSION_COOKIE, verifyAdminToken } from "@/lib/auth/session-token";
 
 export async function createAdminSession(admin: AdminDocument) {
   const secureCookie = getServerEnvironment().NEXT_PUBLIC_APP_URL.startsWith("https://");
-  const token = await new SignJWT({ version: admin.sessionVersion ?? 0 })
-    .setProtectedHeader({ alg: "HS256" })
-    .setSubject(admin._id)
-    .setIssuedAt()
-    .setExpirationTime(`${SESSION_DURATION_SECONDS}s`)
-    .sign(secretKey());
+  const token = await createAdminToken(admin._id, admin.sessionVersion ?? 0);
   (await cookies()).set(ADMIN_SESSION_COOKIE, token, {
     httpOnly: true, sameSite: "lax", secure: secureCookie, path: "/",
-    maxAge: SESSION_DURATION_SECONDS, priority: "high",
+    maxAge: ADMIN_SESSION_DURATION_SECONDS, priority: "high",
   });
 }
 
 export async function deleteAdminSession() {
   (await cookies()).delete(ADMIN_SESSION_COOKIE);
-}
-
-export async function verifyAdminToken(token: string) {
-  const { payload } = await jwtVerify(token, secretKey(), { algorithms: ["HS256"] });
-  if (!payload.sub || typeof payload.version !== "number") throw new Error("Unauthorized");
-  return { adminId: payload.sub, version: payload.version };
 }
 
 export async function requireAdmin() {

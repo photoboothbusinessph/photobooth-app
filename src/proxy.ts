@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { ADMIN_SESSION_COOKIE, verifyAdminToken } from "@/lib/auth/session";
+import { ADMIN_SESSION_COOKIE, verifyAdminToken } from "@/lib/auth/session-token";
 
 export async function proxy(request: NextRequest) {
   const token = request.cookies.get(ADMIN_SESSION_COOKIE)?.value;

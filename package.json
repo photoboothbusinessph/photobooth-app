@@ -11,7 +11,8 @@
     "start": "next start",
     "preview:pwa": "pnpm build && next start",
     "lint": "eslint",
-    "test:offline": "node --test scripts/test-offline.mjs"
+    "test:offline": "node --test scripts/test-offline.mjs",
+    "test:deployment": "node --test scripts/test-proxy-boundary.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
