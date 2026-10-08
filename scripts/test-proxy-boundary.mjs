@@ -52,3 +52,18 @@ test("runtime services validate only their own environment variables", async () 
   assert.match(adminSession, /getApplicationEnvironment/);
   assert.doesNotMatch(adminSession, /getDatabaseEnvironment|getCloudinaryEnvironment/);
 });
+
+test("existing admin login does not depend on bootstrap configuration", async () => {
+  const loginRoute = await readFile("src/app/api/auth/login/route.ts", "utf8");
+  const existingAdminGuard = loginRoute.indexOf("if (!admin &&");
+  const bootstrapRead = loginRoute.indexOf("getSuperAdminBootstrapEnvironment()", existingAdminGuard);
+
+  assert.notEqual(existingAdminGuard, -1);
+  assert.ok(bootstrapRead > existingAdminGuard, "bootstrap environment must be read only after confirming the admin is absent");
+});
+
+test("legacy booth routes fall back to a configured tenant", async () => {
+  const tenantRepository = await readFile("src/lib/db/tenant.ts", "utf8");
+  assert.match(tenantRepository, /isConfigured: true/);
+  assert.match(tenantRepository, /sort: \{ _id: 1 \}/);
+});

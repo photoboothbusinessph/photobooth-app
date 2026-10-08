@@ -15,19 +15,19 @@ export async function POST(request: Request) {
     const email = input.email.toLowerCase();
     const { admins, businesses } = await getCollections();
     let admin = await admins.findOne({ email });
-    const environment = getSuperAdminBootstrapEnvironment();
 
-    if (
-      !admin &&
-      environment.SUPER_ADMIN_EMAIL && environment.SUPER_ADMIN_PASSWORD &&
-      email === environment.SUPER_ADMIN_EMAIL.toLowerCase() &&
-      input.password === environment.SUPER_ADMIN_PASSWORD &&
-      (await admins.countDocuments({ role: "super_admin" })) === 0
-    ) {
-      const now = new Date();
-      const passwordHash = await hash(input.password, 12);
-      await admins.updateOne({ email }, { $setOnInsert: { _id: crypto.randomUUID(), email, passwordHash, role: "super_admin", businessId: null, isEnabled: true, mustChangePassword: true, sessionVersion: 0, createdAt: now, updatedAt: now } }, { upsert: true });
-      admin = await admins.findOne({ email });
+    if (!admin && (await admins.countDocuments({ role: "super_admin" })) === 0) {
+      const environment = getSuperAdminBootstrapEnvironment();
+      if (
+        environment.SUPER_ADMIN_EMAIL && environment.SUPER_ADMIN_PASSWORD &&
+        email === environment.SUPER_ADMIN_EMAIL.toLowerCase() &&
+        input.password === environment.SUPER_ADMIN_PASSWORD
+      ) {
+        const now = new Date();
+        const passwordHash = await hash(input.password, 12);
+        await admins.updateOne({ email }, { $setOnInsert: { _id: crypto.randomUUID(), email, passwordHash, role: "super_admin", businessId: null, isEnabled: true, mustChangePassword: true, sessionVersion: 0, createdAt: now, updatedAt: now } }, { upsert: true });
+        admin = await admins.findOne({ email });
+      }
     }
 
     if (!admin || !(await compare(input.password, admin.passwordHash)))

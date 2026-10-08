@@ -17,6 +17,15 @@ export async function getBusinessBySlug(slug: string) {
 
 export async function getLegacyBusinessSlug() {
   const { businesses } = await getCollections();
-  const business = await businesses.findOne({ _id: "default" }, { projection: { slug: 1 } });
+  const business =
+    await businesses.findOne({ _id: "default" }, { projection: { slug: 1 } }) ??
+    await businesses.findOne(
+      { slug: { $type: "string" }, isConfigured: true },
+      { projection: { slug: 1 }, sort: { _id: 1 } },
+    ) ??
+    await businesses.findOne(
+      { slug: { $type: "string" } },
+      { projection: { slug: 1 }, sort: { _id: 1 } },
+    );
   return business?.slug ?? null;
 }
