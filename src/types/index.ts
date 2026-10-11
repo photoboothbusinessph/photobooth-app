@@ -44,3 +44,13 @@ export interface BoothSession {
   syncStatus: SyncStatus;
   image: string;
 }
+
+export interface PublicShareData {
+  sessionId: string;
+  colorImageUrl: string;
+  bwImageUrl: string;
+  createdAt: string;
+  branding: BusinessBranding;
+  socialQrUrl: string | null;
+  socialUrl: string | null;
+}

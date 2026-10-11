@@ -19,6 +19,35 @@ async function loadModule(entry, replacements = {}) {
   return import("data:text/javascript;base64," + Buffer.from(result.outputFiles[0].text).toString("base64"));
 }
 
+test("new devices see welcome; pairing requires the matching business admin", async () => {
+  const state = { admin: null, paired: false };
+  globalThis.pairingAccessTest = state;
+  const replacements = {
+    "next/navigation": `export function redirect(path) { throw new Error("redirect:" + path); } export function notFound() { throw new Error("not-found"); }`,
+    "@/lib/db/tenant": `export const getBusinessBySlug = async () => ({ _id: "business-a", branding: { name: "Alpha" } });`,
+    "@/lib/auth/session": `export async function requireBusinessAdmin() { if (!globalThis.pairingAccessTest.admin) throw new Error("Unauthorized"); return globalThis.pairingAccessTest.admin; }`,
+    "@/lib/auth/kiosk": `export async function requireKiosk() { if (!globalThis.pairingAccessTest.paired) throw new Error("Unauthorized"); return {}; }`,
+    "@/components/booth/booth-experience": `export function BoothExperience() { return null; }`,
+    "@/components/booth/kiosk-pair-form": `export function KioskPairForm() { return null; }`,
+  };
+  try {
+    const { default: welcome } = await loadModule("src/app/b/[slug]/page.tsx", replacements);
+    const { default: pair } = await loadModule("src/app/b/[slug]/pair/page.tsx", replacements);
+    const { default: step } = await loadModule("src/app/b/[slug]/booth/[step]/page.tsx", replacements);
+    const props = { params: Promise.resolve({ slug: "alpha", step: "templates" }) };
+    assert.ok(await welcome(props));
+    await assert.rejects(pair(props), /redirect:\/b\/alpha$/);
+    await assert.rejects(step(props), /redirect:\/b\/alpha$/);
+    state.admin = { businessId: "business-b" };
+    await assert.rejects(pair(props), /redirect:\/b\/alpha$/);
+    state.admin = { businessId: "business-a" };
+    assert.ok(await pair(props));
+    state.paired = true;
+    await assert.rejects(pair(props), /redirect:\/b\/alpha$/);
+    assert.ok(await step(props));
+  } finally { delete globalThis.pairingAccessTest; }
+});
+
 test("booth navigation stays local, including Back/Finish; other routes use Next", async () => {
   const previousWindow = globalThis.window;
   const calls = [];

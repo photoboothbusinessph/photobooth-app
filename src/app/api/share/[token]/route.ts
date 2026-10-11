@@ -1,22 +1,20 @@
 import { apiError, apiSuccess, handleApiError } from "@/lib/api/responses";
-import { getCollections } from "@/lib/db/collections";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
+import { getPublicShareData, publicShareTokenPattern } from "@/lib/share/public-share-data";
 
 export async function GET(request: Request, context: RouteContext<"/api/share/[token]">) {
   try {
     enforceRateLimit(request, "public-share", 120, 60_000);
     const { token } = await context.params;
-    if (!/^[A-Za-z0-9_-]{32,64}$/.test(token)) return apiError("Invalid share link.", 400);
-    const { sessions, businesses } = await getCollections();
-    const session = await sessions.findOne({ shareToken: token });
-    if (!session) return apiError("This photo link is unavailable or expired.", 404);
-    const business = await businesses.findOne({ _id: session.businessId });
+    if (!publicShareTokenPattern.test(token)) return apiError("Invalid share link.", 400);
+    const data = await getPublicShareData(token);
+    if (!data) return apiError("This photo link is unavailable or expired.", 404);
     return apiSuccess({
-      sessionId: session._id,
-      colorImageUrl: session.colorImageUrl,
-      bwImageUrl: session.bwImageUrl,
-      createdAt: session.createdAt,
-      business: business ? { branding: business.branding, socialUrl: business.socialUrl ?? null, socialQrUrl: business.socialQrUrl } : null,
+      sessionId: data.sessionId,
+      colorImageUrl: data.colorImageUrl,
+      bwImageUrl: data.bwImageUrl,
+      createdAt: data.createdAt,
+      business: { branding: data.branding, socialUrl: data.socialUrl, socialQrUrl: data.socialQrUrl },
     });
   } catch (error) {
     return handleApiError(error);

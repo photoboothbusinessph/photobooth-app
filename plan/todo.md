@@ -78,8 +78,8 @@
 - [x] Show captured photos
 - [x] Create Color / B&W preview toggle
 - [x] Create Retake button
-- [x] Create Confirm button
-- [x] Create Print action UI
+- [x] Gate the next-page action until the receipt print step completes
+- [x] Create an 80mm receipt print-preview modal
 - [x] Create responsive preview layout
 
 ## Phase 7 — Photo Share QR UI
@@ -88,7 +88,7 @@
 - [x] Add scan instruction text
 - [x] Add online-only state
 - [x] Add offline unavailable state
-- [x] Create Continue button
+- [x] Combine the digital-copy and social-media QR codes on one final screen
 
 ## Phase 8 — Public Photo Page UI
 - [x] Create `/share/[token]` page UI
@@ -209,7 +209,7 @@
 - [x] Implement Print action
 - [x] Hide non-print UI
 - [x] Implement Reprint action
-- [x] Support configured receipt dimensions
+- [x] Enforce the 80mm receipt layout for booth printing
 - [ ] Test print layout on target device
 
 ## Phase 19 — IndexedDB Offline Storage

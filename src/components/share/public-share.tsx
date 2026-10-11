@@ -10,19 +10,9 @@ import { SocialQrCode } from "@/components/shared/social-qr-code";
 import { StatusState } from "@/components/shared/status-state";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { BusinessBranding } from "@/types";
+import type { PublicShareData } from "@/types";
 
-interface SharedPhotoData {
-  sessionId: string;
-  colorImageUrl: string;
-  bwImageUrl: string;
-  createdAt: string;
-  branding: BusinessBranding;
-  socialQrUrl: string | null;
-  socialUrl: string | null;
-}
-
-export function PublicShare({ data }: { data: SharedPhotoData | null }) {
+export function PublicShare({ data }: { data: PublicShareData | null }) {
   const [mode, setMode] = React.useState<"color" | "bw">("color");
   const [downloading, setDownloading] = React.useState(false);
 

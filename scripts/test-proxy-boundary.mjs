@@ -67,3 +67,15 @@ test("legacy booth routes fall back to a configured tenant", async () => {
   assert.match(tenantRepository, /isConfigured: true/);
   assert.match(tenantRepository, /sort: \{ _id: 1 \}/);
 });
+
+test("public share tokens resolve the business from their session", async () => {
+  const [sharePage, shareRepository] = await Promise.all([
+    readFile("src/app/share/[token]/page.tsx", "utf8"),
+    readFile("src/lib/share/public-share-data.ts", "utf8"),
+  ]);
+
+  assert.match(sharePage, /getPublicShareData\(token\)/);
+  assert.match(shareRepository, /sessions\.findOne\(\{ shareToken: token \}\)/);
+  assert.match(shareRepository, /businesses\.findOne\(\{ _id: session\.businessId \}\)/);
+  assert.doesNotMatch(shareRepository, /businessId:\s*["']default["']/);
+});

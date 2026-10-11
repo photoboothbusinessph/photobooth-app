@@ -51,7 +51,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         <BrandMark inverse className="mb-10 text-2xl" />
         <NavLinks />
         <div className="mt-auto space-y-2">
-          <Button nativeButton={false} render={<Link href={businessSlug ? `/b/${businessSlug}` : "/"} />} variant="ghost" className="h-11 w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"><ExternalLink /> Open booth</Button>
+          <Button nativeButton={false} render={<Link href={businessSlug ? `/b/${businessSlug}/pair` : "/"} />} variant="ghost" className="h-11 w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"><ExternalLink /> Open photobooth</Button>
           <LogoutDialog />
         </div>
       </aside>

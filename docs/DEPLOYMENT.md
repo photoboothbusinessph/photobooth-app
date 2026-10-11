@@ -42,6 +42,8 @@ For an existing installation, complete the credential rotation, backup, dry-run,
 
 ## Release checks
 
+New devices open the business welcome screen without a pairing redirect. To activate a kiosk, sign in as that business's admin on the target device, open **Kiosks**, generate a code, and choose **Open photobooth**. The sidebar action with the same label opens the same pairing screen. The pairing page and pairing API require the matching business admin. Photo sessions and uploads still require kiosk authorization.
+
 - `/`, `/b/[slug]`, all `/b/[slug]/booth/*` routes, `/admin/login`, `/super-admin`, and a valid `/share/[token]` load without console errors.
 - Camera permission is available only on the production HTTPS origin.
 - The manifest is detected and the app can be installed.

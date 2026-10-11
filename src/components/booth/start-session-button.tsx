@@ -21,6 +21,23 @@ export function StartSessionButton() {
   async function startSession() {
     if (!businessId || !sessionHydrated || starting) return;
     setStarting(true);
+    const slug = boothSlug(pathname);
+    if (slug && navigator.onLine) {
+      try {
+        const response = await fetch(`/api/kiosks/status?slug=${encodeURIComponent(slug)}`, { cache: "no-store" });
+        if (!response.ok) {
+          toast.error(response.status === 401 || response.status === 403
+            ? "This booth is not ready yet. Ask an admin to sign in and pair this device from Kiosks."
+            : "Could not check booth availability. Please try again.");
+          setStarting(false);
+          return;
+        }
+      } catch {
+        toast.error("Could not check booth availability. Please try again.");
+        setStarting(false);
+        return;
+      }
+    }
     if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
       void document.documentElement.requestFullscreen().catch(() => undefined);
     }
