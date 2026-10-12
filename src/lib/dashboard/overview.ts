@@ -4,10 +4,11 @@ import { getCollections } from "@/lib/db/collections";
 import { templateDocumentId } from "@/lib/db/tenant";
 
 export async function getDashboardOverview(businessId: string) {
-  const { sessions, templates } = await getCollections();
+  const { businesses, sessions, templates } = await getCollections();
   const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-  const [recentCount, syncedCount, recentSessions, businessTemplates] = await Promise.all([
+  const [business, recentCount, syncedCount, recentSessions, businessTemplates] = await Promise.all([
+    businesses.findOne({ _id: businessId }, { projection: { slug: 1 } }),
     sessions.countDocuments({ businessId, createdAt: { $gte: last24Hours } }),
     sessions.countDocuments({ businessId }),
     sessions
@@ -24,6 +25,7 @@ export async function getDashboardOverview(businessId: string) {
   const activeTemplate = businessTemplates.find((template) => template.isDefault);
 
   return {
+    businessSlug: business?.slug ?? null,
     recentCount,
     syncedCount,
     templateCount: businessTemplates.length,

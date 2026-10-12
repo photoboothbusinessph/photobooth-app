@@ -7,13 +7,12 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { StatusState } from "@/components/shared/status-state";
 import { cacheBusinessSettings } from "@/lib/db/indexed-db";
 import { useBusinessStore } from "@/stores/business-store";
 import type { BusinessBranding, ThemePalette } from "@/types";
 
-type SetupBrandingField = "name" | "monogram" | "handle" | "headerText" | "footerText" | "customMessage";
+type SetupBrandingField = "name" | "monogram" | "handle" | "footerText";
 
 const paletteFields: Array<{ key: keyof ThemePalette; label: string }> = [
   { key: "primary", label: "Primary" },
@@ -61,9 +60,7 @@ function HydratedBusinessSetupForm() {
       name,
       monogram,
       handle: draftBranding.handle.trim(),
-      headerText: draftBranding.headerText.trim(),
       footerText: draftBranding.footerText.trim(),
-      customMessage: draftBranding.customMessage.trim(),
     };
 
     setSaving(true);
@@ -130,16 +127,6 @@ function HydratedBusinessSetupForm() {
             />
           </div>
           <div className="space-y-2 sm:col-span-2">
-            <Label htmlFor="headerText">Booth headline</Label>
-            <Input
-              id="headerText"
-              name="headerText"
-              value={draftBranding.headerText}
-              onChange={(event) => setField("headerText", event.target.value)}
-              maxLength={120}
-            />
-          </div>
-          <div className="space-y-2 sm:col-span-2">
             <Label htmlFor="footerText">Receipt footer</Label>
             <Input
               id="footerText"
@@ -147,17 +134,6 @@ function HydratedBusinessSetupForm() {
               value={draftBranding.footerText}
               onChange={(event) => setField("footerText", event.target.value)}
               maxLength={120}
-            />
-          </div>
-          <div className="space-y-2 sm:col-span-2">
-            <Label htmlFor="customMessage">Guest message</Label>
-            <Textarea
-              id="customMessage"
-              name="customMessage"
-              value={draftBranding.customMessage}
-              onChange={(event) => setField("customMessage", event.target.value)}
-              maxLength={500}
-              rows={3}
             />
           </div>
         </section>

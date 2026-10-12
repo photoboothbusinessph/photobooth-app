@@ -23,6 +23,8 @@ export async function GET(request: Request) {
         socialQrUrl: null,
         socialQrPublicId: null,
         logoPublicId: null,
+        welcomeBackgroundUrl: null,
+        welcomeBackgroundPublicId: null,
       } : null),
     );
   } catch (error) {
@@ -37,6 +39,7 @@ export async function PATCH(request: Request) {
     const { businesses } = await getCollections();
     if (input.logoPublicId && !isBusinessAsset(input.logoPublicId, businessId)) throw new Error("Forbidden");
     if (input.socialQrPublicId && !isBusinessAsset(input.socialQrPublicId, businessId)) throw new Error("Forbidden");
+    if (input.welcomeBackgroundPublicId && !isBusinessAsset(input.welcomeBackgroundPublicId, businessId)) throw new Error("Forbidden");
     const now = new Date();
     await businesses.updateOne(
       { _id: businessId },

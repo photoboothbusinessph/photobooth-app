@@ -17,7 +17,7 @@ export function BoothExperience() {
   const base = boothBasePath(pathname);
   const step = pathname.slice(base.length);
   const templateId = useSearchParams().get("template") ?? undefined;
-  if (step === "/booth/templates") return <BoothShell title="Choose photo layout" eyebrow="Build your receipt" backHref={base} step="01 / 04"><BoothStepGuard requirement="session"><TemplatePicker initialSelected={templateId} /></BoothStepGuard></BoothShell>;
+  if (step === "/booth/templates") return <BoothShell title="Choose photo layout" eyebrow="Build your receipt" backHref={base} step="01 / 04"><BoothStepGuard requirement="session"><TemplatePicker /></BoothStepGuard></BoothShell>;
   if (step === "/booth/camera") return <CameraStep requestedTemplateId={templateId} />;
   if (step === "/booth/preview") return <PreviewStep requestedTemplateId={templateId} />;
   if (step === "/booth/photo-qr" || step === "/booth/social") return <BoothShell title="Your photos are ready" eyebrow="Digital copy & social media" backHref={`${base}/booth/preview`} step="04 / 04" showCountdown={false}><QrResult /></BoothShell>;

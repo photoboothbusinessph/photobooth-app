@@ -3,7 +3,7 @@
 
 import { defaultCache } from "@serwist/turbopack/worker";
 import type { PrecacheEntry, SerwistGlobalConfig } from "serwist";
-import { NetworkFirst, NetworkOnly, Serwist } from "serwist";
+import { CacheFirst, NetworkFirst, NetworkOnly, Serwist } from "serwist";
 
 declare global {
   interface WorkerGlobalScope extends SerwistGlobalConfig {
@@ -20,6 +20,10 @@ const serwist = new Serwist({
   navigationPreload: true,
   disableDevLogs: true,
   runtimeCaching: [
+    {
+      matcher: ({ url, request }) => url.hostname === "res.cloudinary.com" && request.destination === "image",
+      handler: new CacheFirst({ cacheName: "business-image-assets-v1" }),
+    },
     {
       matcher: ({ url, sameOrigin }) => sameOrigin && (
         /^\/(?:api|admin|super-admin|share)(?:\/|$)/.test(url.pathname)

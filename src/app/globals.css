@@ -116,7 +116,7 @@ button:not(:disabled), [role="button"]:not(:disabled) { cursor: pointer; }
 
 @media print {
   @page {
-    size: 80mm 180mm;
+    size: auto;
     margin: 0;
   }
 
@@ -126,8 +126,8 @@ button:not(:disabled), [role="button"]:not(:disabled) { cursor: pointer; }
   [data-print-receipt="true"] {
     position: fixed !important;
     inset: 0 auto auto 0 !important;
-    width: 80mm !important;
-    height: 180mm !important;
+    width: var(--receipt-width, 80mm) !important;
+    height: var(--receipt-height, 150mm) !important;
     max-width: none !important;
     border: 0 !important;
     box-shadow: none !important;

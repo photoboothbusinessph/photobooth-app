@@ -5,7 +5,6 @@ import { toast } from "sonner";
 import { usePathname } from "next/navigation";
 import { useBoothRouter } from "@/hooks/use-booth-router";
 import { boothBasePath, boothSlug } from "@/lib/booth-path";
-import { ArrowDownRight } from "lucide-react";
 import { BOOTH_SESSION_DEADLINE_KEY, BOOTH_SESSION_VOICE_WARNINGS_KEY, createBoothSessionDeadline } from "@/lib/booth-session";
 import { flushBoothSessionPersistence, useBoothStore } from "@/stores/booth-store";
 import { useBusinessStore } from "@/stores/business-store";
@@ -59,10 +58,9 @@ export function StartSessionButton() {
       type="button"
       onClick={() => void startSession()}
       disabled={!businessId || !sessionHydrated || starting}
-      className="group flex min-h-24 min-w-72 items-center justify-between border-2 border-white px-7 text-xl font-black uppercase tracking-[-0.03em] transition-colors hover:bg-white hover:text-black focus-visible:ring-4 focus-visible:ring-[var(--booth-accent)] lg:min-h-32"
+      className="min-h-16 min-w-64 bg-transparent px-6 text-2xl font-medium uppercase tracking-[-0.03em] text-white transition-opacity hover:opacity-75 focus-visible:ring-4 focus-visible:ring-[var(--booth-accent)] disabled:opacity-60 sm:text-4xl"
     >
       {starting ? "Starting session" : !businessId ? "Business setup unavailable" : sessionHydrated ? "Tap to start" : "Preparing booth"}
-      <ArrowDownRight className="size-8 transition-transform group-hover:translate-x-1 group-hover:translate-y-1" />
     </button>
   );
 }

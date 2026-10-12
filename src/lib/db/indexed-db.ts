@@ -22,6 +22,8 @@ export interface LocalBusinessSettings {
   socialUrl?: string | null;
   socialQrUrl?: string | null;
   socialQrPublicId?: string | null;
+  welcomeBackgroundUrl?: string | null;
+  welcomeBackgroundPublicId?: string | null;
   updatedAt: number;
 }
 
@@ -163,14 +165,15 @@ export async function bindCachedBusinessId(tenantKey: string, businessId: string
 export async function cacheBusinessSettings(
   branding: BusinessBranding,
   palette: ThemePalette,
-  assets: Pick<LocalBusinessSettings, "logoPublicId" | "socialUrl" | "socialQrUrl" | "socialQrPublicId"> = {},
+  assets: Pick<LocalBusinessSettings, "logoPublicId" | "socialUrl" | "socialQrUrl" | "socialQrPublicId" | "welcomeBackgroundUrl" | "welcomeBackgroundPublicId"> = {},
   isConfigured = false,
   tenantKey = activeTenantKey(),
   businessId = activeBusinessId(),
 ) {
   if (!tenantKey) throw new Error("Business context unavailable.");
   if (!businessId) throw new Error("Business identity unavailable.");
-  await photoboothDb.businessSettings.put({ id: tenantKey, businessId, identityVerified: true, isConfigured, branding, palette, ...assets, updatedAt: Date.now() });
+  const existing = await photoboothDb.businessSettings.get(tenantKey);
+  await photoboothDb.businessSettings.put({ ...existing, id: tenantKey, businessId, identityVerified: true, isConfigured, branding, palette, ...assets, updatedAt: Date.now() });
 }
 
 export async function cacheTemplates(templates: ReceiptTemplate[], tenantKey = activeTenantKey(), businessId = activeBusinessId()) {

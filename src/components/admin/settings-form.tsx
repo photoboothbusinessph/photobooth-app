@@ -9,8 +9,9 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { resetLocalData } from "@/lib/db/indexed-db";
+import { receiptSizeBySlots } from "@/lib/receipt/template-rules";
 
-const defaults = { countdown: "3", template: "double", size: "80 × 180 mm", fullscreen: true };
+const defaults = { countdown: "3", template: "double", fullscreen: true };
 
 export function SettingsForm() {
   const [settings, setSettings] = React.useState(defaults);
@@ -26,8 +27,8 @@ export function SettingsForm() {
         <div className="grid gap-6 sm:grid-cols-2">
           <SettingSelect label="Countdown" value={settings.countdown} onChange={(value) => setSettings({ ...settings, countdown: value })} options={["3", "5", "10"]} suffix=" seconds" />
           <SettingSelect label="Default template" value={settings.template} onChange={(value) => setSettings({ ...settings, template: value })} options={["solo", "double", "triple", "quad"]} labels={["Solo Story", "Double Take", "Three Beats", "Four Frames"]} />
-          <SettingSelect label="Receipt size" value={settings.size} onChange={(value) => setSettings({ ...settings, size: value })} options={["80 × 120 mm", "80 × 180 mm", "80 × 220 mm", "80 × 260 mm"]} />
         </div>
+        <div className="mt-7 border-t pt-6"><h2 className="font-bold">Automatic receipt sizes</h2><p className="mt-1 text-sm text-muted-foreground">Paper height follows the selected photo layout so previews, downloads, and printing stay consistent.</p><dl className="mt-4 grid gap-3 sm:grid-cols-3"><div className="border p-4"><dt className="text-xs font-bold uppercase tracking-wider text-muted-foreground">1 photo</dt><dd className="mt-1 font-bold">{receiptSizeBySlots[1]}</dd></div><div className="border p-4"><dt className="text-xs font-bold uppercase tracking-wider text-muted-foreground">2–3 photos</dt><dd className="mt-1 font-bold">{receiptSizeBySlots[2]}</dd></div><div className="border p-4"><dt className="text-xs font-bold uppercase tracking-wider text-muted-foreground">4 photos</dt><dd className="mt-1 font-bold">{receiptSizeBySlots[4]}</dd></div></dl></div>
         <div className="mt-7 flex min-h-16 items-center justify-between gap-5 border-t pt-6"><div><Label htmlFor="fullscreen">Fullscreen booth mode</Label><p className="mt-1 text-xs text-muted-foreground">Hide browser distractions on supported devices.</p></div><Switch id="fullscreen" checked={settings.fullscreen} onCheckedChange={(value) => setSettings({ ...settings, fullscreen: value })} /></div>
         <Button onClick={() => { setSaved(true); toast.info("Settings are only kept on this page for now."); }} className="mt-7 h-11"><Save /> {saved ? "Set for this visit" : "Apply settings preview"}</Button>
       </section>

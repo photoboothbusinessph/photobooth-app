@@ -9,7 +9,6 @@ import { StatusState } from "@/components/shared/status-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { useBusinessStore } from "@/stores/business-store";
 import { cacheBusinessSettings, queueSync } from "@/lib/db/indexed-db";
 import type { BusinessBranding } from "@/types";
@@ -24,17 +23,18 @@ export function BrandingForm() {
 
 function HydratedBrandingForm() {
   const inputRef = React.useRef<HTMLInputElement>(null);
+  const backgroundInputRef = React.useRef<HTMLInputElement>(null);
   const storedBranding = useBusinessStore((state) => state.branding);
   const updateBranding = useBusinessStore((state) => state.updateBranding);
   const logoPublicId = useBusinessStore((state) => state.logoPublicId);
   const socialQrUrl = useBusinessStore((state) => state.socialQrUrl);
   const socialUrl = useBusinessStore((state) => state.socialUrl);
   const socialQrPublicId = useBusinessStore((state) => state.socialQrPublicId);
+  const welcomeBackgroundUrl = useBusinessStore((state) => state.welcomeBackgroundUrl);
+  const welcomeBackgroundPublicId = useBusinessStore((state) => state.welcomeBackgroundPublicId);
   const setAssetReferences = useBusinessStore((state) => state.setAssetReferences);
   const [name, setName] = React.useState(storedBranding.name);
-  const [header, setHeader] = React.useState(storedBranding.headerText);
   const [footer, setFooter] = React.useState(storedBranding.footerText);
-  const [message, setMessage] = React.useState(storedBranding.customMessage);
   const [logo, setLogo] = React.useState<string | null>(storedBranding.logoDataUrl);
   const [logoMode, setLogoMode] = React.useState<"image" | "text">(storedBranding.logoMode ?? (storedBranding.logoDataUrl ? "image" : "text"));
   const [logoText, setLogoText] = React.useState(storedBranding.monogram);
@@ -42,6 +42,8 @@ function HydratedBrandingForm() {
   const [logoColor, setLogoColor] = React.useState(storedBranding.logoColor ?? "");
   const [saved, setSaved] = React.useState(false);
   const [logoChanged, setLogoChanged] = React.useState(false);
+  const [background, setBackground] = React.useState<string | null>(welcomeBackgroundUrl);
+  const [backgroundChanged, setBackgroundChanged] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
 
   function chooseLogo(event: React.ChangeEvent<HTMLInputElement>) {
@@ -54,16 +56,29 @@ function HydratedBrandingForm() {
     reader.onload = () => { setLogo(typeof reader.result === "string" ? reader.result : null); setLogoChanged(true); setSaved(false); toast.success("Logo preview ready to upload"); };
     reader.readAsDataURL(file);
   }
+  function chooseBackground(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) { toast.error("Choose a PNG, JPEG, or WebP image"); return; }
+    if (file.size > 8 * 1024 * 1024) { toast.error("Choose an image smaller than 8 MB"); return; }
+    const reader = new FileReader();
+    reader.onload = () => { setBackground(typeof reader.result === "string" ? reader.result : null); setBackgroundChanged(true); setSaved(false); toast.success("Background preview ready to upload"); };
+    reader.readAsDataURL(file);
+  }
   async function save() {
     if (!logoText.trim()) { toast.error("Enter text for the business logo."); return; }
     if (logoMode === "image" && !logo) { toast.error("Choose an image or select Text only."); return; }
     if (logoColor && !isHexColor(logoColor)) { toast.error("Use a six-digit hex color for the logo."); return; }
     setSaving(true);
     let uploadedPublicId: string | null = null;
+    let uploadedBackgroundPublicId: string | null = null;
     let savedToServer = false;
     try {
       let nextLogo = logoMode === "text" && logo ? storedBranding.logoDataUrl : logo;
       let nextLogoPublicId = logoPublicId;
+      let nextBackground = background;
+      let nextBackgroundPublicId = welcomeBackgroundPublicId;
       if (logoChanged && logo && logoMode === "image") {
         if (!navigator.onLine) throw new Error("Connect to the internet to upload a new logo.");
         const response = await fetch("/api/uploads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ dataUrl: logo, kind: "logo" }) });
@@ -75,27 +90,46 @@ function HydratedBrandingForm() {
       } else if (logoChanged && !logo) {
         nextLogoPublicId = null;
       }
-      const nextBranding = { ...storedBranding, name, headerText: header, footerText: footer, customMessage: message, monogram: logoText.trim(), logoMode, logoFont, logoColor: logoColor || undefined, logoDataUrl: nextLogo };
-      const assets = { logoPublicId: nextLogoPublicId, socialUrl, socialQrUrl, socialQrPublicId };
+      if (backgroundChanged && background) {
+        if (!navigator.onLine) throw new Error("Connect to the internet to upload a welcome background.");
+        const response = await fetch("/api/uploads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ dataUrl: background, kind: "welcome-background" }) });
+        const result = await response.json() as { data?: { url: string; publicId: string }; error?: { message?: string } };
+        if (!response.ok || !result.data) throw new Error(result.error?.message ?? "Background upload failed.");
+        nextBackground = result.data.url;
+        nextBackgroundPublicId = result.data.publicId;
+        uploadedBackgroundPublicId = result.data.publicId;
+      } else if (backgroundChanged && !background) {
+        nextBackgroundPublicId = null;
+      }
+      const nextBranding = { ...storedBranding, name, footerText: footer, monogram: logoText.trim(), logoMode, logoFont, logoColor: logoColor || undefined, logoDataUrl: nextLogo };
+      const assets = { logoPublicId: nextLogoPublicId, socialUrl, socialQrUrl, socialQrPublicId, welcomeBackgroundUrl: nextBackground, welcomeBackgroundPublicId: nextBackgroundPublicId };
       if (navigator.onLine) {
         const response = await fetch("/api/business", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isConfigured: useBusinessStore.getState().isConfigured, branding: nextBranding, palette: useBusinessStore.getState().palette, ...assets }) });
         if (!response.ok) throw new Error("Unable to save branding. Please try again.");
         savedToServer = true;
       }
       updateBranding(nextBranding);
-      setAssetReferences({ logoPublicId: nextLogoPublicId });
+      setAssetReferences({ logoPublicId: nextLogoPublicId, welcomeBackgroundUrl: nextBackground, welcomeBackgroundPublicId: nextBackgroundPublicId });
       await cacheBusinessSettings(nextBranding, useBusinessStore.getState().palette, assets, useBusinessStore.getState().isConfigured);
       if (!navigator.onLine) await queueSync("business", "default");
       if (navigator.onLine && logoChanged && logoPublicId && logoPublicId !== nextLogoPublicId) {
         void fetch("/api/uploads", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ publicId: logoPublicId }) });
       }
+      if (navigator.onLine && backgroundChanged && welcomeBackgroundPublicId && welcomeBackgroundPublicId !== nextBackgroundPublicId) {
+        void fetch("/api/uploads", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ publicId: welcomeBackgroundPublicId }) });
+      }
       setLogo(nextLogo);
+      setBackground(nextBackground);
       setLogoChanged(false);
+      setBackgroundChanged(false);
       setSaved(true);
       toast.success(navigator.onLine ? "Branding saved" : "Branding saved offline");
     } catch (error) {
       if (uploadedPublicId && !savedToServer) {
         void fetch("/api/uploads", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ publicId: uploadedPublicId }) });
+      }
+      if (uploadedBackgroundPublicId && !savedToServer) {
+        void fetch("/api/uploads", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ publicId: uploadedBackgroundPublicId }) });
       }
       toast.error(error instanceof Error ? error.message : "Unable to save branding");
     } finally {
@@ -110,9 +144,7 @@ function HydratedBrandingForm() {
       <section className="space-y-8">
         <div className="grid gap-5 border border-black/15 bg-card p-5 sm:p-7">
           <div className="space-y-2"><Label htmlFor="business-name">Business name</Label><Input id="business-name" value={name} onChange={(event) => { setName(event.target.value); setSaved(false); }} className="h-11" /></div>
-          <div className="space-y-2"><Label htmlFor="header-text">Receipt header</Label><Input id="header-text" value={header} onChange={(event) => { setHeader(event.target.value); setSaved(false); }} className="h-11" /></div>
           <div className="space-y-2"><Label htmlFor="footer-text">Receipt footer</Label><Input id="footer-text" value={footer} onChange={(event) => { setFooter(event.target.value); setSaved(false); }} className="h-11" /></div>
-          <div className="space-y-2"><Label htmlFor="message">Guest message</Label><Textarea id="message" value={message} onChange={(event) => { setMessage(event.target.value); setSaved(false); }} rows={4} /></div>
         </div>
         <div className="space-y-5 border border-black/15 bg-card p-5 sm:p-7">
           <div className="flex items-center justify-between"><div><h2 className="font-bold">Business logo</h2><p className="mt-1 text-xs text-muted-foreground">Choose an uploaded image or styled text.</p></div><ImagePlus className="size-5 text-primary" /></div>
@@ -129,9 +161,17 @@ function HydratedBrandingForm() {
             <div className="flex min-h-32 items-center justify-center overflow-hidden border border-dashed bg-muted/35 p-6"><BrandMark branding={draftBranding} className="break-all text-5xl" /></div>
           </>}
         </div>
+        <div className="space-y-5 border border-black/15 bg-card p-5 sm:p-7">
+          <div className="flex items-center justify-between"><div><h2 className="font-bold">Tap-to-Start background</h2><p className="mt-1 text-xs text-muted-foreground">Used only on the booth welcome screen. Portrait artwork works best on tablets.</p></div><ImagePlus className="size-5 text-primary" /></div>
+          <div className="relative flex min-h-56 items-center justify-center overflow-hidden border border-dashed bg-[var(--booth-primary)] p-6">
+            {background ? <Image src={background} alt="Tap-to-Start background preview" fill sizes="800px" unoptimized className="object-cover" /> : <p className="relative z-10 text-sm font-bold text-white">Theme color fallback</p>}
+          </div>
+          <input ref={backgroundInputRef} type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={chooseBackground} aria-label="Upload Tap-to-Start background image" />
+          <div className="flex flex-wrap gap-3"><Button type="button" variant="outline" className="h-11" onClick={() => backgroundInputRef.current?.click()}><Upload /> {background ? "Replace" : "Choose background"}</Button><Button type="button" variant="destructive" className="h-11" onClick={() => { setBackground(null); setBackgroundChanged(true); setSaved(false); }} disabled={!background}><Trash2 /> Remove</Button></div>
+        </div>
         <Button onClick={() => void save()} disabled={saving} className="h-12 w-full sm:w-auto">{saving ? <LoaderCircle className="animate-spin" /> : <Save />} {saving ? "Saving…" : saved ? "Saved" : "Save branding"}</Button>
       </section>
-      <aside className="xl:sticky xl:top-24 xl:self-start"><p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">Live booth preview</p><div className="grain flex aspect-[4/5] flex-col justify-between overflow-hidden bg-[var(--booth-primary)] p-7 text-white"><div className="flex items-center justify-between gap-4"><BrandMark branding={draftBranding} inverse className="break-all text-4xl" /><span className="text-[10px] font-bold uppercase tracking-[0.18em]">Receipt booth</span></div><div><p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--booth-accent)]">{header || "Your header"}</p><h3 className="mt-4 break-words text-6xl font-black uppercase leading-[0.82] tracking-[-0.07em]">{name || "Your Business"}</h3><p className="mt-5 max-w-xs text-sm text-white/70">{message}</p></div><p className="border-t border-white/30 pt-4 text-xs font-bold uppercase tracking-[0.18em]">{footer}</p></div></aside>
+      <aside className="xl:sticky xl:top-24 xl:self-start"><p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">Live booth preview</p><div className="relative aspect-[3/5] overflow-hidden bg-[var(--booth-primary)] text-white">{background ? <Image src={background} alt="" fill sizes="430px" unoptimized className="object-cover" /> : null}<div className="absolute inset-y-0 left-0 flex w-16 items-center justify-center"><p className="whitespace-nowrap text-3xl font-black uppercase [writing-mode:vertical-rl]">Receipt Photobooth</p></div><BrandMark branding={draftBranding} inverse className="absolute left-1/2 top-[16%] -translate-x-1/2 break-all text-5xl" /><span className="absolute bottom-[12%] left-1/2 -translate-x-1/2 whitespace-nowrap text-xl font-medium uppercase">Tap to start</span></div></aside>
     </div>
   );
 }

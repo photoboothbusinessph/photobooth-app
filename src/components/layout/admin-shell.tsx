@@ -6,7 +6,7 @@ import { BarChart3, Brush, ExternalLink, Grid2X2, Images, LogOut, Menu, Monitor,
 import { BrandMark } from "@/components/shared/brand-mark";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { useAdminUiStore } from "@/stores/admin-ui-store";
 import { useBusinessStore } from "@/stores/business-store";
@@ -63,6 +63,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               <SheetContent side="left" className="bg-sidebar text-sidebar-foreground">
                 <SheetHeader><SheetTitle><BrandMark inverse className="text-2xl" /></SheetTitle><SheetDescription className="text-sidebar-foreground/60">Photobooth administration</SheetDescription></SheetHeader>
                 <div className="px-4"><NavLinks onNavigate={() => setMobileNavigationOpen(false)} /></div>
+                <SheetFooter className="border-t border-sidebar-border">
+                  <Button nativeButton={false} render={<Link href={businessSlug ? `/b/${businessSlug}/pair` : "/"} onClick={() => setMobileNavigationOpen(false)} />} variant="ghost" className="h-11 w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"><ExternalLink /> Open photobooth</Button>
+                  <LogoutDialog />
+                </SheetFooter>
               </SheetContent>
             </Sheet>
             <span className="text-sm font-bold">Admin</span>

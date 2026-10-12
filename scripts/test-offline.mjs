@@ -19,7 +19,18 @@ async function loadModule(entry, replacements = {}) {
   return import("data:text/javascript;base64," + Buffer.from(result.outputFiles[0].text).toString("base64"));
 }
 
-test("new devices see welcome; pairing requires the matching business admin", async () => {
+test("receipt sizes and photo boxes follow the tablet receipt rules", async () => {
+  const { normalizeReceiptTemplate, receiptSizeForSlots, receiptSlotRects } = await loadModule("src/lib/receipt/template-rules.ts");
+  assert.deepEqual([1, 2, 3, 4].map(receiptSizeForSlots), ["80 × 100 mm", "80 × 150 mm", "80 × 150 mm", "80 × 200 mm"]);
+  const normalized = normalizeReceiptTemplate({ photoSlots: 4, size: "80 × 260 mm" });
+  assert.equal(normalized.size, "80 × 200 mm");
+  const rectangles = receiptSlotRects(4, 800, 2000);
+  assert.equal(rectangles.length, 4);
+  assert.ok(rectangles.every((rectangle) => rectangle.x === rectangles[0].x && rectangle.width === rectangles[0].width));
+  assert.ok(rectangles.every((rectangle, index) => index === 0 || rectangle.y > rectangles[index - 1].y));
+});
+
+test("new devices sign in first; paired devices see welcome", async () => {
   const state = { admin: null, paired: false };
   globalThis.pairingAccessTest = state;
   const replacements = {
@@ -35,7 +46,7 @@ test("new devices see welcome; pairing requires the matching business admin", as
     const { default: pair } = await loadModule("src/app/b/[slug]/pair/page.tsx", replacements);
     const { default: step } = await loadModule("src/app/b/[slug]/booth/[step]/page.tsx", replacements);
     const props = { params: Promise.resolve({ slug: "alpha", step: "templates" }) };
-    assert.ok(await welcome(props));
+    await assert.rejects(welcome(props), /redirect:\/admin\/login\?business=alpha$/);
     await assert.rejects(pair(props), /redirect:\/b\/alpha$/);
     await assert.rejects(step(props), /redirect:\/b\/alpha$/);
     state.admin = { businessId: "business-b" };
@@ -44,6 +55,7 @@ test("new devices see welcome; pairing requires the matching business admin", as
     assert.ok(await pair(props));
     state.paired = true;
     await assert.rejects(pair(props), /redirect:\/b\/alpha$/);
+    assert.ok(await welcome(props));
     assert.ok(await step(props));
   } finally { delete globalThis.pairingAccessTest; }
 });
@@ -134,6 +146,7 @@ test("worker caches only booth HTML, never redirects or RSC as documents", async
   await loadModule("src/app/sw.ts", {
     "@serwist/turbopack/worker": "export const defaultCache = [];",
     serwist: `
+      export class CacheFirst { constructor(options) { Object.assign(this, options); } }
       export class NetworkOnly {}
       export class NetworkFirst { constructor(options) { Object.assign(this, options); } }
       export class Serwist { constructor(options) { globalThis.workerTestOptions = options; } addEventListeners() {} }
@@ -142,10 +155,14 @@ test("worker caches only booth HTML, never redirects or RSC as documents", async
   try {
     const config = globalThis.workerTestOptions;
     assert.equal(config.precacheOptions?.navigateFallback, undefined);
+    const assetCache = config.runtimeCaching[0];
+    assert.equal(assetCache.handler.cacheName, "business-image-assets-v1");
+    assert.equal(assetCache.matcher({ url: new URL("https://res.cloudinary.com/demo/image.png"), request: { destination: "image" } }), true);
+    assert.equal(assetCache.matcher({ url: new URL("https://other.test/image.png"), request: { destination: "image" } }), false);
     for (const path of ["/api/kiosks/status", "/api/business", "/admin", "/share/token", "/b/alpha/pair"]) {
-      assert.equal(config.runtimeCaching[0].matcher({ url: new URL(path, "https://booth.test"), sameOrigin: true }), true);
+      assert.equal(config.runtimeCaching[1].matcher({ url: new URL(path, "https://booth.test"), sameOrigin: true }), true);
     }
-    const route = config.runtimeCaching[1];
+    const route = config.runtimeCaching[2];
     const matches = (path, headers = { accept: "text/html" }) => route.matcher({
       url: new URL(path, "https://booth.test"), sameOrigin: true,
       request: new Request("https://booth.test" + path, { headers }),

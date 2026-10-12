@@ -1,4 +1,5 @@
 import type { BusinessBranding, CapturedPhoto, ReceiptTemplate, ThemePalette } from "@/types";
+import { normalizeReceiptTemplate, receiptMillimeters, receiptSlotRects } from "@/lib/receipt/template-rules";
 
 function loadImage(source: string) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
@@ -19,15 +20,11 @@ function drawCover(context: CanvasRenderingContext2D, image: HTMLImageElement, x
   context.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, x, y, width, height);
 }
 
-function receiptRatio(size: string) {
-  const dimensions = size.match(/(\d+)\D+(\d+)/);
-  if (!dimensions) return 1.8;
-  return Number(dimensions[2]) / Number(dimensions[1]);
-}
-
-export async function renderReceiptImage({ template, photos, branding, palette, monochrome }: { template: ReceiptTemplate; photos: CapturedPhoto[]; branding: BusinessBranding; palette: ThemePalette; monochrome: boolean }) {
+export async function renderReceiptImage({ template, photos, branding, palette, monochrome, mirrored = false }: { template: ReceiptTemplate; photos: CapturedPhoto[]; branding: BusinessBranding; palette: ThemePalette; monochrome: boolean; mirrored?: boolean }) {
+  const normalizedTemplate = normalizeReceiptTemplate(template);
+  const dimensions = receiptMillimeters(normalizedTemplate.size);
   const width = 800;
-  const height = Math.round(width * receiptRatio(template.size));
+  const height = Math.round(width * dimensions.height / dimensions.width);
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
@@ -35,8 +32,31 @@ export async function renderReceiptImage({ template, photos, branding, palette, 
   if (!context) throw new Error("Image rendering is not supported in this browser.");
   const brandContext = context;
 
-  context.fillStyle = palette.background;
+  context.fillStyle = normalizedTemplate.designMode === "image-overlay" ? "#ffffff" : palette.background;
   context.fillRect(0, 0, width, height);
+  const overlayMode = normalizedTemplate.designMode === "image-overlay" && normalizedTemplate.overlayImageUrl;
+
+  const rects = receiptSlotRects(normalizedTemplate.photoSlots, width, height);
+  const images = await Promise.all(photos.slice(0, normalizedTemplate.photoSlots).map((photo) => loadImage(photo.dataUrl)));
+  images.forEach((image, index) => {
+    const rect = rects[index];
+    if (!rect) return;
+    context.save();
+    context.filter = monochrome ? "grayscale(1)" : "none";
+    if (mirrored) {
+      context.translate(rect.x + rect.width, rect.y);
+      context.scale(-1, 1);
+      drawCover(context, image, 0, 0, rect.width, rect.height);
+    } else drawCover(context, image, rect.x, rect.y, rect.width, rect.height);
+    context.restore();
+  });
+
+  if (overlayMode) {
+    const overlay = await loadImage(normalizedTemplate.overlayImageUrl!);
+    context.drawImage(overlay, 0, 0, width, height);
+    return canvas.toDataURL("image/png");
+  }
+
   context.textAlign = "right";
   context.fillStyle = palette.text;
   context.font = "700 16px sans-serif";
@@ -62,49 +82,32 @@ export async function renderReceiptImage({ template, photos, branding, palette, 
     brandContext.fillText(branding.monogram || branding.name, x, y + Math.min(maxHeight, 46), maxWidth);
   }
 
-  if (template.logoPlacement === "bottom") {
+  if (normalizedTemplate.logoPlacement === "bottom") {
     context.fillStyle = palette.text;
     context.font = "700 24px sans-serif";
     context.fillText("PHOTO RECEIPT", 48, 64);
   } else await drawBrandMark(48, 12, 520, 56);
 
-  const padding = 48;
-  const gap = 14;
-  const top = 100;
-  const footerHeight = 92;
-  const contentHeight = height - top - footerHeight - padding;
-  const columns = template.layout === "quad" ? 2 : 1;
-  const rows = template.layout === "quad" ? 2 : template.photoSlots;
-  const slotWidth = (width - padding * 2 - gap * (columns - 1)) / columns;
-  const slotHeight = (contentHeight - gap * (rows - 1)) / rows;
-  const images = await Promise.all(photos.slice(0, template.photoSlots).map((photo) => loadImage(photo.dataUrl)));
-
-  images.forEach((image, index) => {
-    const column = template.layout === "quad" ? index % 2 : 0;
-    const row = template.layout === "quad" ? Math.floor(index / 2) : index;
-    const x = padding + column * (slotWidth + gap);
-    const y = top + row * (slotHeight + gap);
-    context.save();
-    context.filter = monochrome ? "grayscale(1)" : "none";
-    drawCover(context, image, x, y, slotWidth, slotHeight);
-    context.restore();
+  images.forEach((_image, index) => {
+    const rect = rects[index];
+    if (!rect) return;
     context.fillStyle = "#101010";
-    context.fillRect(x + slotWidth - 42, y + slotHeight - 30, 42, 30);
+    context.fillRect(rect.x + rect.width - 42, rect.y + rect.height - 30, 42, 30);
     context.fillStyle = "#ffffff";
     context.textAlign = "center";
     context.font = "700 15px sans-serif";
-    context.fillText(String(index + 1).padStart(2, "0"), x + slotWidth - 21, y + slotHeight - 10);
+    context.fillText(String(index + 1).padStart(2, "0"), rect.x + rect.width - 21, rect.y + rect.height - 10);
   });
 
   context.textAlign = "left";
   context.fillStyle = palette.text;
   context.font = "700 18px sans-serif";
-  context.fillText(branding.footerText.toUpperCase(), padding, height - 50);
+  context.fillText(branding.footerText.toUpperCase(), 48, height - 50);
   context.font = "14px sans-serif";
   context.globalAlpha = 0.65;
-  context.fillText(new Date().toLocaleDateString("en-PH"), padding, height - 25);
+  context.fillText(new Date().toLocaleDateString("en-PH"), 48, height - 25);
   context.globalAlpha = 1;
-  if (template.logoPlacement === "bottom") await drawBrandMark(width - 220, height - 88, 172, 54);
+  if (normalizedTemplate.logoPlacement === "bottom") await drawBrandMark(width - 220, height - 88, 172, 54);
   else {
     context.fillStyle = palette.primary;
     context.beginPath();

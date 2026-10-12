@@ -15,6 +15,8 @@ interface BusinessState {
   socialUrl: string | null;
   socialQrUrl: string | null;
   socialQrPublicId: string | null;
+  welcomeBackgroundUrl: string | null;
+  welcomeBackgroundPublicId: string | null;
   setHydrated: (isHydrated: boolean) => void;
   setTenantKey: (tenantKey: string | null) => void;
   setBusinessId: (businessId: string | null) => void;
@@ -24,7 +26,7 @@ interface BusinessState {
   updateBranding: (branding: Partial<BusinessBranding>) => void;
   updatePalette: (palette: ThemePalette) => void;
   setTemplates: (templates: ReceiptTemplate[]) => void;
-  setAssetReferences: (assets: Partial<Pick<BusinessState, "logoPublicId" | "socialUrl" | "socialQrUrl" | "socialQrPublicId">>) => void;
+  setAssetReferences: (assets: Partial<Pick<BusinessState, "logoPublicId" | "socialUrl" | "socialQrUrl" | "socialQrPublicId" | "welcomeBackgroundUrl" | "welcomeBackgroundPublicId">>) => void;
   resetPalette: () => void;
 }
 
@@ -43,11 +45,13 @@ export const useBusinessStore = create<BusinessState>((set) => ({
   socialUrl: null,
   socialQrUrl: null,
   socialQrPublicId: null,
+  welcomeBackgroundUrl: null,
+  welcomeBackgroundPublicId: null,
   setHydrated: (isHydrated) => set({ isHydrated }),
   setTenantKey: (tenantKey) => set({ tenantKey }),
   setBusinessId: (businessId) => set({ businessId }),
   setBusinessSlug: (businessSlug) => set({ businessSlug }),
-  resetBusiness: () => set({ businessId: null, businessSlug: null, isHydrated: false, isConfigured: false, branding: initialBranding, palette: defaultPalette, templates: defaultTemplates, logoPublicId: null, socialUrl: null, socialQrUrl: null, socialQrPublicId: null }),
+  resetBusiness: () => set({ businessId: null, businessSlug: null, isHydrated: false, isConfigured: false, branding: initialBranding, palette: defaultPalette, templates: defaultTemplates, logoPublicId: null, socialUrl: null, socialQrUrl: null, socialQrPublicId: null, welcomeBackgroundUrl: null, welcomeBackgroundPublicId: null }),
   setConfigured: (isConfigured) => set({ isConfigured }),
   updateBranding: (branding) => set((state) => ({ branding: { ...state.branding, ...branding } })),
   updatePalette: (palette) => set({ palette }),

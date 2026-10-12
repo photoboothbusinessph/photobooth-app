@@ -27,7 +27,7 @@ export default async function AdminDashboardPage() {
 
   return (
     <>
-      <PageHeader eyebrow="Live overview" title="Booth activity" description="Confirmed sessions and templates from the business database. Pending items on this device appear in Sync status." action={<Button nativeButton={false} render={<Link href="/" />} className="h-11">Open booth <ArrowUpRight /></Button>} />
+      <PageHeader eyebrow="Live overview" title="Booth activity" description="Confirmed sessions and templates from the business database. Pending items on this device appear in Sync status." action={<Button nativeButton={false} render={<Link href={overview.businessSlug ? `/b/${overview.businessSlug}/pair` : "/admin/kiosks"} />} className="h-11">Open photobooth <ArrowUpRight /></Button>} />
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3" aria-label="Dashboard summary">
         {stats.map((stat) => <Card key={stat.label} className="rounded-none border-black/15 shadow-none"><CardHeader><CardTitle className="text-xs font-bold uppercase tracking-[0.15em] text-muted-foreground">{stat.label}</CardTitle></CardHeader><CardContent><p className="break-words text-4xl font-black tracking-[-0.06em] sm:text-5xl">{stat.value}</p><p className="mt-3 text-xs text-muted-foreground">{stat.detail}</p></CardContent></Card>)}
       </section>

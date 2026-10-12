@@ -10,9 +10,9 @@ export interface BusinessBranding {
   logoFont?: "editorial" | "sans" | "mono";
   logoColor?: string;
   handle: string;
-  headerText: string;
+  headerText?: string;
   footerText: string;
-  customMessage: string;
+  customMessage?: string;
   logoDataUrl: string | null;
 }
 
@@ -34,6 +34,9 @@ export interface ReceiptTemplate {
   isDefault: boolean;
   logoPlacement: "top" | "bottom";
   palette: ThemePalette;
+  designMode?: "generated" | "image-overlay";
+  overlayImageUrl?: string | null;
+  overlayPublicId?: string | null;
 }
 
 export interface BoothSession {

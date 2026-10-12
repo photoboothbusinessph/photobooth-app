@@ -15,9 +15,9 @@ export const brandingSchema = z.object({
   logoFont: z.enum(["editorial", "sans", "mono"]).optional(),
   logoColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
   handle: z.string().trim().max(80),
-  headerText: z.string().trim().max(120),
+  headerText: z.string().trim().max(120).optional(),
   footerText: z.string().trim().max(120),
-  customMessage: z.string().trim().max(500),
+  customMessage: z.string().trim().max(500).optional(),
   logoDataUrl: z.string().nullable(),
 });
 
@@ -29,6 +29,8 @@ export const businessSchema = z.object({
   socialQrUrl: z.url().nullable().optional(),
   socialQrPublicId: z.string().nullable().optional(),
   logoPublicId: z.string().nullable().optional(),
+  welcomeBackgroundUrl: z.url().nullable().optional(),
+  welcomeBackgroundPublicId: z.string().nullable().optional(),
 });
 
 export const templateSchema = z.object({
@@ -45,6 +47,9 @@ export const templateSchema = z.object({
   isDefault: z.boolean(),
   logoPlacement: z.enum(["top", "bottom"]),
   palette: paletteSchema,
+  designMode: z.enum(["generated", "image-overlay"]).optional(),
+  overlayImageUrl: z.url().nullable().optional(),
+  overlayPublicId: z.string().nullable().optional(),
 });
 
 const imageDataUrlSchema = z.string().startsWith("data:image/").max(12_000_000);
@@ -59,6 +64,7 @@ export const sessionUploadSchema = z.object({
 
 export const assetUploadSchema = z.object({
   dataUrl: imageDataUrlSchema,
-  kind: z.enum(["logo", "social-qr"]),
+  kind: z.enum(["logo", "social-qr", "welcome-background", "template-overlay"]),
   previousPublicId: z.string().max(300).nullable().optional(),
+  photoSlots: z.number().int().min(1).max(4).optional(),
 });

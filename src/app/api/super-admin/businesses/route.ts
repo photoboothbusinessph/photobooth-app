@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     const session = (await getMongoClient()).startSession();
     try {
       await session.withTransaction(async () => {
-        await businesses.insertOne({ _id: id, slug: input.slug, isConfigured: false, branding: { ...business, name: input.name, monogram: input.name.slice(0, 2).toUpperCase(), logoDataUrl: null }, palette: defaultPalette, socialUrl: null, socialQrUrl: null, socialQrPublicId: null, logoPublicId: null, updatedAt: now }, { session });
+        await businesses.insertOne({ _id: id, slug: input.slug, isConfigured: false, branding: { ...business, name: input.name, monogram: input.name.slice(0, 2).toUpperCase(), logoDataUrl: null }, palette: defaultPalette, socialUrl: null, socialQrUrl: null, socialQrPublicId: null, logoPublicId: null, welcomeBackgroundUrl: null, welcomeBackgroundPublicId: null, updatedAt: now }, { session });
         await templates.insertMany(starterTemplates.map(({ id: templateId, ...template }) => ({ ...template, _id: templateDocumentId(id, templateId), businessId: id, createdAt: now, updatedAt: now })), { session });
       });
     } finally { await session.endSession(); }

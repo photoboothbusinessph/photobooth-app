@@ -3,6 +3,9 @@ import { requireBusinessAdmin } from "@/lib/auth/session";
 import { getCollections } from "@/lib/db/collections";
 import { templateDocumentId } from "@/lib/db/tenant";
 import { templateSchema } from "@/lib/validation/schemas";
+import { deleteImage } from "@/lib/cloudinary/client";
+import { isBusinessAsset } from "@/lib/cloudinary/ownership";
+import { normalizeReceiptTemplate } from "@/lib/receipt/template-rules";
 
 export async function PATCH(request: Request, context: RouteContext<"/api/templates/[id]">) {
   try {
@@ -12,10 +15,16 @@ export async function PATCH(request: Request, context: RouteContext<"/api/templa
     const { templates } = await getCollections();
     const now = new Date();
     const documentId = templateDocumentId(businessId, id);
-    if (!(await templates.findOne({ _id: documentId, businessId }))) return apiError("Template not found.", 404);
+    const existing = await templates.findOne({ _id: documentId, businessId });
+    if (!existing) return apiError("Template not found.", 404);
+    if (input.overlayPublicId && !isBusinessAsset(input.overlayPublicId, businessId)) throw new Error("Forbidden");
+    const normalized = normalizeReceiptTemplate({ ...existing, ...input, id });
+    if (normalized.designMode === "image-overlay" && (!normalized.overlayImageUrl || !normalized.overlayPublicId)) return apiError("Image templates require an uploaded overlay.", 400);
     if (input.isDefault) await templates.updateMany({ businessId }, { $set: { isDefault: false, updatedAt: now } });
-    const result = await templates.findOneAndUpdate({ _id: documentId, businessId }, { $set: { ...input, updatedAt: now } }, { returnDocument: "after" });
+    const changes = { name: normalized.name, layout: normalized.layout, photoSlots: normalized.photoSlots, size: normalized.size, isDefault: normalized.isDefault, logoPlacement: normalized.logoPlacement, palette: normalized.palette, designMode: normalized.designMode, overlayImageUrl: normalized.overlayImageUrl, overlayPublicId: normalized.overlayPublicId };
+    const result = await templates.findOneAndUpdate({ _id: documentId, businessId }, { $set: { ...changes, updatedAt: now } }, { returnDocument: "after" });
     if (!result) return apiError("Template not found.", 404);
+    if (existing.overlayPublicId && existing.overlayPublicId !== normalized.overlayPublicId) await deleteImage(existing.overlayPublicId).catch(() => undefined);
     return apiSuccess({ ...result, id });
   } catch (error) {
     return handleApiError(error);
@@ -31,6 +40,7 @@ export async function DELETE(_request: Request, context: RouteContext<"/api/temp
     if (!template) return apiError("Template not found.", 404);
     if (template.isDefault) return apiError("Choose another default template before deleting this one.", 409);
     await templates.deleteOne({ _id: templateDocumentId(businessId, id), businessId });
+    if (template.overlayPublicId) await deleteImage(template.overlayPublicId).catch(() => undefined);
     return apiSuccess({ deleted: true });
   } catch (error) {
     return handleApiError(error);

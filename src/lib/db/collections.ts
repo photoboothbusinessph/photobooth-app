@@ -13,6 +13,8 @@ export interface BusinessDocument {
   socialQrUrl: string | null;
   socialQrPublicId: string | null;
   logoPublicId: string | null;
+  welcomeBackgroundUrl?: string | null;
+  welcomeBackgroundPublicId?: string | null;
   updatedAt: Date;
 }
 
