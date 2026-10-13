@@ -4,6 +4,7 @@ import * as React from "react";
 import { usePathname } from "next/navigation";
 import { useBoothRouter } from "@/hooks/use-booth-router";
 import { toast } from "sonner";
+import { isReceiptPrinting } from "@/lib/receipt/print-activity";
 import { BOOTH_SESSION_DEADLINE_KEY, BOOTH_SESSION_VOICE_WARNINGS_KEY } from "@/lib/booth-session";
 import { boothBasePath, boothSlug } from "@/lib/booth-path";
 import { flushBoothSessionPersistence, useBoothStore } from "@/stores/booth-store";
@@ -36,6 +37,7 @@ export function KioskSessionManager() {
     let timeout = 0;
 
     async function resetForInactivity() {
+      if (isReceiptPrinting()) { restartInactivityTimer(); return; }
       sessionStorage.removeItem(BOOTH_SESSION_DEADLINE_KEY);
       sessionStorage.removeItem(BOOTH_SESSION_VOICE_WARNINGS_KEY);
       window.speechSynthesis?.cancel();
@@ -51,6 +53,7 @@ export function KioskSessionManager() {
     }
 
     function protectActiveSession(event: BeforeUnloadEvent) {
+      if (isReceiptPrinting()) return;
       if (!navigator.onLine || window.matchMedia("(display-mode: standalone)").matches) return;
       event.preventDefault();
     }

@@ -19,6 +19,30 @@ async function loadModule(entry, replacements = {}) {
   return import("data:text/javascript;base64," + Buffer.from(result.outputFiles[0].text).toString("base64"));
 }
 
+test("RawBT raster encodes black, white and transparent pixels with valid framing and copies", async () => {
+  const { encodeRaster, rawbtUri } = await loadModule("src/lib/receipt/rawbt.ts");
+  const black = new Uint8ClampedArray(8 * 4);
+  for (let i = 3; i < black.length; i += 4) black[i] = 255;
+  const raster = encodeRaster(black, 8, 1);
+  assert.deepEqual([...raster], [29, 118, 48, 0, 1, 0, 1, 0, 255]);
+  assert.equal(encodeRaster(new Uint8ClampedArray(32), 8, 1)[8], 0);
+  assert.equal(encodeRaster(new Uint8ClampedArray(32).fill(255), 8, 1)[8], 0);
+  const uri = rawbtUri(raster, 2);
+  assert.ok(uri.startsWith("rawbt:base64,"));
+  const bytes = Buffer.from(uri.slice("rawbt:base64,".length), "base64");
+  const expected = [27, 64, 27, 97, 1, ...raster, 27, 100, 3, 29, 86, 1];
+  assert.deepEqual([...bytes], [...expected, ...expected]);
+  assert.throws(() => encodeRaster(black, 7, 1), /dimensions/);
+  for (const copies of [0, 10, 1.5]) assert.throws(() => rawbtUri(raster, copies), /copies/);
+  assert.throws(() => rawbtUri(new Uint8Array(115208), 9), /Reduce Copies/);
+  for (const height of [800, 1200, 1600]) {
+    const full = encodeRaster(new Uint8ClampedArray(576 * height * 4), 576, height);
+    assert.equal(full.length, 8 + 72 * height);
+    assert.equal(full[6] + 256 * full[7], height);
+    assert.ok(rawbtUri(full, 1).length < 300000);
+  }
+});
+
 test("receipt sizes and photo boxes follow the tablet receipt rules", async () => {
   const { normalizeReceiptTemplate, receiptSizeForSlots, receiptSlotRects } = await loadModule("src/lib/receipt/template-rules.ts");
   assert.deepEqual([1, 2, 3, 4].map(receiptSizeForSlots), ["80 × 100 mm", "80 × 150 mm", "80 × 150 mm", "80 × 200 mm"]);

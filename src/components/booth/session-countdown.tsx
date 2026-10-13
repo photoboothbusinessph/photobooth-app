@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useBoothRouter } from "@/hooks/use-booth-router";
 import { boothBasePath } from "@/lib/booth-path";
 import { Clock3 } from "lucide-react";
+import { isReceiptPrinting } from "@/lib/receipt/print-activity";
 import { toast } from "sonner";
 import { BOOTH_SESSION_DEADLINE_KEY, BOOTH_SESSION_DURATION_SECONDS, BOOTH_SESSION_VOICE_WARNINGS_KEY } from "@/lib/booth-session";
 import { cn } from "@/lib/utils";
@@ -71,6 +72,7 @@ export function SessionCountdown() {
     }
 
     function updateCountdown() {
+      if (isReceiptPrinting()) return;
       const nextRemaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
       setRemaining(nextRemaining);
       announceTimeWarning(nextRemaining);
