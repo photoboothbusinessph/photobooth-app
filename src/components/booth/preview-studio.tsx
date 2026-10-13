@@ -11,7 +11,8 @@ import { boothBasePath, boothSlug } from "@/lib/booth-path";
 import { saveLocalSession } from "@/lib/db/indexed-db";
 import { normalizeReceiptTemplate, receiptMillimeters } from "@/lib/receipt/template-rules";
 import { renderReceiptImage } from "@/lib/receipt/render-receipt";
-import { prepareRawbtRaster, rawbtUri } from "@/lib/receipt/rawbt";
+import { prepareRawbtRaster, rawbtUri, receiptPrintJob } from "@/lib/receipt/rawbt";
+import { selectReceiptPrinter, sendUsbReceipt, UsbPrintError } from "@/lib/receipt/webusb";
 import { setReceiptPrinting } from "@/lib/receipt/print-activity";
 import { processSyncQueue, syncSessionNow } from "@/lib/sync/client-sync";
 import { flushBoothSessionPersistence, useBoothStore } from "@/stores/booth-store";
@@ -31,10 +32,12 @@ export function PreviewStudio({ template }: { template: ReceiptTemplate }) {
   const savedImageRef = React.useRef<string | null>(null);
   const dispatchingRef = React.useRef(false);
   const continuingRef = React.useRef(false);
+  const usbSentRef = React.useRef(false);
   const awaitingRawbtRef = React.useRef(false);
   const lastDispatchRef = React.useRef(0);
   const [renderError, setRenderError] = React.useState(false);
   const [rawbtPending, setRawbtPending] = React.useState(false);
+  const [usbFailure, setUsbFailure] = React.useState<{ message: string; mayHavePrinted: boolean } | null>(null);
   const sessionId = useBoothStore((state) => state.sessionId);
   const photos = useBoothStore((state) => state.capturedPhotos);
   const generatedImages = useBoothStore((state) => state.generatedImages);
@@ -66,21 +69,6 @@ export function PreviewStudio({ template }: { template: ReceiptTemplate }) {
 
   React.useEffect(() => () => { setReceiptPrinting(false); }, []);
 
-  const onReturnFromRawbt = React.useEffectEvent(() => {
-    toast.info("Returned from RawBT. Check the printer for your receipt.");
-    void saveAndContinue();
-  });
-  React.useEffect(() => {
-    let leftApp = false;
-    const onVisibility = () => {
-      if (!awaitingRawbtRef.current) return;
-      if (document.visibilityState === "hidden") leftApp = true;
-      else if (leftApp) { leftApp = false; awaitingRawbtRef.current = false; onReturnFromRawbt(); }
-    };
-    document.addEventListener("visibilitychange", onVisibility);
-    return () => document.removeEventListener("visibilitychange", onVisibility);
-  }, []);
-
   async function persistReceipt() {
     const businessSlug = boothSlug(pathname);
     if (!sessionId || !generatedImages || !businessId || !businessSlug) throw new Error("This kiosk needs a completed online setup before saving photos.");
@@ -89,7 +77,7 @@ export function PreviewStudio({ template }: { template: ReceiptTemplate }) {
     savedImageRef.current = generatedImages.color;
   }
 
-  async function openPrint() {
+  async function openRawbt() {
     if (!/Android/i.test(navigator.userAgent)) {
       toast.error("Printing requires an Android phone or tablet with RawBT and a configured USB/OTG printer. Browser printing is disabled.");
       return;
@@ -117,6 +105,58 @@ export function PreviewStudio({ template }: { template: ReceiptTemplate }) {
       dispatchingRef.current = false;
       setSaving(false);
     }
+  }
+
+  async function openPrint() {
+    if (dispatchingRef.current || continuingRef.current || rendering || saving || !rasterRef.current) {
+      if (!/Android/i.test(navigator.userAgent)) toast.error("Use an Android phone or tablet with a USB/OTG receipt printer. Browser printing is disabled.");
+      return;
+    }
+    if (rawbtPending || usbFailure) {
+      const warning = rawbtPending || usbFailure?.mayHavePrinted
+        ? "Some or all of this receipt may already have printed. Check the printer and clear any stuck job first. Send another copy through RawBT? This may create duplicates."
+        : "WebUSB could not connect. Close other printer apps and check USB/OTG permission. Use RawBT instead?";
+      if (window.confirm(warning)) await openRawbt();
+      else if (!rawbtPending && !usbFailure?.mayHavePrinted) {
+        setUsbFailure(null);
+        setReceiptPrinting(false);
+        toast.info("Tap Print to try WebUSB again.");
+      }
+      return;
+    }
+    if (usbSentRef.current) { await saveAndContinue(); return; }
+    dispatchingRef.current = true;
+    setSaving(true);
+    setReceiptPrinting(true);
+    window.speechSynthesis?.cancel();
+    let transferred = false;
+    try {
+      // Invoke chooser during the click gesture, before asynchronous storage work.
+      const device = await selectReceiptPrinter();
+      try {
+        await persistReceipt();
+        await flushBoothSessionPersistence();
+      } catch {
+        toast.error("Receipt could not be saved. Nothing was sent to the printer.");
+        setReceiptPrinting(false);
+        return;
+      }
+      await sendUsbReceipt(device, receiptPrintJob(rasterRef.current, copies));
+      usbSentRef.current = true;
+      transferred = true;
+      toast.info("Receipt data sent by USB. Check the printer for paper output.");
+    } catch (error) {
+      const failure = {
+        message: error instanceof Error ? error.message : "USB connection failed.",
+        mayHavePrinted: error instanceof UsbPrintError && error.mayHavePrinted,
+      };
+      setUsbFailure(failure);
+      toast.error(failure.mayHavePrinted ? "USB transfer interrupted. Check for a partial or complete receipt before printing again." : "USB unavailable. Tap Print again to confirm the RawBT backup.");
+    } finally {
+      dispatchingRef.current = false;
+      setSaving(false);
+    }
+    if (transferred) await saveAndContinue();
   }
 
   async function retakePhotos() {
@@ -152,19 +192,34 @@ export function PreviewStudio({ template }: { template: ReceiptTemplate }) {
     }
   }
 
+  const onReturnFromRawbt = React.useEffectEvent(() => {
+    toast.info("Returned from RawBT. Check the printer for your receipt.");
+    void saveAndContinue();
+  });
+  React.useEffect(() => {
+    let leftApp = false;
+    const onVisibility = () => {
+      if (!awaitingRawbtRef.current) return;
+      if (document.visibilityState === "hidden") leftApp = true;
+      else if (leftApp) { leftApp = false; awaitingRawbtRef.current = false; onReturnFromRawbt(); }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, []);
+
   return <>
     <div className="mx-auto grid w-full max-w-3xl flex-1 items-center gap-6 pb-4">
       <div className="flex justify-center bg-black/10 p-4 sm:p-7"><ReceiptPreview template={normalizedTemplate} photos={photos} branding={branding} mirrored={mirrored} printable className="max-h-[58dvh] w-auto max-w-full print:max-h-none" /></div>
-      <fieldset disabled={rawbtPending || saving} className="grid gap-3">
+      <fieldset disabled={rawbtPending || saving || Boolean(usbFailure?.mayHavePrinted)} className="grid gap-3">
         <div className="grid grid-cols-[1fr_auto_1fr] items-center rounded-full bg-white px-4 py-2 text-black"><Button type="button" variant="ghost" size="icon" aria-label="Decrease copies" disabled={copies === 1} onClick={() => setCopies((value) => Math.max(1, value - 1))} className="justify-self-start rounded-full"><Minus /></Button><div className="text-center"><p className="text-xs font-black uppercase tracking-wider">Copies</p><p className="text-2xl font-black">{copies}</p></div><Button type="button" variant="ghost" size="icon" aria-label="Increase copies" disabled={copies === 9} onClick={() => setCopies((value) => Math.min(9, value + 1))} className="justify-self-end rounded-full"><Plus /></Button></div>
         <div className="grid grid-cols-2 gap-3"><Button onClick={() => void retakePhotos()} variant="outline" className="h-14 rounded-full border-0 bg-white font-black uppercase text-black hover:bg-white/85"><RotateCcw /> Retake</Button><Button type="button" onClick={toggleMirror} aria-pressed={mirrored} variant="outline" className="h-14 rounded-full border-0 bg-white font-black uppercase text-black hover:bg-white/85"><FlipHorizontal2 /> {mirrored ? "Mirrored" : "Mirror"}</Button></div>
-        <Button onClick={() => void openPrint()} disabled={renderError || rendering || saving || !generatedImages} className="h-16 rounded-full bg-black text-xl font-black uppercase text-white hover:bg-black/80">{rendering || saving ? <LoaderCircle className="animate-spin" /> : <Printer />} {renderError ? "Receipt unavailable" : rendering ? "Preparing receipt" : saving ? "Saving receipt" : "Print"}</Button>
       </fieldset>
+      <Button onClick={() => void openPrint()} disabled={renderError || rendering || saving || !generatedImages} className="h-16 rounded-full bg-black text-xl font-black uppercase text-white hover:bg-black/80">{rendering || saving ? <LoaderCircle className="animate-spin" /> : <Printer />} {renderError ? "Receipt unavailable" : rendering ? "Preparing receipt" : saving ? "Processing receipt" : "Print"}</Button>
+      {usbFailure && !rawbtPending && <p role="status" className="text-center text-sm">{usbFailure.message} {usbFailure.mayHavePrinted ? "Check the printer before resending. Tap Print to confirm RawBT backup; duplicate copies are possible." : "Tap Print to confirm RawBT backup, or cancel the confirmation to retry USB."}</p>}
       {rawbtPending && <div className="grid gap-3 text-center" role="status">
         <p>Opening RawBT with {copies} {copies === 1 ? "copy" : "copies"}. Allow Android to open RawBT and use its configured USB printer. Return here for your QR code.</p>
         <p className="text-sm">Nothing printed? Check RawBT and the USB permission first. Retrying may print duplicate copies.</p>
-        <Button disabled={saving} variant="outline" onClick={() => void openPrint()}>Retry RawBT</Button>
-        <Button disabled={saving} onClick={() => void saveAndContinue()}>Continue to QR code</Button>
+        <p className="text-sm">Tap Print again only if you need to confirm a RawBT retry.</p>
       </div>}
     </div>
 
