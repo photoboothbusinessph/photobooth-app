@@ -15,7 +15,7 @@
 1. On a new device, open the business URL while online, sign in as its business admin, and pair the kiosk. After pairing, load the booth routes so its configuration is cached.
 2. Open your paired `/b/[your-slug]` booth from the admin sidebar and tap **Start session**. The app will request fullscreen when the browser supports it.
 3. Guests tap a layout to open the camera, take the required photos, then use Retake, Mirror, Copies, or Print on the receipt-ready screen.
-4. Android: the existing Print button saves locally and sends the receipt directly to RawBT, which uses its configured USB/OTG printer. Returning from RawBT opens the QR/download page. No booth browser-print dialog, WebUSB chooser, confirmation, or extra Connect button is used. Non-Android devices show a requirement message.
+4. Android: the existing Print button opens the Android share sheet. Choose Easy Thermal Print, confirm the configured USB/OTG printer and requested copy count, then print. A completed share saves the session and opens the QR/download page. RawBT remains available in the codebase but is not called during this client test. No browser-print dialog, WebUSB chooser, or extra Connect button is used.
 5. Use **Sessions** to review synchronization status, open a session, reprint, or remove it.
 
 ## Offline and synchronization notes
@@ -38,17 +38,17 @@
 
 ## Troubleshooting
 
-### Android USB/OTG printing through RawBT
+### Android USB/OTG printing through Easy Thermal Print
 
-1. Install RawBT, configure its USB printer, grant Android USB permission, and verify a RawBT test print before opening the booth.
+1. Install Easy Thermal Print, configure its USB printer, grant Android USB permission, and verify an app test print before opening the booth.
 2. Connect and power the 80mm ESC/POS USB printer through OTG. Open the updated HTTPS booth in Android Chrome or its installed PWA.
-3. Choose Copies and tap Print. The booth saves the receipt locally and hands the complete ESC/POS job directly to RawBT without requesting USB ownership in Chrome.
-4. Allow Android to open RawBT if prompted. RawBT sends the job through its configured printer; return to the booth afterward to open the QR/download page.
-5. If RawBT cannot find the printer, check that Android OTG is still enabled, reconnect the USB cable, approve USB permission again, and test from RawBT itself. Do not clear browser data containing unsynced receipts.
+3. Choose Copies and tap Print. Select Easy Thermal Print from Android's share sheet, then use the displayed copy count when printing the shared PNG receipt.
+4. After the share is accepted, the booth saves/synchronizes the session and opens the QR/download page when the browser becomes active again.
+5. If Easy Thermal Print cannot find the printer, check that Android OTG is still enabled, reconnect the USB cable, approve USB permission again, and test from Easy Thermal Print itself. Do not clear browser data containing unsynced receipts.
 
-Compatibility depends on RawBT, Android USB host/OTG support, and ESC/POS raster support. The workflow must be tested on the actual Xprinter and Android tablet before event use. A disabled OTG setting, missing USB permission, broken cable, paper jam, or power problem cannot be fixed by the booth web app.
+Compatibility depends on Android file sharing, Easy Thermal Print, Android USB host/OTG support, and printer compatibility. The workflow must be tested on the actual Xprinter and Android tablet before event use. A disabled OTG setting, missing USB permission, broken cable, paper jam, or power problem cannot be fixed by the booth web app.
 
-Receipts are dithered black-and-white ESC/POS raster jobs for a 576-dot printable width on 80mm, 203dpi printers. Layout proportions are preserved with white margins. Automatic receipt lengths are 100/150/200mm plus feed/cutter allowance. Copies are included in the RawBT job; large batches are rejected with a request to reduce Copies to stay within Android handoff limits. No internet is required for the handoff once the booth is cached. RawBT permissions/prompts and printer compatibility still require a real-device test. iOS is not supported by RawBT; the booth has no browser-print fallback on non-Android devices. Admin Sessions reprinting is a separate existing browser-print action.
+The booth shares the generated PNG receipt while preserving the selected 80x100mm, 80x150mm, or 80x200mm layout proportions. The operator selects the requested copy count inside Easy Thermal Print because Android sharing cannot force printer copies. No internet is required for the handoff once the booth is cached. Android sharing, Easy Thermal Print permissions, and printer compatibility still require a real-device test. The booth has no browser-print fallback on non-Android devices. Admin Sessions reprinting is a separate existing browser-print action.
 
 - **Camera unavailable:** confirm browser permission, HTTPS, and that another app is not using the camera.
 - **Share QR unavailable:** reconnect to the internet and wait for the session to synchronize.
