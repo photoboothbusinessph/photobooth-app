@@ -15,7 +15,7 @@
 1. On a new device, open the business URL while online, sign in as its business admin, and pair the kiosk. After pairing, load the booth routes so its configuration is cached.
 2. Open your paired `/b/[your-slug]` booth from the admin sidebar and tap **Start session**. The app will request fullscreen when the browser supports it.
 3. Guests tap a layout to open the camera, take the required photos, then use Retake, Mirror, Copies, or Print on the receipt-ready screen.
-4. Android: the existing Print button selects a USB printer when necessary, saves locally, and sends the receipt directly over WebUSB. Successful transfer opens the QR/download page (check actual paper output). If USB fails, tap the same Print button again to confirm RawBT backup. Returning from RawBT opens the QR/download page. No booth browser-print dialog or extra Connect button is used. Non-Android devices show a requirement message.
+4. Android: the existing Print button saves locally and sends the receipt directly to RawBT, which uses its configured USB/OTG printer. Returning from RawBT opens the QR/download page. No booth browser-print dialog, WebUSB chooser, confirmation, or extra Connect button is used. Non-Android devices show a requirement message.
 5. Use **Sessions** to review synchronization status, open a session, reprint, or remove it.
 
 ## Offline and synchronization notes
@@ -38,15 +38,15 @@
 
 ## Troubleshooting
 
-### Android USB/OTG printing: WebUSB primary, RawBT backup
+### Android USB/OTG printing through RawBT
 
-1. Connect and power the 80mm ESC/POS USB printer through OTG. Open the updated HTTPS booth in Android Chrome or its installed PWA. Close RawBT/other printer apps so they do not hold USB ownership.
-2. Choose Copies and tap Print. Select the printer in Chrome's USB chooser and allow Android USB access. There is no separate Connect button. The selected device is remembered during the current page lifetime; reload/reconnection can require selection/permission again.
-3. The app sends ordered 4KB chunks, checks transfer status/byte counts, and releases/closes USB afterward. Operations time out rather than endlessly blocking. A successful transfer means bytes were accepted, not proof that paper printed.
-4. If connection/permission fails, the page explains the failure. Tap Print again to confirm RawBT backup. Cancel that confirmation to retry WebUSB on the next Print click. If transfer began, the confirmation warns about partial/duplicate receipts and never silently resends. Check/clear the printer's pending job before approving a resend.
-5. For backup, install and configure RawBT's USB printer beforehand, granting USB permission and testing a print. Confirming backup hands off to RawBT; Android may ask to open the app. If blocked, the same Print button offers a confirmed retry. Return to the booth for QR/download. Do not clear browser data containing unsynced receipts.
+1. Install RawBT, configure its USB printer, grant Android USB permission, and verify a RawBT test print before opening the booth.
+2. Connect and power the 80mm ESC/POS USB printer through OTG. Open the updated HTTPS booth in Android Chrome or its installed PWA.
+3. Choose Copies and tap Print. The booth saves the receipt locally and hands the complete ESC/POS job directly to RawBT without requesting USB ownership in Chrome.
+4. Allow Android to open RawBT if prompted. RawBT sends the job through its configured printer; return to the booth afterward to open the QR/download page.
+5. If RawBT cannot find the printer, check that Android OTG is still enabled, reconnect the USB cable, approve USB permission again, and test from RawBT itself. Do not clear browser data containing unsynced receipts.
 
-Compatibility: direct USB currently requires a single printer-class (class 7) bulk-OUT interface and ESC/POS raster support. Vendor-specific/serial interfaces and ambiguous composite devices use the RawBT backup; no arbitrary USB interfaces are written to. This must be tested on the actual Xprinter and Android tablet before event use. A broken cable, paper jam, or power problem will affect both transports.
+Compatibility depends on RawBT, Android USB host/OTG support, and ESC/POS raster support. The workflow must be tested on the actual Xprinter and Android tablet before event use. A disabled OTG setting, missing USB permission, broken cable, paper jam, or power problem cannot be fixed by the booth web app.
 
 Receipts are dithered black-and-white ESC/POS raster jobs for a 576-dot printable width on 80mm, 203dpi printers. Layout proportions are preserved with white margins. Automatic receipt lengths are 100/150/200mm plus feed/cutter allowance. Copies are included in the RawBT job; large batches are rejected with a request to reduce Copies to stay within Android handoff limits. No internet is required for the handoff once the booth is cached. RawBT permissions/prompts and printer compatibility still require a real-device test. iOS is not supported by RawBT; the booth has no browser-print fallback on non-Android devices. Admin Sessions reprinting is a separate existing browser-print action.
 

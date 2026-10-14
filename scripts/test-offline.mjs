@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 import { build } from "esbuild";
 
@@ -18,66 +19,6 @@ async function loadModule(entry, replacements = {}) {
   });
   return import("data:text/javascript;base64," + Buffer.from(result.outputFiles[0].text).toString("base64"));
 }
-
-test("WebUSB discovers printer endpoint, chunks in order, and releases USB ownership", async () => {
-  const { sendUsbReceipt } = await loadModule("src/lib/receipt/webusb.ts");
-  const calls = [];
-  const device = {
-    opened: false,
-    configurations: [{ configurationValue: 2, interfaces: [{ interfaceNumber: 3, alternates: [{ alternateSetting: 1, interfaceClass: 7, endpoints: [{ direction: "out", type: "bulk", endpointNumber: 4 }] }] }] }],
-    open: async () => { calls.push("open"); },
-    selectConfiguration: async (n) => { calls.push(`configuration:${n}`); },
-    claimInterface: async (n) => { calls.push(`claim:${n}`); },
-    selectAlternateInterface: async (n, a) => { calls.push(`alternate:${n}:${a}`); },
-    transferOut: async (n, bytes) => { calls.push([n, [...bytes]]); return { status: "ok", bytesWritten: bytes.length }; },
-    releaseInterface: async (n) => { calls.push(`release:${n}`); },
-    close: async () => { calls.push("close"); },
-  };
-  const job = Uint8Array.from({ length: 9000 }, (_, i) => i % 256);
-  await sendUsbReceipt(device, job);
-  assert.deepEqual(calls.slice(0, 4), ["open", "configuration:2", "claim:3", "alternate:3:1"]);
-  const transfers = calls.filter(Array.isArray);
-  assert.deepEqual(transfers.map(([endpoint, bytes]) => [endpoint, bytes.length]), [[4, 4096], [4, 4096], [4, 808]]);
-  assert.deepEqual(transfers.flatMap(([, bytes]) => bytes), [...job]);
-  assert.deepEqual(calls.slice(-2), ["release:3", "close"]);
-  calls.length = 0;
-  await assert.rejects(sendUsbReceipt({ ...device, claimInterface: async () => { throw new Error("busy"); } }, job), (error) => error.mayHavePrinted === false);
-  assert.equal(calls.filter(Array.isArray).length, 0);
-  for (const transferOut of [
-    async () => { throw new Error("disconnected"); },
-    async () => ({ status: "stall", bytesWritten: 0 }),
-    async () => ({ status: "ok", bytesWritten: 1 }),
-  ]) {
-    calls.length = 0;
-    await assert.rejects(sendUsbReceipt({ ...device, transferOut }, job), (error) => error.mayHavePrinted === true);
-    assert.deepEqual(calls.slice(-2), ["release:3", "close"]);
-  }
-  await assert.rejects(sendUsbReceipt({ ...device, configurations: [] }, job), (error) => error.mayHavePrinted === false);
-});
-
-test("WebUSB selection requires support and a printer-class chooser, remembering only the selected device", async () => {
-  const { selectReceiptPrinter } = await loadModule("src/lib/receipt/webusb.ts");
-  const originalNavigator = Object.getOwnPropertyDescriptor(globalThis, "navigator");
-  const originalWindow = globalThis.window;
-  try {
-    globalThis.window = { isSecureContext: true };
-    Object.defineProperty(globalThis, "navigator", { configurable: true, value: {} });
-    await assert.rejects(selectReceiptPrinter(), /unavailable/);
-    const selected = {};
-    let count = 0;
-    Object.defineProperty(globalThis, "navigator", { configurable: true, value: { usb: { requestDevice: async (options) => {
-      assert.deepEqual(options, { filters: [{ classCode: 7 }] }); count++; return selected;
-    } } } });
-    assert.equal(await selectReceiptPrinter(), selected);
-    assert.equal(await selectReceiptPrinter(), selected);
-    assert.equal(count, 1);
-  } finally {
-    if (originalNavigator) Object.defineProperty(globalThis, "navigator", originalNavigator);
-    else delete globalThis.navigator;
-    if (originalWindow === undefined) delete globalThis.window;
-    else globalThis.window = originalWindow;
-  }
-});
 
 test("RawBT raster encodes black, white and transparent pixels with valid framing and copies", async () => {
   const { encodeRaster, rawbtUri } = await loadModule("src/lib/receipt/rawbt.ts");
@@ -101,6 +42,12 @@ test("RawBT raster encodes black, white and transparent pixels with valid framin
     assert.equal(full[6] + 256 * full[7], height);
     assert.ok(rawbtUri(full, 1).length < 300000);
   }
+});
+
+test("booth Print hands off directly to RawBT without WebUSB or confirmation", async () => {
+  const previewStudio = await readFile("src/components/booth/preview-studio.tsx", "utf8");
+  assert.match(previewStudio, /async function openPrint[\s\S]*await openRawbt\(\)/);
+  assert.doesNotMatch(previewStudio, /webusb|navigator\.usb|window\.confirm/i);
 });
 
 test("receipt sizes and photo boxes follow the tablet receipt rules", async () => {
