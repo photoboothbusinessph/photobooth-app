@@ -44,10 +44,30 @@ test("RawBT raster encodes black, white and transparent pixels with valid framin
   }
 });
 
-test("booth Print hands off directly to RawBT without WebUSB or confirmation", async () => {
+test("booth Print shares directly to Easy Thermal without RawBT, WebUSB or confirmation", async () => {
   const previewStudio = await readFile("src/components/booth/preview-studio.tsx", "utf8");
-  assert.match(previewStudio, /async function openPrint[\s\S]*await openRawbt\(\)/);
-  assert.doesNotMatch(previewStudio, /webusb|navigator\.usb|window\.confirm/i);
+  assert.match(previewStudio, /async function openPrint[\s\S]*await shareReceiptWithEasyThermal\(/);
+  assert.doesNotMatch(previewStudio, /rawbtUri|webusb|navigator\.usb|window\.confirm/i);
+});
+
+test("Easy Thermal handoff shares one PNG with the requested copy instructions", async () => {
+  const originalNavigator = Object.getOwnPropertyDescriptor(globalThis, "navigator");
+  let shared;
+  try {
+    Object.defineProperty(globalThis, "navigator", { configurable: true, value: {
+      canShare: ({ files }) => files?.length === 1 && files[0].type === "image/png",
+      share: async (data) => { shared = data; },
+    } });
+    const { shareReceiptWithEasyThermal } = await loadModule("src/lib/receipt/easy-thermal.ts");
+    await shareReceiptWithEasyThermal("data:image/png;base64,iVBORw0KGgo=", 3);
+    assert.equal(shared.files.length, 1);
+    assert.equal(shared.files[0].type, "image/png");
+    assert.match(shared.text, /print 3 copies/);
+    await assert.rejects(async () => shareReceiptWithEasyThermal("data:image/png;base64,iVBORw0KGgo=", 0), /between 1 and 9/);
+  } finally {
+    if (originalNavigator) Object.defineProperty(globalThis, "navigator", originalNavigator);
+    else delete globalThis.navigator;
+  }
 });
 
 test("receipt sizes and photo boxes follow the tablet receipt rules", async () => {
