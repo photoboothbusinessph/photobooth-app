@@ -10,7 +10,7 @@ import { boothBasePath, boothSlug } from "@/lib/booth-path";
 import { flushBoothSessionPersistence, useBoothStore } from "@/stores/booth-store";
 
 const INACTIVITY_LIMIT_MS = 60_000;
-const timedRoutes = new Set(["/booth/templates", "/booth/camera", "/booth/preview"]);
+const timedRoutes = new Set(["/booth/templates", "/booth/camera", "/booth/designs", "/booth/preview"]);
 
 export function KioskSessionManager() {
   const pathname = usePathname();

@@ -21,5 +21,5 @@ export function FinishSessionButton() {
     router.replace(boothBasePath(pathname) || "/");
   }
 
-  return <Button onClick={() => void finishSession()} className="mt-8 h-14 w-full rounded-none bg-[var(--booth-accent)] px-8 font-black uppercase text-black hover:bg-white sm:w-auto">Finish / New session</Button>;
+  return <Button onClick={() => void finishSession()} className="mt-[clamp(0.45rem,1.2dvh,1rem)] min-h-11 w-full shrink-0 rounded-none bg-[var(--booth-accent)] px-8 font-black uppercase text-black hover:bg-white sm:w-auto">Finish / New session</Button>;
 }

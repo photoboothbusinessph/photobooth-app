@@ -21,7 +21,7 @@ export async function PATCH(request: Request, context: RouteContext<"/api/templa
     const normalized = normalizeReceiptTemplate({ ...existing, ...input, id });
     if (normalized.designMode === "image-overlay" && (!normalized.overlayImageUrl || !normalized.overlayPublicId)) return apiError("Image templates require an uploaded overlay.", 400);
     if (input.isDefault) await templates.updateMany({ businessId }, { $set: { isDefault: false, updatedAt: now } });
-    const changes = { name: normalized.name, layout: normalized.layout, photoSlots: normalized.photoSlots, size: normalized.size, isDefault: normalized.isDefault, logoPlacement: normalized.logoPlacement, palette: normalized.palette, designMode: normalized.designMode, overlayImageUrl: normalized.overlayImageUrl, overlayPublicId: normalized.overlayPublicId };
+    const changes = { name: normalized.name, layout: normalized.layout, photoSlots: normalized.photoSlots, supportedPhotoSlots: normalized.supportedPhotoSlots, size: normalized.size, isDefault: normalized.isDefault, logoPlacement: normalized.logoPlacement, palette: normalized.palette, designMode: normalized.designMode, designStyle: normalized.designStyle, builtIn: existing.builtIn ?? false, overlayImageUrl: normalized.overlayImageUrl, overlayPublicId: normalized.overlayPublicId };
     const result = await templates.findOneAndUpdate({ _id: documentId, businessId }, { $set: { ...changes, updatedAt: now } }, { returnDocument: "after" });
     if (!result) return apiError("Template not found.", 404);
     if (existing.overlayPublicId && existing.overlayPublicId !== normalized.overlayPublicId) await deleteImage(existing.overlayPublicId).catch(() => undefined);

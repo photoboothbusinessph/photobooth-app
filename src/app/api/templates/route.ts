@@ -5,15 +5,18 @@ import { getBusinessBySlug, templateDocumentId, templatePublicId } from "@/lib/d
 import { templateSchema } from "@/lib/validation/schemas";
 import { isBusinessAsset } from "@/lib/cloudinary/ownership";
 import { normalizeReceiptTemplate } from "@/lib/receipt/template-rules";
+import { ensureStarterTemplateCatalog } from "@/lib/receipt/starter-template-catalog";
 
 export async function GET(request: Request) {
   try {
     const slug = new URL(request.url).searchParams.get("slug");
     const businessId = slug ? (await getBusinessBySlug(slug))?._id : (await requireBusinessAdmin()).businessId;
     if (!businessId) return apiSuccess([]);
+    await ensureStarterTemplateCatalog(businessId);
     const { templates } = await getCollections();
     const items = await templates.find({ businessId }).sort({ isDefault: -1, createdAt: 1 }).toArray();
-    return apiSuccess(items.map((item) => normalizeReceiptTemplate({ id: templatePublicId(businessId, item._id), name: item.name, layout: item.layout, photoSlots: item.photoSlots, size: item.size, isDefault: item.isDefault, logoPlacement: item.logoPlacement, palette: item.palette, designMode: item.designMode, overlayImageUrl: item.overlayImageUrl, overlayPublicId: item.overlayPublicId })));
+    const stored = items.map((item) => normalizeReceiptTemplate({ id: templatePublicId(businessId, item._id), name: item.name, layout: item.layout, photoSlots: item.photoSlots, supportedPhotoSlots: item.supportedPhotoSlots, size: item.size, isDefault: item.isDefault, logoPlacement: item.logoPlacement, palette: item.palette, designMode: item.designMode, designStyle: item.designStyle, builtIn: item.builtIn, overlayImageUrl: item.overlayImageUrl, overlayPublicId: item.overlayPublicId }));
+    return apiSuccess(stored);
   } catch (error) {
     return handleApiError(error);
   }
@@ -22,7 +25,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const { businessId } = await requireBusinessAdmin();
-    const input = normalizeReceiptTemplate(templateSchema.parse(await request.json()));
+    const input = normalizeReceiptTemplate({ ...templateSchema.parse(await request.json()), builtIn: false });
     if (input.overlayPublicId && !isBusinessAsset(input.overlayPublicId, businessId)) throw new Error("Forbidden");
     if (input.designMode === "image-overlay" && (!input.overlayImageUrl || !input.overlayPublicId)) return Response.json({ error: { message: "Image templates require an uploaded overlay." } }, { status: 400 });
     const { templates } = await getCollections();

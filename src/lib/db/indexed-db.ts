@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from "dexie";
-import type { BoothStep, BusinessBranding, CapturedPhoto, PhotoMode, ReceiptTemplate, SyncStatus, ThemePalette } from "@/types";
+import type { BoothStep, BusinessBranding, CapturedPhoto, PhotoMode, PhotoSlotCount, ReceiptTemplate, SyncStatus, ThemePalette } from "@/types";
 import { boothSlug } from "@/lib/booth-path";
 import { useBusinessStore } from "@/stores/business-store";
 
@@ -69,6 +69,7 @@ export interface LocalBoothDraft {
   sessionId: string;
   startedAt: number;
   step: BoothStep;
+  selectedPhotoSlots?: PhotoSlotCount | null;
   selectedTemplateId: string | null;
   capturedPhotos: CapturedPhoto[];
   previewMode: PhotoMode;

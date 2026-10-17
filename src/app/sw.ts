@@ -33,7 +33,7 @@ const serwist = new Serwist({
     },
     {
       matcher: ({ url, request, sameOrigin }) => sameOrigin
-        && /^\/b\/[a-z0-9-]+(?:\/booth\/(?:templates|camera|preview|photo-qr|social))?$/.test(url.pathname)
+        && /^\/b\/[a-z0-9-]+(?:\/booth\/(?:templates|camera|designs|preview|photo-qr|social))?$/.test(url.pathname)
         && !request.headers.has("rsc")
         && (request.mode === "navigate" || request.headers.get("accept")?.includes("text/html") === true),
       handler: new NetworkFirst({

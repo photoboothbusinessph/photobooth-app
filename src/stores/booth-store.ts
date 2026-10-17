@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { BOOTH_SESSION_DURATION_SECONDS } from "@/lib/booth-session";
 import { photoboothDb, type LocalBoothDraft } from "@/lib/db/indexed-db";
-import type { BoothStep, CapturedPhoto, PhotoMode } from "@/types";
+import type { BoothStep, CapturedPhoto, PhotoMode, PhotoSlotCount } from "@/types";
 
 interface GeneratedReceiptImages {
   color: string;
@@ -16,6 +16,7 @@ interface BoothState {
   sessionId: string | null;
   startedAt: number | null;
   step: BoothStep;
+  selectedPhotoSlots: PhotoSlotCount | null;
   selectedTemplateId: string | null;
   capturedPhotos: CapturedPhoto[];
   previewMode: PhotoMode;
@@ -24,6 +25,8 @@ interface BoothState {
   shareToken: string | null;
   hydrateSession: (tenantKey: string) => Promise<void>;
   startSession: (tenantKey: string, businessId: string) => void;
+  selectPhotoSlots: (slots: PhotoSlotCount) => void;
+  selectDesign: (templateId: string) => void;
   selectTemplate: (templateId: string) => void;
   beginCapture: () => void;
   addCapturedPhoto: (dataUrl: string) => void;
@@ -41,6 +44,7 @@ const sessionState = {
   startedAt: null,
   step: "idle" as BoothStep,
   selectedTemplateId: null,
+  selectedPhotoSlots: null,
   capturedPhotos: [] as CapturedPhoto[],
   previewMode: "color" as PhotoMode,
   generatedImages: null,
@@ -59,6 +63,7 @@ function snapshotDraft(state: BoothState): LocalBoothDraft | null {
     sessionId: state.sessionId,
     startedAt: state.startedAt,
     step: state.step,
+    selectedPhotoSlots: state.selectedPhotoSlots,
     selectedTemplateId: state.selectedTemplateId,
     capturedPhotos: state.capturedPhotos,
     previewMode: state.previewMode,
@@ -118,7 +123,7 @@ export const useBoothStore = create<BoothState>((set, get) => {
         const isActive = draft && settings?.identityVerified && draft.businessId === settings.businessId
           && (draft.step === "complete" || Date.now() - draft.startedAt < BOOTH_SESSION_DURATION_SECONDS * 1000);
         if (draft && isActive) {
-          set({ ...draft, isHydrated: true });
+          set({ ...draft, selectedPhotoSlots: draft.selectedPhotoSlots ?? null, isHydrated: true });
           return;
         }
         if (draft) await queueDraftRemoval(tenantKey);
@@ -136,8 +141,18 @@ export const useBoothStore = create<BoothState>((set, get) => {
       startedAt: Date.now(),
       step: "selecting",
     }),
+    selectPhotoSlots: (selectedPhotoSlots) => commit((state) => ({
+      selectedPhotoSlots,
+      selectedTemplateId: null,
+      capturedPhotos: state.selectedPhotoSlots === selectedPhotoSlots ? state.capturedPhotos : [],
+      generatedImages: null,
+      shareUrl: null,
+      shareToken: null,
+    })),
+    selectDesign: (selectedTemplateId) => commit({ selectedTemplateId, step: "reviewing", generatedImages: null }),
     selectTemplate: (selectedTemplateId) => commit((state) => ({
       selectedTemplateId,
+      selectedPhotoSlots: state.selectedPhotoSlots,
       capturedPhotos: state.selectedTemplateId === selectedTemplateId ? state.capturedPhotos : [],
       generatedImages: null,
     })),
@@ -150,7 +165,7 @@ export const useBoothStore = create<BoothState>((set, get) => {
       capturedPhotos: state.capturedPhotos.filter((_, photoIndex) => photoIndex !== index),
       generatedImages: null,
     })),
-    beginReview: () => commit({ step: "reviewing" }),
+    beginReview: () => commit((state) => ({ step: "designing", selectedTemplateId: state.selectedPhotoSlots ? null : state.selectedTemplateId })),
     setPreviewMode: (previewMode) => commit({ previewMode }),
     setGeneratedImages: (generatedImages) => commit({ generatedImages }),
     setShareResult: (result) => commit({ shareUrl: result?.shareUrl ?? null, shareToken: result?.shareToken ?? null }),

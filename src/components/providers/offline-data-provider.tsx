@@ -107,7 +107,7 @@ export function OfflineDataProvider() {
       const status = await fetch(`/api/kiosks/status?slug=${encodeURIComponent(routeSlug!)}`, { cache: "no-store" });
       if (!status.ok || cancelled) return;
       const base = `/b/${routeSlug}`;
-      for (const path of [base, ...["templates", "camera", "preview", "photo-qr", "social"].map((step) => `${base}/booth/${step}`)]) {
+      for (const path of [base, ...["templates", "camera", "designs", "preview", "photo-qr", "social"].map((step) => `${base}/booth/${step}`)]) {
         if (cancelled) break;
         const response = await fetch(path, { headers: { Accept: "text/html" }, credentials: "same-origin" });
         if (!response.ok || response.redirected) throw new Error("Booth screen unavailable");

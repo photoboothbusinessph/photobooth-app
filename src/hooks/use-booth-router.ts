@@ -13,7 +13,7 @@ export function useBoothRouter() {
       const destination = new URL(href, window.location.origin);
       const localStep =
         destination.pathname === base ||
-        /^\/booth\/(templates|camera|preview|photo-qr|social)$/.test(
+        /^\/booth\/(templates|camera|designs|preview|photo-qr|social)$/.test(
           destination.pathname.slice(base.length),
         );
       if (
