@@ -58,9 +58,10 @@ export function StartSessionButton() {
       type="button"
       onClick={() => void startSession()}
       disabled={!businessId || !sessionHydrated || starting}
-      className="min-h-16 min-w-64 bg-transparent px-6 text-2xl font-medium uppercase tracking-[-0.03em] text-white transition-opacity hover:opacity-75 focus-visible:ring-4 focus-visible:ring-[var(--booth-accent)] disabled:opacity-60 sm:text-4xl"
+      aria-label={starting ? "Starting photo booth session" : "Tap anywhere to start"}
+      className="absolute inset-0 z-10 cursor-pointer bg-transparent outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-[var(--booth-accent)] disabled:cursor-wait"
     >
-      {starting ? "Starting session" : !businessId ? "Business setup unavailable" : sessionHydrated ? "Tap to start" : "Preparing booth"}
+      <span className="sr-only">{starting ? "Starting session" : !businessId ? "Business setup unavailable" : sessionHydrated ? "Tap anywhere to start" : "Preparing booth"}</span>
     </button>
   );
 }

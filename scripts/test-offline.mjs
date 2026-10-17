@@ -87,7 +87,8 @@ test("receipt sizes and photo boxes follow the tablet receipt rules", async () =
   assert.equal(rectangles.length, 4);
   assert.ok(rectangles.every((rectangle) => rectangle.x === rectangles[0].x && rectangle.width === rectangles[0].width));
   assert.ok(rectangles.every((rectangle, index) => index === 0 || rectangle.y > rectangles[index - 1].y));
-  assert.equal(templateSupportsPhotoSlots({ photoSlots: 1, supportedPhotoSlots: [1, 2, 3, 4], size: "80 × 100 mm", builtIn: true }, 4), true);
+  assert.equal(templateSupportsPhotoSlots({ photoSlots: 1, supportedPhotoSlots: [1, 2, 3, 4], size: "80 × 100 mm", builtIn: true }, 4), false);
+  assert.equal(templateSupportsPhotoSlots({ photoSlots: 1, supportedPhotoSlots: [1, 2, 3, 4], size: "80 × 100 mm", builtIn: true }, 1), true);
   assert.equal(templateSupportsPhotoSlots({ photoSlots: 2, size: "80 × 150 mm" }, 4), false);
 });
 
@@ -150,6 +151,12 @@ test("booth navigation stays local, including Back/Finish; other routes use Next
     }
     assert.equal(calls.length, 7);
   } finally { globalThis.window = previousWindow; }
+});
+
+test("camera advances automatically after the required final shot", async () => {
+  const camera = await readFile("src/components/booth/camera-capture.tsx", "utf8");
+  assert.match(camera, /addCapturedPhoto\(image\);[\s\S]*captured \+ 1 >= photoCount[\s\S]*await wait\(1000\);[\s\S]*await reviewShots\(\)/);
+  assert.doesNotMatch(camera, />Choose design</);
 });
 
 test("draft recovery, tenant isolation, completed sessions and storage errors", async () => {

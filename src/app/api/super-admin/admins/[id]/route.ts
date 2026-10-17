@@ -21,3 +21,14 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     return apiSuccess({ updated: true, temporaryPassword });
   } catch (error) { return handleApiError(error); }
 }
+
+export async function DELETE(_request: Request, context: { params: Promise<{ id: string }> }) {
+  try {
+    await requireSuperAdmin();
+    const { id } = await context.params;
+    const { admins } = await getCollections();
+    const result = await admins.deleteOne({ _id: id, role: "business_admin" });
+    if (!result.deletedCount) return apiError("Admin not found.", 404);
+    return apiSuccess({ deleted: true });
+  } catch (error) { return handleApiError(error); }
+}
