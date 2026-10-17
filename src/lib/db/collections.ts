@@ -15,6 +15,7 @@ export interface BusinessDocument {
   logoPublicId: string | null;
   welcomeBackgroundUrl?: string | null;
   welcomeBackgroundPublicId?: string | null;
+  templateCatalogVersion?: number;
   updatedAt: Date;
 }
 

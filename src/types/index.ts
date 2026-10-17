@@ -1,4 +1,6 @@
 export type TemplateLayout = "single" | "double" | "triple" | "quad";
+export type PhotoSlotCount = 1 | 2 | 3 | 4;
+export type ReceiptDesignStyle = "classic" | "calendar" | "social-post" | "barcode" | "flight-ticket";
 export type SyncStatus = "synced" | "pending" | "local" | "failed";
 
 export interface ThemePalette { primary: string; secondary: string; background: string; text: string; accent: string; }
@@ -22,7 +24,7 @@ export interface CapturedPhoto {
   capturedAt: number;
 }
 
-export type BoothStep = "idle" | "selecting" | "capturing" | "reviewing" | "complete";
+export type BoothStep = "idle" | "selecting" | "capturing" | "designing" | "reviewing" | "complete";
 export type PhotoMode = "color" | "bw";
 
 export interface ReceiptTemplate {
@@ -30,11 +32,14 @@ export interface ReceiptTemplate {
   name: string;
   layout: TemplateLayout;
   photoSlots: number;
+  supportedPhotoSlots?: PhotoSlotCount[];
   size: string;
   isDefault: boolean;
   logoPlacement: "top" | "bottom";
   palette: ThemePalette;
   designMode?: "generated" | "image-overlay";
+  designStyle?: ReceiptDesignStyle;
+  builtIn?: boolean;
   overlayImageUrl?: string | null;
   overlayPublicId?: string | null;
 }

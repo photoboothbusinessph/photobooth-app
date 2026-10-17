@@ -31,7 +31,7 @@ function captureVideoFrame(video: HTMLVideoElement) {
   return canvas.toDataURL("image/jpeg", 0.9);
 }
 
-export function CameraCapture({ photoCount, templateId, templateName }: { photoCount: number; templateId: string; templateName: string }) {
+export function CameraCapture({ photoCount }: { photoCount: number }) {
   const router = useBoothRouter();
   const pathname = usePathname();
   const videoRef = React.useRef<HTMLVideoElement>(null);
@@ -139,13 +139,13 @@ export function CameraCapture({ photoCount, templateId, templateName }: { photoC
     beginReview();
     await flushBoothSessionPersistence();
     const base = boothBasePath(pathname);
-    router.push(`${base}/booth/preview${base ? "" : `?template=${encodeURIComponent(templateId)}`}`);
+    router.push(`${base}/booth/designs`);
   }
 
   return (
-    <div className="grid flex-1 gap-5 lg:grid-cols-[minmax(0,1fr)_260px]">
-      <div className="relative min-h-[54vh] overflow-hidden border-2 border-white bg-black">
-        <video ref={videoRef} autoPlay playsInline muted aria-label="Live camera preview" className={cn("absolute inset-0 size-full object-cover", cameraState !== "ready" && "invisible")} />
+    <div className="grid min-h-0 flex-1 gap-[clamp(0.6rem,1.5dvh,1.25rem)] min-[700px]:grid-cols-[minmax(0,1fr)_minmax(180px,28%)]">
+      <div className="relative min-h-0 overflow-hidden border-2 border-white bg-black">
+        <video ref={videoRef} autoPlay playsInline muted aria-label="Mirrored live camera preview" className={cn("absolute inset-0 size-full -scale-x-100 object-cover", cameraState !== "ready" && "invisible")} />
         {cameraState === "ready" ? (
           <>
             <div className="pointer-events-none absolute inset-0 border-[12px] border-black/15" />
@@ -167,16 +167,16 @@ export function CameraCapture({ photoCount, templateId, templateName }: { photoC
           <StatusState type="error" title="Camera unavailable" description="The camera could not start. Close other camera apps and try again." className="h-full border-0 bg-black text-white" action={<Button onClick={() => void startCamera()} variant="outline" className="h-12 border-white bg-transparent text-white"><RefreshCcw /> Try again</Button>} />
         )}
       </div>
-      <aside className="flex flex-col border-2 border-white/45 bg-black/15 p-4">
-        <div className="flex items-baseline justify-between"><div><p className="text-xs font-bold uppercase tracking-[0.18em]">Progress</p><p className="mt-1 text-[10px] uppercase tracking-[0.12em] text-white/55">{templateName}</p></div><strong className="text-2xl">{captured}/{photoCount}</strong></div>
-        <div className="my-4 h-2 overflow-hidden bg-white/20"><div className="h-full bg-[var(--booth-accent)] transition-all" style={{ width: `${(captured / photoCount) * 100}%` }} /></div>
+      <aside className="flex min-h-0 flex-col border-2 border-white/45 bg-black/15 p-[clamp(0.65rem,1.5dvh,1rem)]">
+        <div className="flex items-baseline justify-between"><p className="text-xs font-bold uppercase tracking-[0.18em]">Progress</p><strong className="text-2xl">{captured}/{photoCount}</strong></div>
+        <div className="my-[clamp(0.45rem,1.2dvh,1rem)] h-2 shrink-0 overflow-hidden bg-white/20"><div className="h-full bg-[var(--booth-accent)] transition-all" style={{ width: `${(captured / photoCount) * 100}%` }} /></div>
         <div className={cn("grid gap-2", photoCount === 1 ? "grid-cols-1" : "grid-cols-2")}>
           {Array.from({ length: photoCount }, (_, index) => <div key={index} className={cn("relative aspect-square overflow-hidden border", capturedPhotos[index] ? "border-white" : "border-white/20 bg-black/20")}>
-            {capturedPhotos[index] ? <Image src={capturedPhotos[index].dataUrl} alt={`Captured frame ${index + 1}`} fill sizes="120px" unoptimized className="object-cover" /> : <span className="grid h-full place-items-center text-xs text-white/35">0{index + 1}</span>}
+            {capturedPhotos[index] ? <Image src={capturedPhotos[index].dataUrl} alt={`Captured frame ${index + 1}`} fill sizes="120px" unoptimized className="-scale-x-100 object-cover" /> : <span className="grid h-full place-items-center text-xs text-white/35">0{index + 1}</span>}
           </div>)}
         </div>
-        <p className="mt-4 text-xs leading-5 text-white/60">Camera access stays on this device. Photos are held only in the current browser session.</p>
-        <Button onClick={() => void reviewShots()} disabled={captured < photoCount} className="mt-auto h-14 rounded-none bg-[var(--booth-accent)] font-black uppercase text-black hover:bg-white">{captured < photoCount ? `Take ${photoCount - captured} more` : "Review shots"} <ArrowRight /></Button>
+        <p className="mt-2 hidden text-xs leading-5 text-white/60 min-[700px]:block">Photos stay in this booth session until you finish.</p>
+        <Button onClick={() => void reviewShots()} disabled={captured < photoCount} className="mt-auto min-h-11 rounded-none bg-[var(--booth-accent)] font-black uppercase text-black hover:bg-white">{captured < photoCount ? `Take ${photoCount - captured} more` : "Choose design"} <ArrowRight /></Button>
       </aside>
     </div>
   );

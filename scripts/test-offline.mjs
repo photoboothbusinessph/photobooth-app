@@ -45,12 +45,20 @@ test("RawBT raster encodes black, white and transparent pixels with valid framin
 });
 
 test("booth Print shares directly to Easy Thermal without RawBT, WebUSB or confirmation", async () => {
-  const previewStudio = await readFile("src/components/booth/preview-studio.tsx", "utf8");
+  const [previewStudio, easyThermal] = await Promise.all([
+    readFile("src/components/booth/preview-studio.tsx", "utf8"),
+    readFile("src/lib/receipt/easy-thermal.ts", "utf8"),
+  ]);
   assert.match(previewStudio, /async function openPrint[\s\S]*await shareReceiptWithEasyThermal\(/);
+  assert.match(previewStudio, /createReceiptCopySheet\(source, copies\)/);
+  assert.match(previewStudio, /setCopies\(\(value\) => Math\.max\(1, value - 1\)\)/);
+  assert.match(previewStudio, /setCopies\(\(value\) => Math\.min\(9, value \+ 1\)\)/);
+  assert.match(easyThermal, /canvas\.height = receiptHeight \* copies/);
+  assert.match(easyThermal, /for \(let index = 0; index < copies; index \+= 1\)/);
   assert.doesNotMatch(previewStudio, /rawbtUri|webusb|navigator\.usb|window\.confirm/i);
 });
 
-test("Easy Thermal handoff shares one PNG with the requested copy instructions", async () => {
+test("Easy Thermal handoff shares one print-ready PNG with the requested copy instructions", async () => {
   const originalNavigator = Object.getOwnPropertyDescriptor(globalThis, "navigator");
   let shared;
   try {
@@ -62,7 +70,7 @@ test("Easy Thermal handoff shares one PNG with the requested copy instructions",
     await shareReceiptWithEasyThermal("data:image/png;base64,iVBORw0KGgo=", 3);
     assert.equal(shared.files.length, 1);
     assert.equal(shared.files[0].type, "image/png");
-    assert.match(shared.text, /print 3 copies/);
+    assert.match(shared.text, /already contains 3 receipt copies/);
     await assert.rejects(async () => shareReceiptWithEasyThermal("data:image/png;base64,iVBORw0KGgo=", 0), /between 1 and 9/);
   } finally {
     if (originalNavigator) Object.defineProperty(globalThis, "navigator", originalNavigator);
@@ -71,7 +79,7 @@ test("Easy Thermal handoff shares one PNG with the requested copy instructions",
 });
 
 test("receipt sizes and photo boxes follow the tablet receipt rules", async () => {
-  const { normalizeReceiptTemplate, receiptSizeForSlots, receiptSlotRects } = await loadModule("src/lib/receipt/template-rules.ts");
+  const { normalizeReceiptTemplate, receiptSizeForSlots, receiptSlotRects, templateSupportsPhotoSlots } = await loadModule("src/lib/receipt/template-rules.ts");
   assert.deepEqual([1, 2, 3, 4].map(receiptSizeForSlots), ["80 × 100 mm", "80 × 150 mm", "80 × 150 mm", "80 × 200 mm"]);
   const normalized = normalizeReceiptTemplate({ photoSlots: 4, size: "80 × 260 mm" });
   assert.equal(normalized.size, "80 × 200 mm");
@@ -79,6 +87,8 @@ test("receipt sizes and photo boxes follow the tablet receipt rules", async () =
   assert.equal(rectangles.length, 4);
   assert.ok(rectangles.every((rectangle) => rectangle.x === rectangles[0].x && rectangle.width === rectangles[0].width));
   assert.ok(rectangles.every((rectangle, index) => index === 0 || rectangle.y > rectangles[index - 1].y));
+  assert.equal(templateSupportsPhotoSlots({ photoSlots: 1, supportedPhotoSlots: [1, 2, 3, 4], size: "80 × 100 mm", builtIn: true }, 4), true);
+  assert.equal(templateSupportsPhotoSlots({ photoSlots: 2, size: "80 × 150 mm" }, 4), false);
 });
 
 test("new devices sign in first; paired devices see welcome", async () => {
@@ -128,17 +138,17 @@ test("booth navigation stays local, including Back/Finish; other routes use Next
       "next/navigation": "export const useRouter = () => ({ push: (href) => globalThis.window.nextCall = href, replace: (href) => globalThis.window.nextCall = href });",
     });
     const router = useBoothRouter();
-    for (const step of ["templates", "camera", "preview", "photo-qr", "social"]) {
+    for (const step of ["templates", "camera", "designs", "preview", "photo-qr", "social"]) {
       router.push("/b/alpha/booth/" + step);
     }
     router.replace("/b/alpha");
-    assert.equal(calls.length, 6);
+    assert.equal(calls.length, 7);
     assert.equal(globalThis.window.nextCall, undefined);
     for (const href of ["/admin/login", "/b/beta", "/b/alpha/pair", "https://other.test/b/alpha"]) {
       router.push(href);
       assert.equal(globalThis.window.nextCall, href);
     }
-    assert.equal(calls.length, 6);
+    assert.equal(calls.length, 7);
   } finally { globalThis.window = previousWindow; }
 });
 
@@ -163,9 +173,11 @@ test("draft recovery, tenant isolation, completed sessions and storage errors", 
     await useBoothStore.getState().hydrateSession("alpha");
     assert.equal(useBoothStore.getState().isHydrated, true);
     useBoothStore.getState().startSession("alpha", "business-a");
-    useBoothStore.getState().selectTemplate("solo");
+    useBoothStore.getState().selectPhotoSlots(1);
     useBoothStore.getState().beginCapture();
     useBoothStore.getState().addCapturedPhoto("data:image/jpeg;base64,test");
+    useBoothStore.getState().beginReview();
+    useBoothStore.getState().selectDesign("solo");
     assert.equal(await flushBoothSessionPersistence(), true);
     const sessionId = useBoothStore.getState().sessionId;
     await useBoothStore.getState().hydrateSession("beta");
@@ -173,6 +185,7 @@ test("draft recovery, tenant isolation, completed sessions and storage errors", 
     await useBoothStore.getState().hydrateSession("alpha");
     assert.equal(useBoothStore.getState().sessionId, sessionId);
     assert.equal(useBoothStore.getState().capturedPhotos.length, 1);
+    assert.equal(useBoothStore.getState().selectedPhotoSlots, 1);
     useBoothStore.getState().completeSession();
     await flushBoothSessionPersistence();
     db.drafts.get("alpha").startedAt = Date.now() - 180_000;
@@ -220,6 +233,7 @@ test("worker caches only booth HTML, never redirects or RSC as documents", async
     });
     assert.equal(matches("/b/alpha"), true);
     assert.equal(matches("/b/alpha/booth/camera"), true);
+    assert.equal(matches("/b/alpha/booth/designs"), true);
     for (const path of ["/admin", "/share/secret", "/b/alpha/pair", "/api/business"]) assert.equal(matches(path), false);
     assert.equal(matches("/b/alpha", { rsc: "1", accept: "text/x-component" }), false);
     const cacheResponse = route.handler.plugins[0].cacheWillUpdate;

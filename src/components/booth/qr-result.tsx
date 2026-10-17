@@ -46,11 +46,11 @@ export function QrResult() {
   const synced = Boolean(shareUrl && qrDataUrl);
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center py-4 text-center sm:py-8">
-      <BrandMark branding={branding} inverse className="max-w-full text-6xl sm:text-8xl lg:text-9xl" />
-      <div className="mt-10 grid w-full max-w-5xl gap-8 sm:mt-14 md:grid-cols-2 md:gap-10">
+    <div className="flex min-h-0 flex-1 flex-col items-center justify-center text-center">
+      <BrandMark branding={branding} inverse className="max-w-full shrink-0 text-[clamp(1.6rem,4dvh,4.5rem)]" />
+      <div className="mt-[clamp(0.5rem,1.5dvh,1.25rem)] grid min-h-0 w-full max-w-5xl flex-1 grid-cols-2 gap-[clamp(0.6rem,2vw,1.5rem)]">
         <section className="flex min-w-0 flex-col items-center">
-          <div className="w-full max-w-[360px] border-2 border-black bg-white p-4 shadow-[10px_10px_0_#101010] sm:p-5">
+          <div className="w-full max-w-[min(26dvh,280px)] border-2 border-black bg-white p-[clamp(0.4rem,1dvh,0.8rem)] shadow-[6px_6px_0_#101010]">
             {qrDataUrl ? (
               <Image src={qrDataUrl} alt="Private digital photo QR code" width={900} height={900} unoptimized className="aspect-square w-full" />
             ) : (
@@ -63,16 +63,16 @@ export function QrResult() {
               </div>
             )}
           </div>
-          <h2 className="mt-6 text-3xl font-black uppercase tracking-[-0.04em] sm:text-4xl">Digital copy</h2>
-          <p className="mt-2 max-w-sm text-sm leading-6 text-white/70">Scan to download both color and black-and-white copies of your photos.</p>
-          <div className="mt-3 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em]">
+          <h2 className="mt-[clamp(0.35rem,1dvh,0.8rem)] text-[clamp(1rem,2.5dvh,1.8rem)] font-black uppercase tracking-[-0.04em]">Digital copy</h2>
+          <p className="mt-1 hidden max-w-sm text-xs leading-5 text-white/70 [@media(min-height:900px)]:block">Scan to download both color and black-and-white copies.</p>
+          <div className="mt-1 inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.12em]">
             {synced ? <Wifi className="size-4 text-[var(--booth-accent)]" /> : <CloudOff className="size-4 text-orange-300" />}
             {synced ? "Private link ready" : "Waiting for online sync"}
           </div>
         </section>
 
         <section className="flex min-w-0 flex-col items-center">
-          <div className="w-full max-w-[360px] border-2 border-black bg-white p-4 shadow-[10px_10px_0_#101010] sm:p-5">
+          <div className="w-full max-w-[min(26dvh,280px)] border-2 border-black bg-white p-[clamp(0.4rem,1dvh,0.8rem)] shadow-[6px_6px_0_#101010]">
             {socialUrl ? (
               <SocialQrCode url={socialUrl} />
             ) : socialQrUrl ? (
@@ -89,8 +89,8 @@ export function QrResult() {
               </div>
             )}
           </div>
-          <h2 className="mt-6 text-3xl font-black uppercase tracking-[-0.04em] sm:text-4xl">Social media</h2>
-          <p className="mt-2 max-w-sm text-sm leading-6 text-white/70">Scan to visit and follow {branding.handle || branding.name} on social media.</p>
+          <h2 className="mt-[clamp(0.35rem,1dvh,0.8rem)] text-[clamp(1rem,2.5dvh,1.8rem)] font-black uppercase tracking-[-0.04em]">Social media</h2>
+          <p className="mt-1 hidden max-w-sm text-xs leading-5 text-white/70 [@media(min-height:900px)]:block">Scan to follow {branding.handle || branding.name}.</p>
         </section>
       </div>
       <FinishSessionButton />

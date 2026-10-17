@@ -7,6 +7,8 @@ import { getCollections } from "@/lib/db/collections";
 import { getApplicationEnvironment } from "@/lib/server/env";
 import { sessionUploadSchema } from "@/lib/validation/schemas";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
+import { templates as starterTemplates } from "@/config/mock-data";
+import { templateSupportsPhotoSlots } from "@/lib/receipt/template-rules";
 
 export async function GET() {
   try {
@@ -31,7 +33,8 @@ export async function POST(request: Request) {
     if (existing && existing.businessId !== businessId) throw new Error("Forbidden");
     if (existing) return apiSuccess(toShareResult(existing.shareToken));
     const template = await templates.findOne({ _id: businessId === "default" ? input.templateId : `${businessId}__${input.templateId}`, businessId });
-    if (!template || template.photoSlots !== input.photoCount) throw new Error("Forbidden");
+    const resolvedTemplate = template ?? starterTemplates.find((item) => item.builtIn && item.id === input.templateId);
+    if (!resolvedTemplate || !templateSupportsPhotoSlots({ ...resolvedTemplate, id: input.templateId }, input.photoCount)) throw new Error("Forbidden");
 
     const color = await uploadImage(input.colorImage, `${businessId}/sessions/${input.id}`, "color");
     colorPublicId = color.publicId;

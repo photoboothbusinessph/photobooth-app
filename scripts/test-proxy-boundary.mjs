@@ -79,3 +79,19 @@ test("public share tokens resolve the business from their session", async () => 
   assert.match(shareRepository, /businesses\.findOne\(\{ _id: session\.businessId \}\)/);
   assert.doesNotMatch(shareRepository, /businessId:\s*["']default["']/);
 });
+
+test("adaptive starter templates are persisted once and remain editable or deletable", async () => {
+  const [catalog, templateRoute, manager] = await Promise.all([
+    readFile("src/lib/receipt/starter-template-catalog.ts", "utf8"),
+    readFile("src/app/api/templates/route.ts", "utf8"),
+    readFile("src/components/admin/template-manager.tsx", "utf8"),
+  ]);
+
+  assert.match(catalog, /template\.builtIn/);
+  assert.match(catalog, /\$setOnInsert/);
+  assert.match(catalog, /templateCatalogVersion/);
+  assert.match(templateRoute, /await ensureStarterTemplateCatalog\(businessId\)/);
+  assert.doesNotMatch(templateRoute, /missingBuiltIns/);
+  assert.doesNotMatch(manager, /template\.builtIn\s*\?\s*null\s*:\s*<DropdownMenu/);
+  assert.match(manager, /Actions for \$\{template\.name\}/);
+});

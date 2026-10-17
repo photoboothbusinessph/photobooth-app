@@ -11,7 +11,7 @@ import { boothBasePath, boothSlug } from "@/lib/booth-path";
 import { saveLocalSession } from "@/lib/db/indexed-db";
 import { normalizeReceiptTemplate } from "@/lib/receipt/template-rules";
 import { renderReceiptImage } from "@/lib/receipt/render-receipt";
-import { shareReceiptWithEasyThermal } from "@/lib/receipt/easy-thermal";
+import { createReceiptCopySheet, shareReceiptWithEasyThermal } from "@/lib/receipt/easy-thermal";
 import { setReceiptPrinting } from "@/lib/receipt/print-activity";
 import { processSyncQueue, syncSessionNow } from "@/lib/sync/client-sync";
 import { flushBoothSessionPersistence, useBoothStore } from "@/stores/booth-store";
@@ -26,13 +26,15 @@ export function PreviewStudio({ template }: { template: ReceiptTemplate }) {
   const [rendering, setRendering] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [sharing, setSharing] = React.useState(false);
-  const [mirrored, setMirrored] = React.useState(false);
+  const [mirrored, setMirrored] = React.useState(true);
   const [copies, setCopies] = React.useState(1);
+  const [preparedPrint, setPreparedPrint] = React.useState<{ source: string; copies: number; image: string } | null>(null);
   const savedImageRef = React.useRef<string | null>(null);
   const dispatchingRef = React.useRef(false);
   const continuingRef = React.useRef(false);
   const [renderError, setRenderError] = React.useState(false);
   const sessionId = useBoothStore((state) => state.sessionId);
+  const selectedPhotoSlots = useBoothStore((state) => state.selectedPhotoSlots);
   const photos = useBoothStore((state) => state.capturedPhotos);
   const generatedImages = useBoothStore((state) => state.generatedImages);
   const setGeneratedImages = useBoothStore((state) => state.setGeneratedImages);
@@ -45,8 +47,8 @@ export function PreviewStudio({ template }: { template: ReceiptTemplate }) {
   React.useEffect(() => {
     let cancelled = false;
     Promise.all([
-      renderReceiptImage({ template: normalizedTemplate, photos, branding, palette: normalizedTemplate.palette, monochrome: false, mirrored }),
-      renderReceiptImage({ template: normalizedTemplate, photos, branding, palette: normalizedTemplate.palette, monochrome: true, mirrored }),
+      renderReceiptImage({ template: normalizedTemplate, photoSlots: selectedPhotoSlots ?? undefined, photos, branding, palette: normalizedTemplate.palette, monochrome: false, mirrored }),
+      renderReceiptImage({ template: normalizedTemplate, photoSlots: selectedPhotoSlots ?? undefined, photos, branding, palette: normalizedTemplate.palette, monochrome: true, mirrored }),
     ]).then(([color, bw]) => {
       if (cancelled) return;
       setGeneratedImages({ color, bw });
@@ -54,9 +56,22 @@ export function PreviewStudio({ template }: { template: ReceiptTemplate }) {
       .catch(() => { if (!cancelled) { setRenderError(true); toast.error("The final receipt image could not be generated. Try Mirror again or retake the photos."); } })
       .finally(() => { if (!cancelled) setRendering(false); });
     return () => { cancelled = true; };
-  }, [branding, mirrored, normalizedTemplate, photos, setGeneratedImages]);
+  }, [branding, mirrored, normalizedTemplate, photos, selectedPhotoSlots, setGeneratedImages]);
 
   React.useEffect(() => () => { setReceiptPrinting(false); }, []);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    const source = generatedImages?.color;
+    if (!source) return;
+    createReceiptCopySheet(source, copies)
+      .then((image) => { if (!cancelled) setPreparedPrint({ source, copies, image }); })
+      .catch(() => { if (!cancelled) { setPreparedPrint(null); toast.error("The selected receipt copies could not be prepared."); } });
+    return () => { cancelled = true; };
+  }, [copies, generatedImages]);
+
+  const printImage = preparedPrint && preparedPrint.source === generatedImages?.color && preparedPrint.copies === copies ? preparedPrint.image : null;
+  const preparingCopies = Boolean(generatedImages?.color && !printImage);
 
   async function persistReceipt() {
     const businessSlug = boothSlug(pathname);
@@ -71,14 +86,14 @@ export function PreviewStudio({ template }: { template: ReceiptTemplate }) {
       toast.error("Printing requires an Android phone or tablet with Easy Thermal Print. Browser printing is disabled.");
       return;
     }
-    if (dispatchingRef.current || continuingRef.current || rendering || saving || sharing || !generatedImages) return;
+    if (dispatchingRef.current || continuingRef.current || rendering || preparingCopies || saving || sharing || !generatedImages || !printImage) return;
     dispatchingRef.current = true;
     setReceiptPrinting(true);
     setSharing(true);
     window.speechSynthesis?.cancel();
     try {
-      await shareReceiptWithEasyThermal(generatedImages.color, copies);
-      toast.info(`Receipt shared. Print ${copies} ${copies === 1 ? "copy" : "copies"} in Easy Thermal Print.`);
+      await shareReceiptWithEasyThermal(printImage, copies);
+      toast.info(copies === 1 ? "Receipt shared. Print the image once in Easy Thermal Print." : `Receipt shared with ${copies} copies included. Print the image once in Easy Thermal Print.`);
       await saveAndContinue();
     } catch (error) {
       setReceiptPrinting(false);
@@ -94,7 +109,7 @@ export function PreviewStudio({ template }: { template: ReceiptTemplate }) {
   async function retakePhotos() {
     beginCapture();
     await flushBoothSessionPersistence();
-    router.push(`${base}/booth/camera${base ? "" : `?template=${encodeURIComponent(normalizedTemplate.id)}`}`);
+    router.push(`${base}/booth/camera`);
   }
 
   function toggleMirror() {
@@ -125,14 +140,14 @@ export function PreviewStudio({ template }: { template: ReceiptTemplate }) {
   }
 
   return <>
-    <div className="mx-auto grid w-full max-w-3xl flex-1 items-center gap-6 pb-4">
-      <div className="flex justify-center bg-black/10 p-4 sm:p-7"><ReceiptPreview template={normalizedTemplate} photos={photos} branding={branding} mirrored={mirrored} printable className="max-h-[58dvh] w-auto max-w-full print:max-h-none" /></div>
-      <fieldset disabled={sharing || saving} className="grid gap-3">
+    <div className="mx-auto grid min-h-0 w-full max-w-5xl flex-1 grid-rows-[minmax(0,1fr)_auto_auto_auto] items-center gap-[clamp(0.5rem,1.4dvh,1rem)] min-[700px]:grid-cols-[minmax(0,1fr)_minmax(260px,0.8fr)] min-[700px]:grid-rows-[1fr_auto_auto]">
+      <div className="flex h-full min-h-0 justify-center bg-black/10 p-[clamp(0.5rem,1.4dvh,1.25rem)] min-[700px]:row-span-3"><ReceiptPreview template={normalizedTemplate} photoSlots={selectedPhotoSlots ?? undefined} photos={photos} branding={branding} mirrored={mirrored} printable className="h-full w-auto max-w-full print:max-h-none" /></div>
+      <fieldset disabled={sharing || saving} className="grid gap-3 self-end">
         <div className="grid grid-cols-[1fr_auto_1fr] items-center rounded-full bg-white px-4 py-2 text-black"><Button type="button" variant="ghost" size="icon" aria-label="Decrease copies" disabled={copies === 1} onClick={() => setCopies((value) => Math.max(1, value - 1))} className="justify-self-start rounded-full"><Minus /></Button><div className="text-center"><p className="text-xs font-black uppercase tracking-wider">Copies</p><p className="text-2xl font-black">{copies}</p></div><Button type="button" variant="ghost" size="icon" aria-label="Increase copies" disabled={copies === 9} onClick={() => setCopies((value) => Math.min(9, value + 1))} className="justify-self-end rounded-full"><Plus /></Button></div>
         <div className="grid grid-cols-2 gap-3"><Button onClick={() => void retakePhotos()} variant="outline" className="h-14 rounded-full border-0 bg-white font-black uppercase text-black hover:bg-white/85"><RotateCcw /> Retake</Button><Button type="button" onClick={toggleMirror} aria-pressed={mirrored} variant="outline" className="h-14 rounded-full border-0 bg-white font-black uppercase text-black hover:bg-white/85"><FlipHorizontal2 /> {mirrored ? "Mirrored" : "Mirror"}</Button></div>
       </fieldset>
-      <Button onClick={() => void openPrint()} disabled={renderError || rendering || saving || sharing || !generatedImages} className="h-16 rounded-full bg-black text-xl font-black uppercase text-white hover:bg-black/80">{rendering || saving || sharing ? <LoaderCircle className="animate-spin" /> : <Printer />} {renderError ? "Receipt unavailable" : rendering ? "Preparing receipt" : saving ? "Processing receipt" : sharing ? "Opening Easy Thermal" : "Print"}</Button>
-      <p className="text-center text-sm" role="status">Tap Print, then choose Easy Thermal Print and print {copies} {copies === 1 ? "copy" : "copies"}.</p>
+      <Button onClick={() => void openPrint()} disabled={renderError || rendering || preparingCopies || saving || sharing || !generatedImages || !printImage} className="h-16 rounded-full bg-black text-xl font-black uppercase text-white hover:bg-black/80">{rendering || preparingCopies || saving || sharing ? <LoaderCircle className="animate-spin" /> : <Printer />} {renderError ? "Receipt unavailable" : rendering || preparingCopies ? "Preparing copies" : saving ? "Processing receipt" : sharing ? "Opening Easy Thermal" : "Print"}</Button>
+      <p className="text-center text-xs sm:text-sm" role="status">Print the shared image once. It contains {copies} complete receipt {copies === 1 ? "copy" : "copies"}.</p>
     </div>
 
   </>;
