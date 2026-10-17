@@ -35,10 +35,7 @@ export function receiptMillimeters(size: string) {
 
 export function normalizeReceiptTemplate<T extends ReceiptTemplate>(template: T): T {
   const slots = Math.min(4, Math.max(1, template.photoSlots)) as PhotoSlotCount;
-  const supportedPhotoSlots = template.builtIn
-    ? template.supportedPhotoSlots?.filter((value): value is PhotoSlotCount => [1, 2, 3, 4].includes(value)) ?? [slots]
-    : [slots];
-  return { ...template, photoSlots: slots, supportedPhotoSlots: [...new Set(supportedPhotoSlots)], size: receiptSizeForSlots(slots), designStyle: template.designStyle ?? "classic" };
+  return { ...template, photoSlots: slots, supportedPhotoSlots: [slots], size: receiptSizeForSlots(slots), designStyle: template.designStyle ?? "classic" };
 }
 
 export function templateSupportsPhotoSlots(template: ReceiptTemplate, slots: number) {

@@ -7,7 +7,7 @@ import { useBoothRouter } from "@/hooks/use-booth-router";
 import { boothBasePath } from "@/lib/booth-path";
 import { flushBoothSessionPersistence, useBoothStore } from "@/stores/booth-store";
 import { useBusinessStore } from "@/stores/business-store";
-import { receiptSizeForSlots, templateSupportsPhotoSlots } from "@/lib/receipt/template-rules";
+import { templateSupportsPhotoSlots } from "@/lib/receipt/template-rules";
 import type { PhotoSlotCount } from "@/types";
 
 const choices: PhotoSlotCount[] = [1, 2, 3, 4];
@@ -43,7 +43,6 @@ export function TemplatePicker() {
             </div>
             <div className="pt-[clamp(0.45rem,1dvh,0.8rem)]">
               <p className="text-[clamp(0.9rem,2dvh,1.2rem)] font-black uppercase">{slots} shot{slots === 1 ? "" : "s"}</p>
-              <p className="text-[clamp(0.6rem,1.2dvh,0.75rem)] font-bold uppercase tracking-[0.12em] text-white/65">Stacked layout / {receiptSizeForSlots(slots)}</p>
             </div>
           </button>
         ))}

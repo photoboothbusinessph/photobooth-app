@@ -80,7 +80,7 @@ test("public share tokens resolve the business from their session", async () => 
   assert.doesNotMatch(shareRepository, /businessId:\s*["']default["']/);
 });
 
-test("adaptive starter templates are persisted once and remain editable or deletable", async () => {
+test("starter templates are persisted once and remain editable or deletable", async () => {
   const [catalog, templateRoute, manager] = await Promise.all([
     readFile("src/lib/receipt/starter-template-catalog.ts", "utf8"),
     readFile("src/app/api/templates/route.ts", "utf8"),
@@ -94,4 +94,19 @@ test("adaptive starter templates are persisted once and remain editable or delet
   assert.doesNotMatch(templateRoute, /missingBuiltIns/);
   assert.doesNotMatch(manager, /template\.builtIn\s*\?\s*null\s*:\s*<DropdownMenu/);
   assert.match(manager, /Actions for \$\{template\.name\}/);
+});
+
+test("super admin account actions stay protected and use confirmation dialogs", async () => {
+  const [accountRoute, consoleUi] = await Promise.all([
+    readFile("src/app/api/super-admin/admins/[id]/route.ts", "utf8"),
+    readFile("src/components/admin/super-admin-console.tsx", "utf8"),
+  ]);
+
+  assert.match(accountRoute, /export async function DELETE/);
+  assert.match(accountRoute, /await requireSuperAdmin\(\)/);
+  assert.match(accountRoute, /deleteOne\(\{ _id: id, role: "business_admin" \}\)/);
+  assert.match(accountRoute, /\$inc: \{ sessionVersion: 1 \}/);
+  assert.match(consoleUi, /<Dialog open=\{Boolean\(temporaryPassword\)\}/);
+  assert.match(consoleUi, /<Dialog open=\{Boolean\(accountConfirmation\)\}/);
+  assert.match(consoleUi, /Permanently delete account\?/);
 });

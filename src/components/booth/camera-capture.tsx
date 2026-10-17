@@ -5,7 +5,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useBoothRouter } from "@/hooks/use-booth-router";
 import { boothBasePath } from "@/lib/booth-path";
-import { ArrowRight, CameraOff, RefreshCcw, RotateCcw, SwitchCamera } from "lucide-react";
+import { CameraOff, RefreshCcw, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { StatusState } from "@/components/shared/status-state";
@@ -38,8 +38,6 @@ export function CameraCapture({ photoCount }: { photoCount: number }) {
   const streamRef = React.useRef<MediaStream | null>(null);
   const cameraRequestRef = React.useRef(0);
   const [cameraState, setCameraState] = React.useState<CameraState>("requesting");
-  const [devices, setDevices] = React.useState<MediaDeviceInfo[]>([]);
-  const [activeDeviceId, setActiveDeviceId] = React.useState<string | null>(null);
   const [countdown, setCountdown] = React.useState<number | null>(null);
   const capturedPhotos = useBoothStore((state) => state.capturedPhotos);
   const addCapturedPhoto = useBoothStore((state) => state.addCapturedPhoto);
@@ -52,13 +50,7 @@ export function CameraCapture({ photoCount }: { photoCount: number }) {
     streamRef.current = null;
   }, []);
 
-  const refreshDevices = React.useCallback(async () => {
-    if (!navigator.mediaDevices?.enumerateDevices) return;
-    const available = await navigator.mediaDevices.enumerateDevices();
-    setDevices(available.filter((device) => device.kind === "videoinput"));
-  }, []);
-
-  const startCamera = React.useCallback(async (deviceId?: string) => {
+  const startCamera = React.useCallback(async () => {
     if (!navigator.mediaDevices?.getUserMedia) {
       setCameraState("missing");
       return;
@@ -72,23 +64,18 @@ export function CameraCapture({ photoCount }: { photoCount: number }) {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: false,
-        video: deviceId
-          ? { deviceId: { exact: deviceId }, width: { ideal: 1920 }, height: { ideal: 1080 } }
-          : { facingMode: "user", width: { ideal: 1920 }, height: { ideal: 1080 } },
+        video: { facingMode: "user", width: { ideal: 1920 }, height: { ideal: 1080 } },
       });
       if (cameraRequestRef.current !== requestId) {
         stream.getTracks().forEach((track) => track.stop());
         return;
       }
       streamRef.current = stream;
-      const track = stream.getVideoTracks()[0];
-      setActiveDeviceId(track.getSettings().deviceId ?? deviceId ?? null);
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
       }
       setCameraState("ready");
-      await refreshDevices();
     } catch (error) {
       if (cameraRequestRef.current !== requestId) return;
       const name = error instanceof DOMException ? error.name : "";
@@ -96,20 +83,17 @@ export function CameraCapture({ photoCount }: { photoCount: number }) {
       else if (name === "NotFoundError" || name === "OverconstrainedError") setCameraState("missing");
       else setCameraState("error");
     }
-  }, [refreshDevices, stopCamera]);
+  }, [stopCamera]);
 
   React.useEffect(() => {
     let active = true;
     queueMicrotask(() => { if (active) void startCamera(); });
-    const handleDeviceChange = () => void refreshDevices();
-    navigator.mediaDevices?.addEventListener("devicechange", handleDeviceChange);
     return () => {
       active = false;
       cameraRequestRef.current += 1;
-      navigator.mediaDevices?.removeEventListener("devicechange", handleDeviceChange);
       stopCamera();
     };
-  }, [refreshDevices, startCamera, stopCamera]);
+  }, [startCamera, stopCamera]);
 
   async function capture() {
     if (countdown !== null || captured >= photoCount || cameraState !== "ready") return;
@@ -124,15 +108,13 @@ export function CameraCapture({ photoCount }: { photoCount: number }) {
       return;
     }
     addCapturedPhoto(image);
+    if (captured + 1 >= photoCount) {
+      toast.success("All frames captured");
+      await wait(1000);
+      await reviewShots();
+      return;
+    }
     toast.success("Frame captured");
-  }
-
-  async function switchCamera() {
-    if (devices.length < 2) return;
-    const currentIndex = devices.findIndex((device) => device.deviceId === activeDeviceId);
-    const nextDevice = devices[(currentIndex + 1 + devices.length) % devices.length];
-    await startCamera(nextDevice.deviceId);
-    toast.success(`Switched to ${nextDevice.label || "another camera"}`);
   }
 
   async function reviewShots() {
@@ -143,18 +125,17 @@ export function CameraCapture({ photoCount }: { photoCount: number }) {
   }
 
   return (
-    <div className="grid min-h-0 flex-1 gap-[clamp(0.6rem,1.5dvh,1.25rem)] min-[700px]:grid-cols-[minmax(0,1fr)_minmax(180px,28%)]">
-      <div className="relative min-h-0 overflow-hidden border-2 border-white bg-black">
+    <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)_auto] gap-[clamp(0.45rem,1dvh,0.75rem)]">
+      <div className="relative mx-auto h-full min-h-0 w-full max-w-4xl overflow-hidden border-2 border-white bg-black">
         <video ref={videoRef} autoPlay playsInline muted aria-label="Mirrored live camera preview" className={cn("absolute inset-0 size-full -scale-x-100 object-cover", cameraState !== "ready" && "invisible")} />
         {cameraState === "ready" ? (
           <>
             <div className="pointer-events-none absolute inset-0 border-[12px] border-black/15" />
-            <div className="absolute left-4 top-4 flex items-center gap-2 bg-black/70 px-3 py-2 text-xs font-bold uppercase tracking-[0.15em]"><span className="size-2 animate-pulse rounded-full bg-red-500" /> Live preview</div>
             {countdown ? <div className="absolute inset-0 grid place-items-center bg-black/45" aria-live="assertive"><span className="text-[10rem] font-black leading-none text-white drop-shadow-xl">{countdown}</span></div> : null}
-            <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-gradient-to-t from-black/90 to-transparent p-5 pt-16">
-              <Button variant="outline" size="icon" className="size-14 rounded-full border-white bg-black/30 text-white hover:bg-white hover:text-black" onClick={() => void switchCamera()} disabled={devices.length < 2 || countdown !== null} aria-label="Switch camera"><SwitchCamera className="size-6" /></Button>
+            <div className="absolute inset-x-0 bottom-0 grid grid-cols-[1fr_auto_1fr] items-center bg-gradient-to-t from-black/90 to-transparent p-[clamp(0.75rem,2dvh,1.25rem)] pt-[clamp(2.5rem,6dvh,4rem)]">
+              <span aria-hidden />
               <button type="button" onClick={() => void capture()} disabled={countdown !== null || captured >= photoCount} aria-label="Capture photo" className="grid size-20 place-items-center rounded-full border-4 border-white bg-white/25 outline-none transition-transform active:scale-95 disabled:opacity-50 focus-visible:ring-4 focus-visible:ring-[var(--booth-accent)]"><span className="size-14 rounded-full bg-white" /></button>
-              <Button variant="outline" size="icon" className="size-14 rounded-full border-white bg-black/30 text-white hover:bg-white hover:text-black" onClick={() => removeCapturedPhoto(captured - 1)} disabled={captured === 0 || countdown !== null} aria-label="Retake last photo"><RotateCcw className="size-6" /></Button>
+              <Button variant="outline" size="icon" className="size-14 justify-self-end rounded-full border-white bg-black/30 text-white hover:bg-white hover:text-black" onClick={() => removeCapturedPhoto(captured - 1)} disabled={captured === 0 || countdown !== null} aria-label="Retake last photo"><RotateCcw className="size-6" /></Button>
             </div>
           </>
         ) : cameraState === "requesting" ? (
@@ -167,16 +148,14 @@ export function CameraCapture({ photoCount }: { photoCount: number }) {
           <StatusState type="error" title="Camera unavailable" description="The camera could not start. Close other camera apps and try again." className="h-full border-0 bg-black text-white" action={<Button onClick={() => void startCamera()} variant="outline" className="h-12 border-white bg-transparent text-white"><RefreshCcw /> Try again</Button>} />
         )}
       </div>
-      <aside className="flex min-h-0 flex-col border-2 border-white/45 bg-black/15 p-[clamp(0.65rem,1.5dvh,1rem)]">
+      <aside className="mx-auto w-full max-w-4xl shrink-0 border-2 border-white/45 bg-black/15 p-[clamp(0.5rem,1dvh,0.75rem)]">
         <div className="flex items-baseline justify-between"><p className="text-xs font-bold uppercase tracking-[0.18em]">Progress</p><strong className="text-2xl">{captured}/{photoCount}</strong></div>
-        <div className="my-[clamp(0.45rem,1.2dvh,1rem)] h-2 shrink-0 overflow-hidden bg-white/20"><div className="h-full bg-[var(--booth-accent)] transition-all" style={{ width: `${(captured / photoCount) * 100}%` }} /></div>
-        <div className={cn("grid gap-2", photoCount === 1 ? "grid-cols-1" : "grid-cols-2")}>
-          {Array.from({ length: photoCount }, (_, index) => <div key={index} className={cn("relative aspect-square overflow-hidden border", capturedPhotos[index] ? "border-white" : "border-white/20 bg-black/20")}>
+        <div className="my-1.5 h-2 shrink-0 overflow-hidden bg-white/20"><div className="h-full bg-[var(--booth-accent)] transition-all" style={{ width: `${(captured / photoCount) * 100}%` }} /></div>
+        <div className="grid grid-cols-4 gap-2">
+          {Array.from({ length: photoCount }, (_, index) => <div key={index} className={cn("relative h-[clamp(2.5rem,6dvh,4.5rem)] overflow-hidden border", capturedPhotos[index] ? "border-white" : "border-white/20 bg-black/20")}>
             {capturedPhotos[index] ? <Image src={capturedPhotos[index].dataUrl} alt={`Captured frame ${index + 1}`} fill sizes="120px" unoptimized className="-scale-x-100 object-cover" /> : <span className="grid h-full place-items-center text-xs text-white/35">0{index + 1}</span>}
           </div>)}
         </div>
-        <p className="mt-2 hidden text-xs leading-5 text-white/60 min-[700px]:block">Photos stay in this booth session until you finish.</p>
-        <Button onClick={() => void reviewShots()} disabled={captured < photoCount} className="mt-auto min-h-11 rounded-none bg-[var(--booth-accent)] font-black uppercase text-black hover:bg-white">{captured < photoCount ? `Take ${photoCount - captured} more` : "Choose design"} <ArrowRight /></Button>
       </aside>
     </div>
   );

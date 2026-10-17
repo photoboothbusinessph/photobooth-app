@@ -171,7 +171,7 @@ function HydratedBrandingForm() {
         </div>
         <Button onClick={() => void save()} disabled={saving} className="h-12 w-full sm:w-auto">{saving ? <LoaderCircle className="animate-spin" /> : <Save />} {saving ? "Saving…" : saved ? "Saved" : "Save branding"}</Button>
       </section>
-      <aside className="xl:sticky xl:top-24 xl:self-start"><p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">Live booth preview</p><div className="relative aspect-[3/5] overflow-hidden bg-[var(--booth-primary)] text-white">{background ? <Image src={background} alt="" fill sizes="430px" unoptimized className="object-cover" /> : null}<div className="absolute inset-y-0 left-0 flex w-16 items-center justify-center"><p className="whitespace-nowrap text-3xl font-black uppercase [writing-mode:vertical-rl]">Receipt Photobooth</p></div><BrandMark branding={draftBranding} inverse className="absolute left-1/2 top-[16%] -translate-x-1/2 break-all text-5xl" /><span className="absolute bottom-[12%] left-1/2 -translate-x-1/2 whitespace-nowrap text-xl font-medium uppercase">Tap to start</span></div></aside>
+      <aside className="xl:sticky xl:top-24 xl:self-start"><p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">Live booth preview</p><div className="relative aspect-[3/5] overflow-hidden bg-[var(--booth-primary)] text-white">{background ? <Image src={background} alt="Tap-to-Start background preview" fill sizes="430px" unoptimized className="object-cover" /> : null}</div><p className="mt-2 text-xs text-muted-foreground">Guests can tap anywhere on this screen to begin.</p></aside>
     </div>
   );
 }
