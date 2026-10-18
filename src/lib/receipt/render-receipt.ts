@@ -117,7 +117,9 @@ export async function renderReceiptImage({ template, photoSlots, photos, brandin
 
   context.fillStyle = overlayMode ? "#ffffff" : palette.background;
   context.fillRect(0, 0, width, height);
-  const rects = receiptDesignSlotRects(style, count, width, height);
+  const rects = overlayMode && normalizedTemplate.overlaySlotRects?.length === count
+    ? normalizedTemplate.overlaySlotRects
+    : receiptDesignSlotRects(style, count, width, height);
   const images = await Promise.all(photos.slice(0, count).map((photo) => loadImage(photo.dataUrl)));
   images.forEach((image, index) => {
     const rect = rects[index];

@@ -11,9 +11,10 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { activeTenantKey, cacheTemplates, photoboothDb, queueSync } from "@/lib/db/indexed-db";
+import { detectTransparentSlotRects } from "@/lib/receipt/overlay-windows";
 import { normalizeReceiptTemplate, overlayPixelsBySlots, receiptSizeForSlots, receiptSlotRects } from "@/lib/receipt/template-rules";
 import { useBusinessStore } from "@/stores/business-store";
-import type { ReceiptTemplate, TemplateLayout } from "@/types";
+import type { ReceiptSlotRect, ReceiptTemplate, TemplateLayout } from "@/types";
 
 const layoutOptions: { value: TemplateLayout; label: string; slots: 1 | 2 | 3 | 4 }[] = [
   { value: "single", label: "Single", slots: 1 }, { value: "double", label: "Double", slots: 2 }, { value: "triple", label: "Triple", slots: 3 }, { value: "quad", label: "Quad", slots: 4 },
@@ -59,7 +60,7 @@ async function readOverlay(file: File, slots: 1 | 2 | 3 | 4) {
   let transparent = false;
   for (let alpha = 3; alpha < pixels.length; alpha += 256) if (pixels[alpha] < 250) { transparent = true; break; }
   if (!transparent) throw new Error("The PNG must contain transparent photo windows.");
-  return dataUrl;
+  return { dataUrl, slotRects: detectTransparentSlotRects(pixels, canvas.width, canvas.height, slots) };
 }
 
 function downloadExample(slots: 1 | 2 | 3 | 4) {
@@ -97,6 +98,7 @@ export function TemplateManager() {
   const [imageName, setImageName] = React.useState("Image Template");
   const [imageSlots, setImageSlots] = React.useState<1 | 2 | 3 | 4>(1);
   const [overlayDataUrl, setOverlayDataUrl] = React.useState<string | null>(null);
+  const [overlaySlotRects, setOverlaySlotRects] = React.useState<ReceiptSlotRect[] | null>(null);
   const [overlayChanged, setOverlayChanged] = React.useState(false);
   const [editingImageTemplate, setEditingImageTemplate] = React.useState<ReceiptTemplate | null>(null);
   const [savingImage, setSavingImage] = React.useState(false);
@@ -115,6 +117,7 @@ export function TemplateManager() {
     setImageName(template?.name ?? "Image Template");
     setImageSlots((template?.photoSlots ?? 1) as 1 | 2 | 3 | 4);
     setOverlayDataUrl(template?.overlayImageUrl ?? null);
+    setOverlaySlotRects(template?.overlaySlotRects ?? null);
     setOverlayChanged(false);
     setImageEditorOpen(true);
   }
@@ -150,12 +153,21 @@ export function TemplateManager() {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
-    try { setOverlayDataUrl(await readOverlay(file, imageSlots)); setOverlayChanged(true); toast.success("Template artwork is ready"); }
-    catch (error) { setOverlayDataUrl(null); toast.error(error instanceof Error ? error.message : "Invalid image template."); }
+    try {
+      const overlay = await readOverlay(file, imageSlots);
+      setOverlayDataUrl(overlay.dataUrl);
+      setOverlaySlotRects(overlay.slotRects);
+      setOverlayChanged(true);
+      toast.success("Template artwork is ready");
+    } catch (error) {
+      setOverlayDataUrl(null);
+      setOverlaySlotRects(null);
+      toast.error(error instanceof Error ? error.message : "Invalid image template.");
+    }
   }
   async function saveImageTemplate() {
     if (!navigator.onLine) { toast.error("Connect to the internet to upload an image template."); return; }
-    if (!imageName.trim() || !overlayDataUrl) { toast.error("Enter a name and choose a compliant PNG."); return; }
+    if (!imageName.trim() || !overlayDataUrl || !overlaySlotRects?.length) { toast.error("Enter a name and choose a compliant PNG."); return; }
     setSavingImage(true);
     let uploadedPublicId: string | null = null;
     try {
@@ -169,10 +181,11 @@ export function TemplateManager() {
         overlayPublicId = result.data.publicId;
         uploadedPublicId = result.data.publicId;
       }
-      const template = normalizeReceiptTemplate({ id: editingImageTemplate?.id ?? `image-${crypto.randomUUID()}`, name: imageName.trim(), layout: layoutForSlots(imageSlots), photoSlots: imageSlots, size: receiptSizeForSlots(imageSlots), isDefault: editingImageTemplate?.isDefault ?? false, logoPlacement: "top", palette: { ...businessPalette }, designMode: "image-overlay", overlayImageUrl, overlayPublicId });
+      const template = normalizeReceiptTemplate({ id: editingImageTemplate?.id ?? `image-${crypto.randomUUID()}`, name: imageName.trim(), layout: layoutForSlots(imageSlots), photoSlots: imageSlots, size: receiptSizeForSlots(imageSlots), isDefault: editingImageTemplate?.isDefault ?? false, logoPlacement: "top", palette: { ...businessPalette }, designMode: "image-overlay", overlayImageUrl, overlayPublicId, overlaySlotRects });
       await persist(items.some((item) => item.id === template.id) ? items.map((item) => item.id === template.id ? template : item) : [...items, template], template.id);
       setImageEditorOpen(false);
       setOverlayDataUrl(null);
+      setOverlaySlotRects(null);
       setOverlayChanged(false);
       setEditingImageTemplate(null);
       setImageName("Image Template");
@@ -189,7 +202,7 @@ export function TemplateManager() {
 
     <Dialog open={editorOpen} onOpenChange={setEditorOpen}><DialogContent className="max-h-[92dvh] overflow-y-auto sm:max-w-4xl"><DialogHeader><DialogTitle>{items.some((item) => item.id === draft.id) ? "Edit template" : "Add template"}</DialogTitle><DialogDescription>Configure the receipt and preview each change before saving locally.</DialogDescription></DialogHeader><div className="grid gap-7 py-2 md:grid-cols-[1fr_300px]"><div className="space-y-5"><div className="space-y-2"><Label htmlFor="template-name">Template name</Label><Input id="template-name" value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} className="h-11" /></div><fieldset><legend className="mb-2 text-sm font-medium">Photo slots</legend><div className="grid grid-cols-2 gap-2">{layoutOptions.map((option) => <button key={option.value} type="button" aria-pressed={draft.layout === option.value} onClick={() => setDraft({ ...draft, layout: option.value, photoSlots: option.slots, size: receiptSizeForSlots(option.slots) })} className={`min-h-11 border px-3 text-sm font-bold ${draft.layout === option.value ? "border-primary bg-primary text-white" : "hover:bg-muted"}`}>{option.label} / {option.slots}</button>)}</div></fieldset><div className="space-y-2"><Label>Receipt dimensions</Label><div className="flex h-11 items-center border bg-muted/50 px-3 text-sm font-bold">{receiptSizeForSlots(draft.photoSlots)}</div><p className="text-xs text-muted-foreground">Receipt height is assigned automatically from the photo count.</p></div><div className="space-y-2"><Label>Logo placement</Label><div className="grid grid-cols-2 gap-2">{(["top", "bottom"] as const).map((value) => <button key={value} type="button" aria-pressed={draft.logoPlacement === value} onClick={() => setDraft({ ...draft, logoPlacement: value })} className={`min-h-11 border px-3 text-sm font-bold capitalize ${draft.logoPlacement === value ? "border-primary bg-primary text-white" : "hover:bg-muted"}`}>{value}</button>)}</div></div><div className="grid gap-4 sm:grid-cols-2"><TemplateColorField id="template-primary" label="Template primary" value={draft.palette.primary} onChange={(primary) => setDraft({ ...draft, palette: { ...draft.palette, primary } })} /><TemplateColorField id="template-bg" label="Paper color" value={draft.palette.background} onChange={(background) => setDraft({ ...draft, palette: { ...draft.palette, background } })} /><TemplateColorField id="template-text" label="Receipt text color" value={draft.palette.text} onChange={(text) => setDraft({ ...draft, palette: { ...draft.palette, text } })} /></div></div><div className="flex items-center justify-center bg-muted p-5"><ReceiptPreview template={draft} compact /></div></div><DialogFooter><DialogClose render={<Button variant="outline" />}>Cancel</DialogClose><Button onClick={() => void saveDraft()} disabled={!draft.name.trim() || ![draft.palette.primary, draft.palette.background, draft.palette.text].every(isHexColor)}><Save /> Save template</Button></DialogFooter></DialogContent></Dialog>
 
-    <Dialog open={imageEditorOpen} onOpenChange={(open) => { if (!savingImage) setImageEditorOpen(open); }}><DialogContent className="max-h-[92dvh] overflow-y-auto sm:max-w-3xl"><DialogHeader><DialogTitle>{editingImageTemplate ? "Edit image template" : "Add template using image"}</DialogTitle><DialogDescription>Upload artwork that frames the captured photos. The transparent areas become the photo windows.</DialogDescription></DialogHeader><div className="grid gap-6 py-2 md:grid-cols-[1fr_260px]"><div className="space-y-5"><div className="border border-black/15 bg-muted/40 p-4 text-sm leading-6"><strong>Before uploading</strong><ul className="mt-2 list-disc space-y-1 pl-5"><li>Use a transparent PNG no larger than 8 MB.</li><li>Use the exact pixel dimensions shown for the selected photo count. The minimum format is 800×1000px / 80×100 mm.</li><li>Keep the standardized photo boxes transparent; put artwork around them.</li><li>Do not include private customer information in the design.</li></ul></div><div className="space-y-2"><Label htmlFor="image-template-name">Template name</Label><Input id="image-template-name" value={imageName} maxLength={80} onChange={(event) => setImageName(event.target.value)} /></div><fieldset><legend className="mb-2 text-sm font-medium">Photo slots</legend><div className="grid grid-cols-4 gap-2">{([1, 2, 3, 4] as const).map((slots) => <button key={slots} type="button" aria-pressed={imageSlots === slots} onClick={() => { setImageSlots(slots); setOverlayDataUrl(null); setOverlayChanged(true); }} className={`min-h-11 border font-bold ${imageSlots === slots ? "border-primary bg-primary text-white" : "hover:bg-muted"}`}>{slots}</button>)}</div></fieldset><p className="text-sm"><strong>Required:</strong> {overlayPixelsBySlots[imageSlots].width}×{overlayPixelsBySlots[imageSlots].height}px · {receiptSizeForSlots(imageSlots)}</p><input ref={imageInputRef} type="file" accept="image/png" className="sr-only" onChange={(event) => void chooseOverlay(event)} aria-label="Upload transparent template PNG" /><div className="flex flex-wrap gap-3"><Button type="button" variant="outline" onClick={() => imageInputRef.current?.click()}><Upload /> {overlayDataUrl ? "Replace PNG" : "Choose PNG"}</Button><Button type="button" variant="outline" onClick={() => downloadExample(imageSlots)}><Download /> Download example</Button></div></div><div className="flex min-h-80 items-center justify-center bg-muted p-5">{overlayDataUrl ? <ReceiptPreview template={{ ...freshTemplate(businessPalette), name: imageName, layout: layoutForSlots(imageSlots), photoSlots: imageSlots, size: receiptSizeForSlots(imageSlots), designMode: "image-overlay", overlayImageUrl: overlayDataUrl }} compact /> : <div className="relative w-full overflow-hidden bg-primary p-4 text-white" style={{ aspectRatio: `${overlayPixelsBySlots[imageSlots].width} / ${overlayPixelsBySlots[imageSlots].height}` }}><p className="font-display text-2xl">YOUR LOGO</p><div className="mt-6 grid h-[70%] gap-2" style={{ gridTemplateRows: `repeat(${imageSlots}, minmax(0, 1fr))` }}>{Array.from({ length: imageSlots }, (_, index) => <span key={index} className="bg-white/20" />)}</div><p className="mt-3 text-[10px] font-bold tracking-widest">EXAMPLE OVERLAY</p></div>}</div></div><DialogFooter><DialogClose render={<Button variant="outline" />} disabled={savingImage}>Cancel</DialogClose><Button onClick={() => void saveImageTemplate()} disabled={savingImage || !overlayDataUrl || !imageName.trim()}>{savingImage ? <LoaderCircle className="animate-spin" /> : <Save />} {savingImage ? "Uploading…" : editingImageTemplate ? "Save changes" : "Save image template"}</Button></DialogFooter></DialogContent></Dialog>
+    <Dialog open={imageEditorOpen} onOpenChange={(open) => { if (!savingImage) setImageEditorOpen(open); }}><DialogContent className="max-h-[92dvh] overflow-y-auto sm:max-w-3xl"><DialogHeader><DialogTitle>{editingImageTemplate ? "Edit image template" : "Add template using image"}</DialogTitle><DialogDescription>Upload artwork that frames the captured photos. The transparent areas become the photo windows.</DialogDescription></DialogHeader><div className="grid gap-6 py-2 md:grid-cols-[1fr_260px]"><div className="space-y-5"><div className="border border-black/15 bg-muted/40 p-4 text-sm leading-6"><strong>Before uploading</strong><ul className="mt-2 list-disc space-y-1 pl-5"><li>Use a transparent PNG no larger than 8 MB.</li><li>Use the exact pixel dimensions shown for the selected photo count. The minimum format is 800×1000px / 80×100 mm.</li><li>Keep the standardized photo boxes transparent; put artwork around them.</li><li>Do not include private customer information in the design.</li></ul></div><div className="space-y-2"><Label htmlFor="image-template-name">Template name</Label><Input id="image-template-name" value={imageName} maxLength={80} onChange={(event) => setImageName(event.target.value)} /></div><fieldset><legend className="mb-2 text-sm font-medium">Photo slots</legend><div className="grid grid-cols-4 gap-2">{([1, 2, 3, 4] as const).map((slots) => <button key={slots} type="button" aria-pressed={imageSlots === slots} onClick={() => { setImageSlots(slots); setOverlayDataUrl(null); setOverlaySlotRects(null); setOverlayChanged(true); }} className={`min-h-11 border font-bold ${imageSlots === slots ? "border-primary bg-primary text-white" : "hover:bg-muted"}`}>{slots}</button>)}</div></fieldset><p className="text-sm"><strong>Required:</strong> {overlayPixelsBySlots[imageSlots].width}×{overlayPixelsBySlots[imageSlots].height}px · {receiptSizeForSlots(imageSlots)}</p><input ref={imageInputRef} type="file" accept="image/png" className="sr-only" onChange={(event) => void chooseOverlay(event)} aria-label="Upload transparent template PNG" /><div className="flex flex-wrap gap-3"><Button type="button" variant="outline" onClick={() => imageInputRef.current?.click()}><Upload /> {overlayDataUrl ? "Replace PNG" : "Choose PNG"}</Button><Button type="button" variant="outline" onClick={() => downloadExample(imageSlots)}><Download /> Download example</Button></div></div><div className="flex min-h-80 items-center justify-center bg-muted p-5">{overlayDataUrl ? <ReceiptPreview template={{ ...freshTemplate(businessPalette), name: imageName, layout: layoutForSlots(imageSlots), photoSlots: imageSlots, size: receiptSizeForSlots(imageSlots), designMode: "image-overlay", overlayImageUrl: overlayDataUrl, overlaySlotRects: overlaySlotRects ?? undefined }} compact /> : <div className="relative w-full overflow-hidden bg-primary p-4 text-white" style={{ aspectRatio: `${overlayPixelsBySlots[imageSlots].width} / ${overlayPixelsBySlots[imageSlots].height}` }}><p className="font-display text-2xl">YOUR LOGO</p><div className="mt-6 grid h-[70%] gap-2" style={{ gridTemplateRows: `repeat(${imageSlots}, minmax(0, 1fr))` }}>{Array.from({ length: imageSlots }, (_, index) => <span key={index} className="bg-white/20" />)}</div><p className="mt-3 text-[10px] font-bold tracking-widest">EXAMPLE OVERLAY</p></div>}</div></div><DialogFooter><DialogClose render={<Button variant="outline" />} disabled={savingImage}>Cancel</DialogClose><Button onClick={() => void saveImageTemplate()} disabled={savingImage || !overlayDataUrl || !overlaySlotRects?.length || !imageName.trim()}>{savingImage ? <LoaderCircle className="animate-spin" /> : <Save />} {savingImage ? "Uploading…" : editingImageTemplate ? "Save changes" : "Save image template"}</Button></DialogFooter></DialogContent></Dialog>
 
     <Dialog open={Boolean(deleteTarget)} onOpenChange={(open) => !open && setDeleteTarget(null)}><DialogContent><DialogHeader><DialogTitle>Delete {deleteTarget?.name}?</DialogTitle><DialogDescription>This removes the template from this device and the server after synchronization. This action cannot be undone.</DialogDescription></DialogHeader><DialogFooter><DialogClose render={<Button variant="outline" />}>Cancel</DialogClose><Button variant="destructive" onClick={() => void remove()}><Trash2 /> Delete template</Button></DialogFooter></DialogContent></Dialog>
   </>;

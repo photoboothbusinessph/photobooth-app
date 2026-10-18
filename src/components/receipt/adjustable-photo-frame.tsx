@@ -137,6 +137,12 @@ export function AdjustablePhotoFrame({
     onChange(next);
   }
 
+  function handleWheel(event: React.WheelEvent<HTMLDivElement>) {
+    event.preventDefault();
+    onActivate();
+    onChange({ ...adjustment, zoom: adjustment.zoom + (event.deltaY < 0 ? 0.1 : -0.1) });
+  }
+
   return (
     <div
       ref={frameRef}
@@ -149,6 +155,7 @@ export function AdjustablePhotoFrame({
       onPointerUp={endPointer}
       onPointerCancel={endPointer}
       onKeyDown={handleKeyDown}
+      onWheel={handleWheel}
     >
       {/* A native image keeps the calculated crop dimensions exact inside a measured frame. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}

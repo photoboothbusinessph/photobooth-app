@@ -53,6 +53,12 @@ export const templateSchema = z.object({
   builtIn: z.boolean().optional(),
   overlayImageUrl: z.url().nullable().optional(),
   overlayPublicId: z.string().nullable().optional(),
+  overlaySlotRects: z.array(z.object({
+    x: z.number().int().min(0).max(2000),
+    y: z.number().int().min(0).max(2000),
+    width: z.number().int().positive().max(2000),
+    height: z.number().int().positive().max(2000),
+  })).min(1).max(4).optional(),
 });
 
 const imageDataUrlSchema = z.string().startsWith("data:image/").max(12_000_000);

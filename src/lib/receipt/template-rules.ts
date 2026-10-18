@@ -42,6 +42,15 @@ export function templateSupportsPhotoSlots(template: ReceiptTemplate, slots: num
   return normalizeReceiptTemplate(template).supportedPhotoSlots?.includes(slots as PhotoSlotCount) ?? false;
 }
 
+export function overlaySlotRectsAreValid(template: ReceiptTemplate) {
+  if (!template.overlaySlotRects) return true;
+  const { width, height } = overlayPixelsBySlots[template.photoSlots as PhotoSlotCount];
+  return template.overlaySlotRects.length === template.photoSlots && template.overlaySlotRects.every((rect) =>
+    rect.x >= 0 && rect.y >= 0 && rect.width > 0 && rect.height > 0
+    && rect.x + rect.width <= width && rect.y + rect.height <= height,
+  );
+}
+
 export function receiptSlotRects(slots: number, width: number, height: number) {
   const count = Math.min(4, Math.max(1, slots));
   const side = Math.round(width * 0.06);

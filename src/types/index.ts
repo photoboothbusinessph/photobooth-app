@@ -33,6 +33,13 @@ export interface PhotoAdjustment {
   zoom: number;
 }
 
+export interface ReceiptSlotRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export type BoothStep = "idle" | "selecting" | "capturing" | "designing" | "reviewing" | "complete";
 export type PhotoMode = "color" | "bw";
 
@@ -51,6 +58,7 @@ export interface ReceiptTemplate {
   builtIn?: boolean;
   overlayImageUrl?: string | null;
   overlayPublicId?: string | null;
+  overlaySlotRects?: ReceiptSlotRect[];
 }
 
 export interface BoothSession {

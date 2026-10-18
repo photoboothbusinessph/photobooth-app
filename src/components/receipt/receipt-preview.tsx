@@ -40,13 +40,15 @@ export function ReceiptPreview({ template, layout, photoSlots, palette, photos, 
   const style = normalizedTemplate?.designStyle ?? "classic";
   const overlayMode = normalizedTemplate?.designMode === "image-overlay" && normalizedTemplate.overlayImageUrl;
   const pixelHeight = dimensions.height * 10;
-  const rects = receiptDesignSlotRects(style, count, 800, pixelHeight);
+  const rects = overlayMode && normalizedTemplate?.overlaySlotRects?.length === count
+    ? normalizedTemplate.overlaySlotRects
+    : receiptDesignSlotRects(style, count, 800, pixelHeight);
   const positioned = Boolean(overlayMode || style !== "classic");
 
   function renderPhoto(index: number) {
     const source = photos?.[index]?.dataUrl ?? boothImages[index % boothImages.length];
-    if (interactivePhotos && photos?.[index] && onPhotoAdjustmentChange && onActivePhotoChange) {
-      return <AdjustablePhotoFrame source={source} alt={`Photobooth frame ${index + 1}`} adjustment={photoAdjustments?.[index] ?? DEFAULT_PHOTO_ADJUSTMENT} mirrored={mirrored} monochrome={monochrome} active={activePhotoIndex === index} priority={index === 0} onActivate={() => onActivePhotoChange(index)} onChange={(adjustment) => onPhotoAdjustmentChange(index, adjustment)} />;
+    if (interactivePhotos && photos?.[index] && onPhotoAdjustmentChange) {
+      return <AdjustablePhotoFrame source={source} alt={`Photobooth frame ${index + 1}`} adjustment={photoAdjustments?.[index] ?? DEFAULT_PHOTO_ADJUSTMENT} mirrored={mirrored} monochrome={monochrome} active={Boolean(onActivePhotoChange && activePhotoIndex === index)} priority={index === 0} onActivate={() => onActivePhotoChange?.(index)} onChange={(adjustment) => onPhotoAdjustmentChange(index, adjustment)} />;
     }
     return <Image src={source} alt={`Photobooth frame ${index + 1}`} fill sizes="310px" unoptimized={Boolean(photos?.[index])} className={cn("object-cover", monochrome && "grayscale", mirrored && "-scale-x-100")} priority={index === 0} />;
   }
