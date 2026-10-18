@@ -1,4 +1,5 @@
-import type { BusinessBranding, CapturedPhoto, PhotoSlotCount, ReceiptDesignStyle, ReceiptTemplate, ThemePalette } from "@/types";
+import type { BusinessBranding, CapturedPhoto, PhotoAdjustment, PhotoSlotCount, ReceiptDesignStyle, ReceiptTemplate, ThemePalette } from "@/types";
+import { DEFAULT_PHOTO_ADJUSTMENT, getCoverPlacement } from "@/lib/receipt/photo-adjustment";
 import { normalizeReceiptTemplate, receiptDesignSlotRects, receiptMillimeters, receiptSizeForSlots } from "@/lib/receipt/template-rules";
 
 function loadImage(source: string) {
@@ -11,11 +12,9 @@ function loadImage(source: string) {
   });
 }
 
-function drawCover(context: CanvasRenderingContext2D, image: HTMLImageElement, x: number, y: number, width: number, height: number) {
-  const scale = Math.max(width / image.naturalWidth, height / image.naturalHeight);
-  const sourceWidth = width / scale;
-  const sourceHeight = height / scale;
-  context.drawImage(image, (image.naturalWidth - sourceWidth) / 2, (image.naturalHeight - sourceHeight) / 2, sourceWidth, sourceHeight, x, y, width, height);
+function drawCover(context: CanvasRenderingContext2D, image: HTMLImageElement, x: number, y: number, width: number, height: number, adjustment: PhotoAdjustment) {
+  const placement = getCoverPlacement(image.naturalWidth, image.naturalHeight, width, height, adjustment);
+  context.drawImage(image, placement.sourceX, placement.sourceY, placement.sourceWidth, placement.sourceHeight, x, y, width, height);
 }
 
 function drawAdaptiveFooter(context: CanvasRenderingContext2D, style: ReceiptDesignStyle, width: number, height: number) {
@@ -101,7 +100,7 @@ function drawAdaptiveFooter(context: CanvasRenderingContext2D, style: ReceiptDes
   for (let bar = 0; bar < 14; bar += 1) context.fillRect(barcodeLeft + bar * 2, top + 62, bar % 3 === 0 ? 2 : 1, Math.min(150, height - top - 74));
 }
 
-export async function renderReceiptImage({ template, photoSlots, photos, branding, palette, monochrome, mirrored = false }: { template: ReceiptTemplate; photoSlots?: PhotoSlotCount; photos: CapturedPhoto[]; branding: BusinessBranding; palette: ThemePalette; monochrome: boolean; mirrored?: boolean }) {
+export async function renderReceiptImage({ template, photoSlots, photos, branding, palette, monochrome, mirrored = false, photoAdjustments }: { template: ReceiptTemplate; photoSlots?: PhotoSlotCount; photos: CapturedPhoto[]; branding: BusinessBranding; palette: ThemePalette; monochrome: boolean; mirrored?: boolean; photoAdjustments?: PhotoAdjustment[] }) {
   const normalizedTemplate = normalizeReceiptTemplate(template);
   const count = photoSlots ?? normalizedTemplate.photoSlots as PhotoSlotCount;
   const dimensions = receiptMillimeters(receiptSizeForSlots(count));
@@ -123,10 +122,12 @@ export async function renderReceiptImage({ template, photoSlots, photos, brandin
   images.forEach((image, index) => {
     const rect = rects[index];
     if (!rect) return;
+    const adjustment = photoAdjustments?.[index] ?? DEFAULT_PHOTO_ADJUSTMENT;
+    const outputAdjustment = mirrored ? { ...adjustment, x: -adjustment.x } : adjustment;
     context.save();
     context.filter = monochrome ? "grayscale(1)" : "none";
-    if (mirrored) { context.translate(rect.x + rect.width, rect.y); context.scale(-1, 1); drawCover(context, image, 0, 0, rect.width, rect.height); }
-    else drawCover(context, image, rect.x, rect.y, rect.width, rect.height);
+    if (mirrored) { context.translate(rect.x + rect.width, rect.y); context.scale(-1, 1); drawCover(context, image, 0, 0, rect.width, rect.height, outputAdjustment); }
+    else drawCover(context, image, rect.x, rect.y, rect.width, rect.height, outputAdjustment);
     context.restore();
   });
 

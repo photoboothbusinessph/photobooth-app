@@ -24,6 +24,15 @@ export interface CapturedPhoto {
   capturedAt: number;
 }
 
+export interface PhotoAdjustment {
+  /** Horizontal image offset, normalized from -1 (left) to 1 (right). */
+  x: number;
+  /** Vertical image offset, normalized from -1 (up) to 1 (down). */
+  y: number;
+  /** Additional scale applied after the image covers its photo frame. */
+  zoom: number;
+}
+
 export type BoothStep = "idle" | "selecting" | "capturing" | "designing" | "reviewing" | "complete";
 export type PhotoMode = "color" | "bw";
 
