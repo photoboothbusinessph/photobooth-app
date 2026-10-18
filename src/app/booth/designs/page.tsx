@@ -7,5 +7,11 @@ import { getLegacyBusinessSlug } from "@/lib/db/tenant";
 export default async function DesignsPage() {
   const slug = await getLegacyBusinessSlug();
   if (slug) redirect(`/b/${slug}/booth/designs`);
-  return <BoothShell title="Choose receipt design" eyebrow="Style your photos" backHref="/booth/camera" step="03 / 05"><BoothStepGuard requirement="photos"><DesignPicker /></BoothStepGuard></BoothShell>;
+  return (
+    <BoothShell title="Choose receipt design" backHref="/booth/camera" step="03 / 05">
+      <BoothStepGuard requirement="photos">
+        <DesignPicker />
+      </BoothStepGuard>
+    </BoothShell>
+  );
 }

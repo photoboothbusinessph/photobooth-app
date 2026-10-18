@@ -14,6 +14,19 @@ export function PreviewStep({ requestedTemplateId }: { requestedTemplateId?: str
   const selectedId = useBoothStore((state) => state.selectedTemplateId);
   const templates = useBusinessStore((state) => state.templates);
   const template = templates.find((item) => item.id === (requestedTemplateId ?? selectedId));
-  if (!template) return <StatusState type="error" title="Template unavailable" description="Return to the start screen and ask the booth administrator for help." />;
-  return <BoothShell title="Your receipt is ready" eyebrow="Review before continuing" backHref={`${base}/booth/designs`} step="04 / 05"><BoothStepGuard requirement="design"><PreviewStudio template={template} /></BoothStepGuard></BoothShell>;
+  if (!template)
+    return (
+      <StatusState
+        type="error"
+        title="Template unavailable"
+        description="Return to the start screen and ask the booth administrator for help."
+      />
+    );
+  return (
+    <BoothShell title="Your receipt is ready" backHref={`${base}/booth/designs`} step="04 / 05">
+      <BoothStepGuard requirement="design">
+        <PreviewStudio template={template} />
+      </BoothStepGuard>
+    </BoothShell>
+  );
 }
