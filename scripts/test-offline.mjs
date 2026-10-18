@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
+import { deflateSync } from "node:zlib";
 import { build } from "esbuild";
 
 // Run the real modules with small infrastructure doubles; no customer database,
@@ -40,6 +41,55 @@ test("photo adjustments stay inside the frame while panning and zooming", async 
     assert.ok(placement.sourceX + placement.sourceWidth <= 1200);
     assert.ok(placement.sourceY + placement.sourceHeight <= 800);
   }
+});
+
+test("template upload validation accepts transparent palette PNG exports", async () => {
+  const chunk = (type, data) => {
+    const typeBuffer = Buffer.from(type);
+    const length = Buffer.alloc(4);
+    length.writeUInt32BE(data.length);
+    return Buffer.concat([length, typeBuffer, data, Buffer.alloc(4)]);
+  };
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(800, 0);
+  ihdr.writeUInt32BE(1500, 4);
+  ihdr[8] = 8;
+  ihdr[9] = 3;
+  const rows = Buffer.alloc((800 + 1) * 1500);
+  const png = Buffer.concat([
+    Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+    chunk("IHDR", ihdr),
+    chunk("PLTE", Buffer.from([124, 0, 255])),
+    chunk("tRNS", Buffer.from([0])),
+    chunk("IDAT", deflateSync(rows)),
+    chunk("IEND", Buffer.alloc(0)),
+  ]);
+  const overlayValidator = await loadModule("src/lib/cloudinary/client.ts", {
+    "server-only": "export default {};",
+    cloudinary: "export const v2 = { config() {}, uploader: { upload() {}, destroy() {} } };",
+    "@/lib/server/env": "export function getCloudinaryEnvironment() { return {}; }",
+  });
+  const source = `data:image/png;base64,${png.toString("base64")}`;
+  assert.doesNotThrow(() => overlayValidator.validateTemplateOverlay(source, 3));
+  assert.throws(() => overlayValidator.validateTemplateOverlay(source, 1), /800×1000px/);
+});
+
+test("uploaded overlay photos use the detected transparent window bounds", async () => {
+  const { detectTransparentSlotRects } = await loadModule("src/lib/receipt/overlay-windows.ts");
+  const width = 100;
+  const height = 150;
+  const pixels = new Uint8ClampedArray(width * height * 4).fill(255);
+  const clear = (left, top, right, bottom) => {
+    for (let y = top; y < bottom; y += 1) for (let x = left; x < right; x += 1) pixels[(y * width + x) * 4 + 3] = 0;
+  };
+  clear(10, 8, 90, 47);
+  clear(12, 57, 88, 96);
+  clear(9, 106, 91, 145);
+  assert.deepEqual(detectTransparentSlotRects(pixels, width, height, 3), [
+    { x: 10, y: 8, width: 80, height: 39 },
+    { x: 12, y: 57, width: 76, height: 39 },
+    { x: 9, y: 106, width: 82, height: 39 },
+  ]);
 });
 
 test("RawBT raster encodes black, white and transparent pixels with valid framing and copies", async () => {

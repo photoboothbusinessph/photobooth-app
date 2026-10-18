@@ -1,6 +1,6 @@
-import { apiSuccess, handleApiError } from "@/lib/api/responses";
+import { apiError, apiSuccess, handleApiError } from "@/lib/api/responses";
 import { requireBusinessAdmin } from "@/lib/auth/session";
-import { deleteImage, uploadImage, validateTemplateOverlay } from "@/lib/cloudinary/client";
+import { AssetValidationError, deleteImage, uploadImage, validateTemplateOverlay } from "@/lib/cloudinary/client";
 import { isBusinessAsset } from "@/lib/cloudinary/ownership";
 import { assetUploadSchema } from "@/lib/validation/schemas";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
@@ -19,6 +19,7 @@ export async function POST(request: Request) {
     if (input.previousPublicId && input.previousPublicId !== uploaded.publicId) await deleteImage(input.previousPublicId);
     return apiSuccess(uploaded, { status: 201 });
   } catch (error) {
+    if (error instanceof AssetValidationError) return apiError(error.message, 400);
     return handleApiError(error);
   }
 }

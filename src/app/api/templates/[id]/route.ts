@@ -5,7 +5,7 @@ import { templateDocumentId } from "@/lib/db/tenant";
 import { templateSchema } from "@/lib/validation/schemas";
 import { deleteImage } from "@/lib/cloudinary/client";
 import { isBusinessAsset } from "@/lib/cloudinary/ownership";
-import { normalizeReceiptTemplate } from "@/lib/receipt/template-rules";
+import { normalizeReceiptTemplate, overlaySlotRectsAreValid } from "@/lib/receipt/template-rules";
 
 export async function PATCH(request: Request, context: RouteContext<"/api/templates/[id]">) {
   try {
@@ -19,9 +19,10 @@ export async function PATCH(request: Request, context: RouteContext<"/api/templa
     if (!existing) return apiError("Template not found.", 404);
     if (input.overlayPublicId && !isBusinessAsset(input.overlayPublicId, businessId)) throw new Error("Forbidden");
     const normalized = normalizeReceiptTemplate({ ...existing, ...input, id });
+    if (!overlaySlotRectsAreValid(normalized)) return apiError("Photo windows must stay inside the receipt and match the selected photo count.", 400);
     if (normalized.designMode === "image-overlay" && (!normalized.overlayImageUrl || !normalized.overlayPublicId)) return apiError("Image templates require an uploaded overlay.", 400);
     if (input.isDefault) await templates.updateMany({ businessId }, { $set: { isDefault: false, updatedAt: now } });
-    const changes = { name: normalized.name, layout: normalized.layout, photoSlots: normalized.photoSlots, supportedPhotoSlots: normalized.supportedPhotoSlots, size: normalized.size, isDefault: normalized.isDefault, logoPlacement: normalized.logoPlacement, palette: normalized.palette, designMode: normalized.designMode, designStyle: normalized.designStyle, builtIn: existing.builtIn ?? false, overlayImageUrl: normalized.overlayImageUrl, overlayPublicId: normalized.overlayPublicId };
+    const changes = { name: normalized.name, layout: normalized.layout, photoSlots: normalized.photoSlots, supportedPhotoSlots: normalized.supportedPhotoSlots, size: normalized.size, isDefault: normalized.isDefault, logoPlacement: normalized.logoPlacement, palette: normalized.palette, designMode: normalized.designMode, designStyle: normalized.designStyle, builtIn: existing.builtIn ?? false, overlayImageUrl: normalized.overlayImageUrl, overlayPublicId: normalized.overlayPublicId, overlaySlotRects: normalized.overlaySlotRects };
     const result = await templates.findOneAndUpdate({ _id: documentId, businessId }, { $set: { ...changes, updatedAt: now } }, { returnDocument: "after" });
     if (!result) return apiError("Template not found.", 404);
     if (existing.overlayPublicId && existing.overlayPublicId !== normalized.overlayPublicId) await deleteImage(existing.overlayPublicId).catch(() => undefined);

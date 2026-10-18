@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { usePathname } from "next/navigation";
-import { FlipHorizontal2, Focus, LoaderCircle, Minus, Plus, Printer, RotateCcw, ZoomIn, ZoomOut } from "lucide-react";
+import { FlipHorizontal2, LoaderCircle, Minus, Plus, Printer, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { ReceiptPreview } from "@/components/receipt/receipt-preview";
 import { Button } from "@/components/ui/button";
@@ -29,7 +29,6 @@ export function PreviewStudio({ template }: { template: ReceiptTemplate }) {
   const [sharing, setSharing] = React.useState(false);
   const [mirrored, setMirrored] = React.useState(true);
   const [copies, setCopies] = React.useState(1);
-  const [activePhotoIndex, setActivePhotoIndex] = React.useState(0);
   const [photoAdjustments, setPhotoAdjustments] = React.useState<PhotoAdjustment[]>(() =>
     Array.from({ length: 4 }, () => ({ ...DEFAULT_PHOTO_ADJUSTMENT })),
   );
@@ -131,15 +130,6 @@ export function PreviewStudio({ template }: { template: ReceiptTemplate }) {
     setPhotoAdjustments((current) => current.map((value, photoIndex) => photoIndex === index ? clampPhotoAdjustment(adjustment) : value));
   }
 
-  function changeActivePhotoZoom(amount: number) {
-    const current = photoAdjustments[activePhotoIndex] ?? DEFAULT_PHOTO_ADJUSTMENT;
-    updatePhotoAdjustment(activePhotoIndex, { ...current, zoom: current.zoom + amount });
-  }
-
-  function resetActivePhoto() {
-    updatePhotoAdjustment(activePhotoIndex, { ...DEFAULT_PHOTO_ADJUSTMENT });
-  }
-
   async function saveAndContinue() {
     if (!sessionId || !generatedImages || saving || continuingRef.current) return;
     const businessSlug = boothSlug(pathname);
@@ -163,15 +153,9 @@ export function PreviewStudio({ template }: { template: ReceiptTemplate }) {
 
   return <>
     <div className="mx-auto grid min-h-0 w-full max-w-3xl flex-1 grid-rows-[minmax(0,1fr)_auto_auto_auto] items-center gap-[clamp(0.35rem,0.9dvh,0.75rem)]">
-      <div className="flex h-full min-h-0 justify-center overflow-hidden bg-black/10 p-[clamp(0.35rem,0.9dvh,0.75rem)]"><ReceiptPreview template={normalizedTemplate} photoSlots={selectedPhotoSlots ?? undefined} photos={photos} branding={branding} mirrored={mirrored} printable interactivePhotos activePhotoIndex={activePhotoIndex} photoAdjustments={photoAdjustments} onActivePhotoChange={setActivePhotoIndex} onPhotoAdjustmentChange={updatePhotoAdjustment} className="h-full w-auto max-w-full print:max-h-none" /></div>
+      <div className="flex h-full min-h-0 justify-center overflow-hidden bg-black/10 p-[clamp(0.35rem,0.9dvh,0.75rem)]"><ReceiptPreview template={normalizedTemplate} photoSlots={selectedPhotoSlots ?? undefined} photos={photos} branding={branding} mirrored={mirrored} printable interactivePhotos photoAdjustments={photoAdjustments} onPhotoAdjustmentChange={updatePhotoAdjustment} className="h-full w-auto max-w-full print:max-h-none" /></div>
       <fieldset disabled={sharing || saving} className="grid gap-3 self-end">
-        <div className="grid min-h-11 grid-cols-[1fr_auto_auto_auto] items-center gap-1 rounded-full bg-white px-3 py-1 text-black">
-          <p className="truncate pl-2 text-[10px] font-black uppercase tracking-wider">Photo {activePhotoIndex + 1} · Drag to move · {Math.round((photoAdjustments[activePhotoIndex]?.zoom ?? 1) * 100)}%</p>
-          <Button type="button" variant="ghost" size="icon" aria-label={`Zoom out photo ${activePhotoIndex + 1}`} disabled={(photoAdjustments[activePhotoIndex]?.zoom ?? 1) <= 1} onClick={() => changeActivePhotoZoom(-0.1)} className="size-11 rounded-full"><ZoomOut /></Button>
-          <Button type="button" variant="ghost" size="icon" aria-label={`Zoom in photo ${activePhotoIndex + 1}`} disabled={(photoAdjustments[activePhotoIndex]?.zoom ?? 1) >= 3} onClick={() => changeActivePhotoZoom(0.1)} className="size-11 rounded-full"><ZoomIn /></Button>
-          <Button type="button" variant="ghost" aria-label={`Reset photo ${activePhotoIndex + 1} position and zoom`} onClick={resetActivePhoto} className="min-h-11 rounded-full px-3 text-[10px] font-black uppercase"><Focus /> Reset</Button>
-        </div>
-        <div className="grid min-h-11 grid-cols-[1fr_auto_1fr] items-center rounded-full bg-white px-4 py-1 text-black"><Button type="button" variant="ghost" size="icon" aria-label="Decrease copies" disabled={copies === 1} onClick={() => setCopies((value) => Math.max(1, value - 1))} className="justify-self-start rounded-full"><Minus /></Button><div className="text-center"><p className="text-[10px] font-black uppercase tracking-wider">Copies</p><p className="text-xl font-black leading-none">{copies}</p></div><Button type="button" variant="ghost" size="icon" aria-label="Increase copies" disabled={copies === 9} onClick={() => setCopies((value) => Math.min(9, value + 1))} className="justify-self-end rounded-full"><Plus /></Button></div>
+        <div className="grid min-h-11 grid-cols-[1fr_auto_1fr] items-center rounded-full bg-white px-4 py-1 text-black"><Button type="button" variant="ghost" size="icon" aria-label="Decrease copies" disabled onClick={() => setCopies((value) => Math.max(1, value - 1))} className="justify-self-start rounded-full"><Minus /></Button><div className="text-center"><p className="text-[10px] font-black uppercase tracking-wider">Copies</p><p className="text-xl font-black leading-none">{copies}</p></div><Button type="button" variant="ghost" size="icon" aria-label="Increase copies" disabled onClick={() => setCopies((value) => Math.min(9, value + 1))} className="justify-self-end rounded-full"><Plus /></Button></div>
         <div className="grid grid-cols-2 gap-3"><Button onClick={() => void retakePhotos()} variant="outline" className="min-h-11 rounded-full border-0 bg-white font-black uppercase text-black hover:bg-white/85"><RotateCcw /> Retake</Button><Button type="button" onClick={toggleMirror} aria-pressed={mirrored} variant="outline" className="min-h-11 rounded-full border-0 bg-white font-black uppercase text-black hover:bg-white/85"><FlipHorizontal2 /> {mirrored ? "Mirrored" : "Mirror"}</Button></div>
       </fieldset>
       <Button onClick={() => void openPrint()} disabled={renderError || rendering || preparingCopies || saving || sharing || !generatedImages || !printImage} className="min-h-12 rounded-full bg-black text-lg font-black uppercase text-white hover:bg-black/80">{rendering || preparingCopies || saving || sharing ? <LoaderCircle className="animate-spin" /> : <Printer />} {renderError ? "Receipt unavailable" : rendering || preparingCopies ? "Preparing copies" : saving ? "Processing receipt" : sharing ? "Opening Easy Thermal" : "Print"}</Button>
