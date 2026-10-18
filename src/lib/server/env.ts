@@ -21,6 +21,8 @@ const applicationEnvironmentSchema = z.object({
 });
 
 const superAdminBootstrapEnvironmentSchema = z.object({
+  SUPER_ADMIN_USERNAME: optionalValue(z.string().min(3).max(40).regex(/^[a-zA-Z0-9._-]+$/)),
+  /** Legacy fallback for installations that have not rotated their bootstrap variable yet. */
   SUPER_ADMIN_EMAIL: optionalValue(z.email()),
   SUPER_ADMIN_PASSWORD: optionalValue(
     z.string().min(12).refine(
@@ -29,7 +31,7 @@ const superAdminBootstrapEnvironmentSchema = z.object({
     ),
   ),
 }).refine(
-  (environment) => Boolean(environment.SUPER_ADMIN_EMAIL) === Boolean(environment.SUPER_ADMIN_PASSWORD),
+  (environment) => Boolean(environment.SUPER_ADMIN_USERNAME ?? environment.SUPER_ADMIN_EMAIL) === Boolean(environment.SUPER_ADMIN_PASSWORD),
   "Set both super-admin bootstrap variables or neither.",
 );
 

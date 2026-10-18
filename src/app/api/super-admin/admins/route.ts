@@ -10,7 +10,11 @@ export async function GET() {
   try {
     await requireSuperAdmin();
     const { admins } = await getCollections();
-    return apiSuccess(await admins.find({ role: "business_admin" }, { projection: { _id: 1, email: 1, businessId: 1, isEnabled: 1, mustChangePassword: 1, createdAt: 1 } }).sort({ createdAt: -1 }).toArray());
+    const accounts = await admins.find(
+      { role: "business_admin" },
+      { projection: { _id: 1, username: 1, email: 1, businessId: 1, isEnabled: 1, mustChangePassword: 1, createdAt: 1 } },
+    ).sort({ createdAt: -1 }).toArray();
+    return apiSuccess(accounts.map(({ email, ...account }) => ({ ...account, username: account.username ?? email ?? "" })));
   } catch (error) { return handleApiError(error); }
 }
 
@@ -20,11 +24,11 @@ export async function POST(request: Request) {
     const input = createAdminSchema.parse(await request.json());
     const { admins, businesses } = await getCollections();
     if (!(await businesses.findOne({ _id: input.businessId }))) return apiError("Business not found.", 404);
-    if (await admins.findOne({ email: input.email })) return apiError("Email is already in use.", 409);
+    if (await admins.findOne({ $or: [{ username: input.username }, { email: input.username }] })) return apiError("Username is already in use.", 409);
     const temporaryPassword = createTemporaryPassword();
     const now = new Date();
     const id = randomUUID();
-    await admins.insertOne({ _id: id, email: input.email, passwordHash: await hash(temporaryPassword, 12), role: "business_admin", businessId: input.businessId, isEnabled: true, mustChangePassword: true, sessionVersion: 0, createdAt: now, updatedAt: now });
+    await admins.insertOne({ _id: id, username: input.username, email: input.username, passwordHash: await hash(temporaryPassword, 12), role: "business_admin", businessId: input.businessId, isEnabled: true, mustChangePassword: true, sessionVersion: 0, createdAt: now, updatedAt: now });
     return apiSuccess({ id, temporaryPassword }, { status: 201 });
   } catch (error) { return handleApiError(error); }
 }

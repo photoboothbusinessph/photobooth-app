@@ -43,7 +43,9 @@ export interface SessionDocument {
 
 export interface AdminDocument {
   _id: string;
-  email: string;
+  username?: string;
+  /** Retained only so existing email-based accounts can migrate without being locked out. */
+  email?: string;
   passwordHash: string;
   role?: "super_admin" | "business_admin";
   businessId?: string | null;
@@ -103,6 +105,10 @@ async function createIndexes(collections: {
     collections.sessions.createIndex({ shareToken: 1 }, { unique: true }),
     collections.sessions.createIndex({ businessId: 1, createdAt: -1 }),
     collections.admins.createIndex({ email: 1 }, { unique: true }),
+    collections.admins.createIndex(
+      { username: 1 },
+      { unique: true, partialFilterExpression: { username: { $type: "string" } } },
+    ),
     collections.businesses.createIndex({ slug: 1 }, { unique: true, partialFilterExpression: { slug: { $type: "string" } } }),
     collections.kioskDevices.createIndex({ businessId: 1, isEnabled: 1 }),
     collections.kioskDevices.createIndex({ tokenHash: 1 }, { unique: true }),

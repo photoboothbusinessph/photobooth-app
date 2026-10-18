@@ -4,7 +4,7 @@ The app uses one MongoDB database per environment. Each business has a unique ID
 
 ## Before enabling the release
 
-1. Rotate the MongoDB and Cloudinary credentials previously shared outside the secret manager. Set a new high-entropy `AUTH_SECRET` and server-only `SUPER_ADMIN_EMAIL`/`SUPER_ADMIN_PASSWORD` (at least 12 characters). Do not reuse the old `ADMIN_EMAIL`/`ADMIN_PASSWORD` bootstrap variables.
+1. Rotate the MongoDB and Cloudinary credentials previously shared outside the secret manager. Set a new high-entropy `AUTH_SECRET` and server-only `SUPER_ADMIN_USERNAME`/`SUPER_ADMIN_PASSWORD` (at least 12 characters). Do not reuse the old `ADMIN_EMAIL`/`ADMIN_PASSWORD` bootstrap variables.
 2. Back up the existing `dev` database with MongoDB Database Tools or Atlas backup, and verify the backup can be restored. Keep the backup outside this repository.
 3. Set `MIGRATION_FIRST_BUSINESS_SLUG` to the chosen permanent URL slug for the current business. Use lowercase letters, digits, and hyphens.
 4. With rotated credentials loaded in the process environment, run `node scripts/migrate-multibusiness.mjs --dry-run`. Review the reported counts and slug before applying.
@@ -24,4 +24,4 @@ The app uses one MongoDB database per environment. Each business has a unique ID
 
 ## Acceptance tests before production
 
-Use at least two test businesses, two admins, and two paired devices. Test wrong-tenant admin API/session/template/upload IDs, direct booth access without pairing, cross-business pairing codes, kiosk revocation with pending offline photos, disabled-account session revocation, first-login password change, duplicate email/slug rejection, QR/share links from migrated sessions, and switching businesses on one browser without displaying the previous business's cached data. Verify production PWA offline navigation separately; a successful build is not proof of offline operation.
+Use at least two test businesses, two admins, and two paired devices. Test wrong-tenant admin API/session/template/upload IDs, direct booth access without pairing, cross-business pairing codes, kiosk revocation with pending offline photos, disabled-account session revocation, first-login password change, duplicate username/slug rejection, QR/share links from migrated sessions, and switching businesses on one browser without displaying the previous business's cached data. Verify production PWA offline navigation separately; a successful build is not proof of offline operation.
