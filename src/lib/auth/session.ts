@@ -36,7 +36,7 @@ export async function requireAdmin() {
   const role = admin.role;
   const businessId = role === "business_admin" ? admin.businessId : null;
   if (businessId && !(await businesses.findOne({ _id: businessId }, { projection: { _id: 1 } }))) throw new Error("Forbidden");
-  return { adminId: admin._id, email: admin.email, role, businessId, mustChangePassword: Boolean(admin.mustChangePassword) };
+  return { adminId: admin._id, username: admin.username ?? admin.email ?? "", role, businessId, mustChangePassword: Boolean(admin.mustChangePassword) };
 }
 
 export async function requireBusinessAdmin() {

@@ -11,12 +11,14 @@ CLOUDINARY_CLOUD_NAME
 CLOUDINARY_API_KEY
 CLOUDINARY_API_SECRET
 AUTH_SECRET
-SUPER_ADMIN_EMAIL
+SUPER_ADMIN_USERNAME
 SUPER_ADMIN_PASSWORD
 NEXT_PUBLIC_APP_URL
 ```
 
 `NEXT_PUBLIC_APP_URL` must be the final HTTPS origin without a trailing slash. Generate `AUTH_SECRET` as a high-entropy value of at least 32 characters. Restrict MongoDB network and database access to the minimum required by the deployment.
+
+Use a unique username containing only letters, numbers, periods, underscores, or hyphens for `SUPER_ADMIN_USERNAME`. Existing deployments using `SUPER_ADMIN_EMAIL` remain login-compatible during migration, but should rotate to the username variable.
 
 Do not use the blank values in `.env.example` as production values. Generate an authentication secret in PowerShell with:
 

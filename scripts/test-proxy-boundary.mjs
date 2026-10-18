@@ -32,7 +32,7 @@ test("the environment example does not contain scannable secret placeholders", a
     "CLOUDINARY_API_KEY",
     "CLOUDINARY_API_SECRET",
     "AUTH_SECRET",
-    "SUPER_ADMIN_EMAIL",
+    "SUPER_ADMIN_USERNAME",
     "SUPER_ADMIN_PASSWORD",
     "MIGRATION_FIRST_BUSINESS_SLUG",
   ]) assert.equal(values[key], "", `${key} must be blank in .env.example`);
@@ -60,6 +60,37 @@ test("existing admin login does not depend on bootstrap configuration", async ()
 
   assert.notEqual(existingAdminGuard, -1);
   assert.ok(bootstrapRead > existingAdminGuard, "bootstrap environment must be read only after confirming the admin is absent");
+});
+
+test("admin authentication uses usernames while retaining legacy account lookup", async () => {
+  const [loginRoute, loginForm, adminRoute, collections] = await Promise.all([
+    readFile("src/app/api/auth/login/route.ts", "utf8"),
+    readFile("src/components/admin/login-form.tsx", "utf8"),
+    readFile("src/app/api/super-admin/admins/route.ts", "utf8"),
+    readFile("src/lib/db/collections.ts", "utf8"),
+  ]);
+
+  assert.match(loginRoute, /username:\s*z\.string/);
+  assert.match(loginRoute, /username: \{ \$exists: false \}, email: username/);
+  assert.match(loginForm, /name="username"/);
+  assert.doesNotMatch(loginForm, /name="email"|type="email"/);
+  assert.match(adminRoute, /input\.username/);
+  assert.match(collections, /createIndex\(\s*\{ username: 1 \}/);
+});
+
+test("business admins can copy pairing codes and revoke or delete their own kiosks", async () => {
+  const [kioskRoute, kioskManager] = await Promise.all([
+    readFile("src/app/api/admin/kiosks/[id]/route.ts", "utf8"),
+    readFile("src/components/admin/business-kiosk-manager.tsx", "utf8"),
+  ]);
+
+  assert.match(kioskRoute, /export async function PATCH/);
+  assert.match(kioskRoute, /updateOne\(\{ _id: id, businessId \}/);
+  assert.match(kioskRoute, /export async function DELETE/);
+  assert.match(kioskRoute, /deleteOne\(\{ _id: id, businessId \}\)/);
+  assert.match(kioskManager, /navigator\.clipboard\.writeText\(code\)/);
+  assert.match(kioskManager, /> Copy code</);
+  assert.match(kioskManager, /Permanently delete device\?/);
 });
 
 test("legacy booth routes fall back to a configured tenant", async () => {
