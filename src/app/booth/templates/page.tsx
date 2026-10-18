@@ -8,6 +8,15 @@ export default async function TemplatesPage({ searchParams }: PageProps<"/booth/
   const { template: templateParam } = await searchParams;
   const requestedId = Array.isArray(templateParam) ? templateParam[0] : templateParam;
   const slug = await getLegacyBusinessSlug();
-  if (slug) redirect(`/b/${slug}/booth/templates${requestedId ? `?template=${encodeURIComponent(requestedId)}` : ""}`);
-  return <BoothShell title="Choose photo layout" eyebrow="Choose your number of shots" step="01 / 05"><BoothStepGuard requirement="session"><TemplatePicker /></BoothStepGuard></BoothShell>;
+  if (slug)
+    redirect(
+      `/b/${slug}/booth/templates${requestedId ? `?template=${encodeURIComponent(requestedId)}` : ""}`,
+    );
+  return (
+    <BoothShell title="Choose photo layout" step="01 / 05">
+      <BoothStepGuard requirement="session">
+        <TemplatePicker />
+      </BoothStepGuard>
+    </BoothShell>
+  );
 }

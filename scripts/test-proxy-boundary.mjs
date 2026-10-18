@@ -94,11 +94,17 @@ test("starter templates are persisted once and remain editable or deletable", as
   assert.doesNotMatch(templateRoute, /missingBuiltIns/);
   assert.doesNotMatch(manager, /template\.builtIn\s*\?\s*null\s*:\s*<DropdownMenu/);
   assert.match(manager, /Actions for \$\{template\.name\}/);
+  assert.match(manager, /useState<1 \| 2 \| 3 \| 4>\(1\)/);
+  assert.match(manager, /template\?\.photoSlots \?\? 1/);
+  assert.match(manager, /minimum format is 800×1000px \/ 80×100 mm/);
 });
 
 test("super admin account actions stay protected and use confirmation dialogs", async () => {
-  const [accountRoute, consoleUi] = await Promise.all([
+  const [accountRoute, kioskRoute, businessRoute, businessDeletion, consoleUi] = await Promise.all([
     readFile("src/app/api/super-admin/admins/[id]/route.ts", "utf8"),
+    readFile("src/app/api/super-admin/kiosks/[id]/route.ts", "utf8"),
+    readFile("src/app/api/super-admin/businesses/[id]/route.ts", "utf8"),
+    readFile("src/lib/super-admin/delete-business.ts", "utf8"),
     readFile("src/components/admin/super-admin-console.tsx", "utf8"),
   ]);
 
@@ -109,4 +115,16 @@ test("super admin account actions stay protected and use confirmation dialogs", 
   assert.match(consoleUi, /<Dialog open=\{Boolean\(temporaryPassword\)\}/);
   assert.match(consoleUi, /<Dialog open=\{Boolean\(accountConfirmation\)\}/);
   assert.match(consoleUi, /Permanently delete account\?/);
+  assert.match(kioskRoute, /export async function PATCH/);
+  assert.match(kioskRoute, /export async function DELETE/);
+  assert.match(kioskRoute, /await requireSuperAdmin\(\)/);
+  assert.match(kioskRoute, /kioskDevices\.deleteOne/);
+  assert.match(businessRoute, /await requireSuperAdmin\(\)/);
+  assert.match(businessRoute, /deleteBusinessPermanently/);
+  assert.match(businessDeletion, /admins\.deleteMany/);
+  assert.match(businessDeletion, /kioskDevices\.deleteMany/);
+  assert.match(businessDeletion, /sessions\.deleteMany/);
+  assert.match(businessDeletion, /templates\.deleteMany/);
+  assert.match(consoleUi, /<Dialog open=\{Boolean\(kioskConfirmation\)\}/);
+  assert.match(consoleUi, /<Dialog open=\{Boolean\(businessDeleteTarget\)\}/);
 });

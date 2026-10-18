@@ -18,10 +18,35 @@ export function BoothExperience() {
   const base = boothBasePath(pathname);
   const step = pathname.slice(base.length);
   const templateId = useSearchParams().get("template") ?? undefined;
-  if (step === "/booth/templates") return <BoothShell title="Choose photo layout" eyebrow="Choose your number of shots" backHref={base} step="01 / 05"><BoothStepGuard requirement="session"><TemplatePicker /></BoothStepGuard></BoothShell>;
+  if (step === "/booth/templates")
+    return (
+      <BoothShell title="Choose photo layout" backHref={base} step="01 / 05">
+        <BoothStepGuard requirement="session">
+          <TemplatePicker />
+        </BoothStepGuard>
+      </BoothShell>
+    );
   if (step === "/booth/camera") return <CameraStep />;
-  if (step === "/booth/designs") return <BoothShell title="Choose receipt design" eyebrow="Style your photos" backHref={`${base}/booth/camera`} step="03 / 05"><BoothStepGuard requirement="photos"><DesignPicker /></BoothStepGuard></BoothShell>;
+  if (step === "/booth/designs")
+    return (
+      <BoothShell title="Choose receipt design" backHref={`${base}/booth/camera`} step="03 / 05">
+        <BoothStepGuard requirement="photos">
+          <DesignPicker />
+        </BoothStepGuard>
+      </BoothShell>
+    );
   if (step === "/booth/preview") return <PreviewStep requestedTemplateId={templateId} />;
-  if (step === "/booth/photo-qr" || step === "/booth/social") return <BoothShell title="Your photos are ready" eyebrow="Digital copy & social media" backHref={`${base}/booth/preview`} step="05 / 05" showCountdown={false}><QrResult /></BoothShell>;
+  if (step === "/booth/photo-qr" || step === "/booth/social")
+    return (
+      <BoothShell
+        title="Your photos are ready"
+        eyebrow="Digital copy & social media"
+        backHref={`${base}/booth/preview`}
+        step="05 / 05"
+        showCountdown={false}
+      >
+        <QrResult />
+      </BoothShell>
+    );
   return <WelcomeScreen />;
 }

@@ -15,5 +15,11 @@ export function CameraStep() {
   const templates = useBusinessStore((state) => state.templates);
   const legacyTemplate = templates.find((item) => item.id === selectedId);
   const photoCount = selectedPhotoSlots ?? legacyTemplate?.photoSlots ?? 1;
-  return <BoothShell title="Ready when you are" eyebrow={`${photoCount} shot${photoCount === 1 ? "" : "s"}`} backHref={`${base}/booth/templates`} step="02 / 05"><BoothStepGuard requirement="layout"><CameraCapture photoCount={photoCount} /></BoothStepGuard></BoothShell>;
+  return (
+    <BoothShell title="Ready when you are" backHref={`${base}/booth/templates`} step="02 / 05">
+      <BoothStepGuard requirement="layout">
+        <CameraCapture photoCount={photoCount} />
+      </BoothStepGuard>
+    </BoothShell>
+  );
 }
