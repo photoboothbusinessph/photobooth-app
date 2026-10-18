@@ -20,6 +20,28 @@ async function loadModule(entry, replacements = {}) {
   return import("data:text/javascript;base64," + Buffer.from(result.outputFiles[0].text).toString("base64"));
 }
 
+test("photo adjustments stay inside the frame while panning and zooming", async () => {
+  const { clampPhotoAdjustment, getCoverPlacement } = await loadModule("src/lib/receipt/photo-adjustment.ts");
+  const clamped = clampPhotoAdjustment({ x: 4, y: -4, zoom: 9 });
+  assert.deepEqual(clamped, { x: 1, y: -1, zoom: 3 });
+
+  for (const adjustment of [
+    { x: 0, y: 0, zoom: 1 },
+    { x: 1, y: 1, zoom: 1 },
+    { x: -1, y: -1, zoom: 3 },
+  ]) {
+    const placement = getCoverPlacement(1200, 800, 300, 500, adjustment);
+    assert.ok(placement.left <= 0);
+    assert.ok(placement.top <= 0);
+    assert.ok(placement.left + placement.width >= 300);
+    assert.ok(placement.top + placement.height >= 500);
+    assert.ok(placement.sourceX >= 0);
+    assert.ok(placement.sourceY >= 0);
+    assert.ok(placement.sourceX + placement.sourceWidth <= 1200);
+    assert.ok(placement.sourceY + placement.sourceHeight <= 800);
+  }
+});
+
 test("RawBT raster encodes black, white and transparent pixels with valid framing and copies", async () => {
   const { encodeRaster, rawbtUri } = await loadModule("src/lib/receipt/rawbt.ts");
   const black = new Uint8ClampedArray(8 * 4);

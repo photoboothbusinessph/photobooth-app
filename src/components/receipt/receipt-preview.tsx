@@ -1,10 +1,14 @@
+"use client";
+
 import Image from "next/image";
 import { Bookmark, CircleUserRound, Heart, MessageCircle, MoreVertical, Plane, Send } from "lucide-react";
+import { AdjustablePhotoFrame } from "@/components/receipt/adjustable-photo-frame";
 import { BrandMark } from "@/components/shared/brand-mark";
 import { boothImages } from "@/config/mock-data";
+import { DEFAULT_PHOTO_ADJUSTMENT } from "@/lib/receipt/photo-adjustment";
 import { cn } from "@/lib/utils";
 import { normalizeReceiptTemplate, receiptDesignSlotRects, receiptMillimeters, receiptSizeForSlots } from "@/lib/receipt/template-rules";
-import type { BusinessBranding, CapturedPhoto, PhotoSlotCount, ReceiptDesignStyle, ReceiptTemplate, TemplateLayout, ThemePalette } from "@/types";
+import type { BusinessBranding, CapturedPhoto, PhotoAdjustment, PhotoSlotCount, ReceiptDesignStyle, ReceiptTemplate, TemplateLayout, ThemePalette } from "@/types";
 
 const slotCount: Record<TemplateLayout, PhotoSlotCount> = { single: 1, double: 2, triple: 3, quad: 4 };
 
@@ -27,7 +31,7 @@ function DesignDecoration({ style, branding, compact }: { style: ReceiptDesignSt
   </>;
 }
 
-export function ReceiptPreview({ template, layout, photoSlots, palette, photos, branding, monochrome = false, mirrored = false, compact = false, printable = false, className }: { template?: ReceiptTemplate; layout?: TemplateLayout; photoSlots?: PhotoSlotCount; palette?: ThemePalette; photos?: CapturedPhoto[]; branding?: BusinessBranding; monochrome?: boolean; mirrored?: boolean; compact?: boolean; printable?: boolean; className?: string }) {
+export function ReceiptPreview({ template, layout, photoSlots, palette, photos, branding, monochrome = false, mirrored = false, compact = false, printable = false, interactivePhotos = false, activePhotoIndex = 0, photoAdjustments, onActivePhotoChange, onPhotoAdjustmentChange, className }: { template?: ReceiptTemplate; layout?: TemplateLayout; photoSlots?: PhotoSlotCount; palette?: ThemePalette; photos?: CapturedPhoto[]; branding?: BusinessBranding; monochrome?: boolean; mirrored?: boolean; compact?: boolean; printable?: boolean; interactivePhotos?: boolean; activePhotoIndex?: number; photoAdjustments?: PhotoAdjustment[]; onActivePhotoChange?: (index: number) => void; onPhotoAdjustmentChange?: (index: number, adjustment: PhotoAdjustment) => void; className?: string }) {
   const normalizedTemplate = template ? normalizeReceiptTemplate(template) : undefined;
   const activeLayout = layout ?? normalizedTemplate?.layout ?? "double";
   const count = photoSlots ?? slotCount[activeLayout];
@@ -39,14 +43,22 @@ export function ReceiptPreview({ template, layout, photoSlots, palette, photos, 
   const rects = receiptDesignSlotRects(style, count, 800, pixelHeight);
   const positioned = Boolean(overlayMode || style !== "classic");
 
+  function renderPhoto(index: number) {
+    const source = photos?.[index]?.dataUrl ?? boothImages[index % boothImages.length];
+    if (interactivePhotos && photos?.[index] && onPhotoAdjustmentChange && onActivePhotoChange) {
+      return <AdjustablePhotoFrame source={source} alt={`Photobooth frame ${index + 1}`} adjustment={photoAdjustments?.[index] ?? DEFAULT_PHOTO_ADJUSTMENT} mirrored={mirrored} monochrome={monochrome} active={activePhotoIndex === index} priority={index === 0} onActivate={() => onActivePhotoChange(index)} onChange={(adjustment) => onPhotoAdjustmentChange(index, adjustment)} />;
+    }
+    return <Image src={source} alt={`Photobooth frame ${index + 1}`} fill sizes="310px" unoptimized={Boolean(photos?.[index])} className={cn("object-cover", monochrome && "grayscale", mirrored && "-scale-x-100")} priority={index === 0} />;
+  }
+
   return (
     <article className={cn("receipt-shadow relative flex w-full max-w-[310px] flex-col overflow-hidden border-2 border-black bg-white text-black", !positioned && "p-[5%]", compact && "max-w-[180px] border", printable && "print-receipt", className)} style={{ aspectRatio: `${dimensions.width}/${dimensions.height}`, backgroundColor: colors.background, color: colors.text, "--receipt-width": `${dimensions.width}mm`, "--receipt-height": `${dimensions.height}mm` } as React.CSSProperties} data-print-receipt={printable ? "true" : undefined} aria-label={`${count}-photo ${normalizedTemplate?.name ?? "receipt"} preview`}>
       {positioned ? <>
-        {rects.map((rect, index) => <div key={index} className="absolute overflow-hidden bg-neutral-200" style={{ left: `${rect.x / 8}%`, top: `${rect.y / pixelHeight * 100}%`, width: `${rect.width / 8}%`, height: `${rect.height / pixelHeight * 100}%` }}><Image src={photos?.[index]?.dataUrl ?? boothImages[index % boothImages.length]} alt={`Photobooth frame ${index + 1}`} fill sizes="310px" unoptimized={Boolean(photos?.[index])} className={cn("object-cover", monochrome && "grayscale", mirrored && "-scale-x-100")} /></div>)}
-        {overlayMode ? <Image src={normalizedTemplate.overlayImageUrl!} alt={`${normalizedTemplate.name} template artwork`} fill sizes="310px" unoptimized className="pointer-events-none object-fill" /> : <DesignDecoration style={style} branding={branding} compact={compact} />}
+        {rects.map((rect, index) => <div key={index} className="absolute overflow-hidden bg-neutral-200" style={{ left: `${rect.x / 8}%`, top: `${rect.y / pixelHeight * 100}%`, width: `${rect.width / 8}%`, height: `${rect.height / pixelHeight * 100}%` }}>{renderPhoto(index)}</div>)}
+        {overlayMode ? <Image src={normalizedTemplate.overlayImageUrl!} alt={`${normalizedTemplate.name} template artwork`} fill sizes="310px" unoptimized className="pointer-events-none object-fill" /> : <div className="pointer-events-none contents"><DesignDecoration style={style} branding={branding} compact={compact} /></div>}
       </> : <>
         <header className="flex items-center justify-between gap-2 pb-[5%]">{template?.logoPlacement !== "bottom" ? <BrandMark branding={branding} inheritColor className={cn("text-[clamp(1rem,5vw,2rem)]", compact && "text-base")} /> : <span className="text-[8px] font-bold uppercase tracking-[0.18em]">Photo receipt</span>}<span className="text-[8px] font-bold uppercase tracking-[0.22em]">Receipt No. 0928</span></header>
-        <div className="grid min-h-0 flex-1 gap-1.5" style={{ gridTemplateRows: `repeat(${count}, minmax(0, 1fr))` }}>{Array.from({ length: count }, (_, index) => <div className="relative min-h-0 overflow-hidden bg-neutral-200" key={index}><Image src={photos?.[index]?.dataUrl ?? boothImages[index % boothImages.length]} alt={`Photobooth frame ${index + 1}`} fill sizes="310px" unoptimized={Boolean(photos?.[index])} className={cn("object-cover", monochrome && "grayscale", mirrored && "-scale-x-100")} priority={index === 0} /><span className="absolute bottom-1 right-1 bg-black px-1 py-0.5 text-[7px] font-bold text-white">0{index + 1}</span></div>)}</div>
+        <div className="grid min-h-0 flex-1 gap-1.5" style={{ gridTemplateRows: `repeat(${count}, minmax(0, 1fr))` }}>{Array.from({ length: count }, (_, index) => <div className="relative min-h-0 overflow-hidden bg-neutral-200" key={index}>{renderPhoto(index)}<span className="pointer-events-none absolute bottom-1 right-1 bg-black px-1 py-0.5 text-[7px] font-bold text-white">0{index + 1}</span></div>)}</div>
         <footer className="flex items-end justify-between gap-3 pt-[5%]"><div><p className="text-[8px] font-bold uppercase tracking-[0.18em]">{branding?.footerText ?? "Keep the moment"}</p><p className="mt-0.5 text-[7px] opacity-60">{new Intl.DateTimeFormat("en-PH").format(new Date())}</p></div>{template?.logoPlacement === "bottom" ? <BrandMark branding={branding} inheritColor className={cn("text-lg", compact && "text-sm")} /> : <span className="size-3 rounded-full" style={{ backgroundColor: colors.primary }} />}</footer>
       </>}
     </article>
