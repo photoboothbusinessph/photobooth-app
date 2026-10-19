@@ -26,7 +26,7 @@ async function syncBusiness() {
   const tenantKey = activeTenantKey();
   const settings = tenantKey ? await photoboothDb.businessSettings.get(tenantKey) : null;
   if (!settings) return;
-  const response = await fetch("/api/business", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isConfigured: settings.isConfigured, branding: settings.branding, palette: settings.palette, logoPublicId: settings.logoPublicId ?? null, socialUrl: settings.socialUrl ?? null, socialQrUrl: settings.socialQrUrl ?? null, socialQrPublicId: settings.socialQrPublicId ?? null, welcomeBackgroundUrl: settings.welcomeBackgroundUrl ?? null, welcomeBackgroundPublicId: settings.welcomeBackgroundPublicId ?? null }) });
+  const response = await fetch("/api/business", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isConfigured: settings.isConfigured, branding: settings.branding, palette: settings.palette, logoPublicId: settings.logoPublicId ?? null, socialUrl: settings.socialUrl ?? null, socialQrUrl: settings.socialQrUrl ?? null, socialQrPublicId: settings.socialQrPublicId ?? null, welcomeBackgroundUrl: settings.welcomeBackgroundUrl ?? null, welcomeBackgroundPublicId: settings.welcomeBackgroundPublicId ?? null, boothPageBackgrounds: settings.boothPageBackgrounds ?? {} }) });
   if (!response.ok) throw new Error("Business settings sync failed.");
 }
 

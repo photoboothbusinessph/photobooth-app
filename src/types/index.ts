@@ -2,6 +2,14 @@ export type TemplateLayout = "single" | "double" | "triple" | "quad";
 export type PhotoSlotCount = 1 | 2 | 3 | 4;
 export type ReceiptDesignStyle = "classic" | "calendar" | "social-post" | "barcode" | "flight-ticket";
 export type SyncStatus = "synced" | "pending" | "local" | "failed";
+export type BoothPageBackgroundKey = "layout" | "camera" | "design" | "preview" | "qr";
+
+export interface BoothPageBackgroundAsset {
+  url: string;
+  publicId: string;
+}
+
+export type BoothPageBackgrounds = Partial<Record<BoothPageBackgroundKey, BoothPageBackgroundAsset>>;
 
 export interface ThemePalette { primary: string; secondary: string; background: string; text: string; accent: string; }
 

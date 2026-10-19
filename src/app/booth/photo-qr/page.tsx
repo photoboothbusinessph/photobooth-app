@@ -10,5 +10,5 @@ export default async function PhotoQrPage({ searchParams }: PageProps<"/booth/ph
   if (slug) redirect(`/b/${slug}/booth/photo-qr${templateId ? `?template=${encodeURIComponent(templateId)}` : ""}`);
   const backHref = templateId ? `/booth/preview?template=${templateId}` : "/booth/preview";
 
-  return <BoothShell title="Your photos are ready" eyebrow="Digital copy & social media" backHref={backHref} step="05 / 05" showCountdown={false}><QrResult /></BoothShell>;
+  return <BoothShell title="Your photos are ready" backHref={backHref} step="05 / 05" showCountdown={false}><QrResult /></BoothShell>;
 }

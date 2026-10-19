@@ -1,10 +1,12 @@
 "use client";
 
 import * as React from "react";
+import { usePathname } from "next/navigation";
 import { CloudOff, Wifi } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function NetworkStatus() {
+  const pathname = usePathname();
   const [online, setOnline] = React.useState(true);
 
   React.useEffect(() => {
@@ -17,6 +19,9 @@ export function NetworkStatus() {
       window.removeEventListener("offline", update);
     };
   }, []);
+
+  const guestRoute = pathname.startsWith("/booth/") || /^\/b\/[^/]+(?:\/booth(?:\/|$)|$)/.test(pathname);
+  if (guestRoute) return null;
 
   return (
     <div role="status" className={cn("fixed bottom-4 right-4 z-50 flex min-h-10 items-center gap-2 border-2 border-black px-3 text-xs font-black uppercase shadow-[4px_4px_0_#101010]", online ? "bg-[var(--booth-accent)] text-black" : "bg-orange-500 text-black")}>

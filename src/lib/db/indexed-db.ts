@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from "dexie";
-import type { BoothStep, BusinessBranding, CapturedPhoto, PhotoMode, PhotoSlotCount, ReceiptTemplate, SyncStatus, ThemePalette } from "@/types";
+import type { BoothPageBackgrounds, BoothStep, BusinessBranding, CapturedPhoto, PhotoMode, PhotoSlotCount, ReceiptTemplate, SyncStatus, ThemePalette } from "@/types";
 import { boothSlug } from "@/lib/booth-path";
 import { useBusinessStore } from "@/stores/business-store";
 
@@ -24,6 +24,7 @@ export interface LocalBusinessSettings {
   socialQrPublicId?: string | null;
   welcomeBackgroundUrl?: string | null;
   welcomeBackgroundPublicId?: string | null;
+  boothPageBackgrounds?: BoothPageBackgrounds;
   updatedAt: number;
 }
 
@@ -166,7 +167,7 @@ export async function bindCachedBusinessId(tenantKey: string, businessId: string
 export async function cacheBusinessSettings(
   branding: BusinessBranding,
   palette: ThemePalette,
-  assets: Pick<LocalBusinessSettings, "logoPublicId" | "socialUrl" | "socialQrUrl" | "socialQrPublicId" | "welcomeBackgroundUrl" | "welcomeBackgroundPublicId"> = {},
+  assets: Pick<LocalBusinessSettings, "logoPublicId" | "socialUrl" | "socialQrUrl" | "socialQrPublicId" | "welcomeBackgroundUrl" | "welcomeBackgroundPublicId" | "boothPageBackgrounds"> = {},
   isConfigured = false,
   tenantKey = activeTenantKey(),
   businessId = activeBusinessId(),

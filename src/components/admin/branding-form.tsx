@@ -11,9 +11,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useBusinessStore } from "@/stores/business-store";
 import { cacheBusinessSettings, queueSync } from "@/lib/db/indexed-db";
-import type { BusinessBranding } from "@/types";
+import type { BoothPageBackgroundKey, BoothPageBackgrounds, BusinessBranding } from "@/types";
 
 const isHexColor = (value: string) => /^#[0-9A-Fa-f]{6}$/.test(value);
+const boothPages: Array<{ key: BoothPageBackgroundKey; label: string; step: string }> = [
+  { key: "layout", label: "Photo Layout", step: "01 / 05" },
+  { key: "camera", label: "Camera", step: "02 / 05" },
+  { key: "design", label: "Design Selection", step: "03 / 05" },
+  { key: "preview", label: "Print Preview", step: "04 / 05" },
+  { key: "qr", label: "QR Result", step: "05 / 05" },
+];
 
 export function BrandingForm() {
   const isHydrated = useBusinessStore((state) => state.isHydrated);
@@ -24,6 +31,7 @@ export function BrandingForm() {
 function HydratedBrandingForm() {
   const inputRef = React.useRef<HTMLInputElement>(null);
   const backgroundInputRef = React.useRef<HTMLInputElement>(null);
+  const pageBackgroundInputRefs = React.useRef<Partial<Record<BoothPageBackgroundKey, HTMLInputElement | null>>>({});
   const storedBranding = useBusinessStore((state) => state.branding);
   const updateBranding = useBusinessStore((state) => state.updateBranding);
   const logoPublicId = useBusinessStore((state) => state.logoPublicId);
@@ -32,6 +40,7 @@ function HydratedBrandingForm() {
   const socialQrPublicId = useBusinessStore((state) => state.socialQrPublicId);
   const welcomeBackgroundUrl = useBusinessStore((state) => state.welcomeBackgroundUrl);
   const welcomeBackgroundPublicId = useBusinessStore((state) => state.welcomeBackgroundPublicId);
+  const storedPageBackgrounds = useBusinessStore((state) => state.boothPageBackgrounds);
   const setAssetReferences = useBusinessStore((state) => state.setAssetReferences);
   const [name, setName] = React.useState(storedBranding.name);
   const [footer, setFooter] = React.useState(storedBranding.footerText);
@@ -44,6 +53,8 @@ function HydratedBrandingForm() {
   const [logoChanged, setLogoChanged] = React.useState(false);
   const [background, setBackground] = React.useState<string | null>(welcomeBackgroundUrl);
   const [backgroundChanged, setBackgroundChanged] = React.useState(false);
+  const [pageBackgrounds, setPageBackgrounds] = React.useState<BoothPageBackgrounds>(storedPageBackgrounds);
+  const [changedPageBackgrounds, setChangedPageBackgrounds] = React.useState<Set<BoothPageBackgroundKey>>(() => new Set());
   const [saving, setSaving] = React.useState(false);
 
   function chooseLogo(event: React.ChangeEvent<HTMLInputElement>) {
@@ -66,6 +77,31 @@ function HydratedBrandingForm() {
     reader.onload = () => { setBackground(typeof reader.result === "string" ? reader.result : null); setBackgroundChanged(true); setSaved(false); toast.success("Background preview ready to upload"); };
     reader.readAsDataURL(file);
   }
+  function choosePageBackground(key: BoothPageBackgroundKey, event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) { toast.error("Choose a PNG, JPEG, or WebP image"); return; }
+    if (file.size > 8 * 1024 * 1024) { toast.error("Choose an image smaller than 8 MB"); return; }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result !== "string") return;
+      setPageBackgrounds((current) => ({ ...current, [key]: { url: reader.result as string, publicId: current[key]?.publicId ?? "" } }));
+      setChangedPageBackgrounds((current) => new Set(current).add(key));
+      setSaved(false);
+      toast.success(`${boothPages.find((page) => page.key === key)?.label ?? "Page"} background preview ready`);
+    };
+    reader.readAsDataURL(file);
+  }
+  function removePageBackground(key: BoothPageBackgroundKey) {
+    setPageBackgrounds((current) => {
+      const next = { ...current };
+      delete next[key];
+      return next;
+    });
+    setChangedPageBackgrounds((current) => new Set(current).add(key));
+    setSaved(false);
+  }
   async function save() {
     if (!logoText.trim()) { toast.error("Enter text for the business logo."); return; }
     if (logoMode === "image" && !logo) { toast.error("Choose an image or select Text only."); return; }
@@ -73,12 +109,14 @@ function HydratedBrandingForm() {
     setSaving(true);
     let uploadedPublicId: string | null = null;
     let uploadedBackgroundPublicId: string | null = null;
+    const uploadedPagePublicIds: string[] = [];
     let savedToServer = false;
     try {
       let nextLogo = logoMode === "text" && logo ? storedBranding.logoDataUrl : logo;
       let nextLogoPublicId = logoPublicId;
       let nextBackground = background;
       let nextBackgroundPublicId = welcomeBackgroundPublicId;
+      const nextPageBackgrounds: BoothPageBackgrounds = { ...pageBackgrounds };
       if (logoChanged && logo && logoMode === "image") {
         if (!navigator.onLine) throw new Error("Connect to the internet to upload a new logo.");
         const response = await fetch("/api/uploads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ dataUrl: logo, kind: "logo" }) });
@@ -101,15 +139,28 @@ function HydratedBrandingForm() {
       } else if (backgroundChanged && !background) {
         nextBackgroundPublicId = null;
       }
+      if (changedPageBackgrounds.size && !navigator.onLine) throw new Error("Connect to the internet to upload booth page backgrounds.");
+      for (const key of changedPageBackgrounds) {
+        const draft = pageBackgrounds[key];
+        if (!draft) {
+          delete nextPageBackgrounds[key];
+          continue;
+        }
+        const response = await fetch("/api/uploads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ dataUrl: draft.url, kind: "booth-page-background" }) });
+        const result = await response.json() as { data?: { url: string; publicId: string }; error?: { message?: string } };
+        if (!response.ok || !result.data) throw new Error(result.error?.message ?? "Booth page background upload failed.");
+        nextPageBackgrounds[key] = result.data;
+        uploadedPagePublicIds.push(result.data.publicId);
+      }
       const nextBranding = { ...storedBranding, name, footerText: footer, monogram: logoText.trim(), logoMode, logoFont, logoColor: logoColor || undefined, logoDataUrl: nextLogo };
-      const assets = { logoPublicId: nextLogoPublicId, socialUrl, socialQrUrl, socialQrPublicId, welcomeBackgroundUrl: nextBackground, welcomeBackgroundPublicId: nextBackgroundPublicId };
+      const assets = { logoPublicId: nextLogoPublicId, socialUrl, socialQrUrl, socialQrPublicId, welcomeBackgroundUrl: nextBackground, welcomeBackgroundPublicId: nextBackgroundPublicId, boothPageBackgrounds: nextPageBackgrounds };
       if (navigator.onLine) {
         const response = await fetch("/api/business", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isConfigured: useBusinessStore.getState().isConfigured, branding: nextBranding, palette: useBusinessStore.getState().palette, ...assets }) });
         if (!response.ok) throw new Error("Unable to save branding. Please try again.");
         savedToServer = true;
       }
       updateBranding(nextBranding);
-      setAssetReferences({ logoPublicId: nextLogoPublicId, welcomeBackgroundUrl: nextBackground, welcomeBackgroundPublicId: nextBackgroundPublicId });
+      setAssetReferences({ logoPublicId: nextLogoPublicId, welcomeBackgroundUrl: nextBackground, welcomeBackgroundPublicId: nextBackgroundPublicId, boothPageBackgrounds: nextPageBackgrounds });
       await cacheBusinessSettings(nextBranding, useBusinessStore.getState().palette, assets, useBusinessStore.getState().isConfigured);
       if (!navigator.onLine) await queueSync("business", "default");
       if (navigator.onLine && logoChanged && logoPublicId && logoPublicId !== nextLogoPublicId) {
@@ -118,10 +169,18 @@ function HydratedBrandingForm() {
       if (navigator.onLine && backgroundChanged && welcomeBackgroundPublicId && welcomeBackgroundPublicId !== nextBackgroundPublicId) {
         void fetch("/api/uploads", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ publicId: welcomeBackgroundPublicId }) });
       }
+      for (const key of changedPageBackgrounds) {
+        const previousPublicId = storedPageBackgrounds[key]?.publicId;
+        if (previousPublicId && previousPublicId !== nextPageBackgrounds[key]?.publicId) {
+          void fetch("/api/uploads", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ publicId: previousPublicId }) });
+        }
+      }
       setLogo(nextLogo);
       setBackground(nextBackground);
+      setPageBackgrounds(nextPageBackgrounds);
       setLogoChanged(false);
       setBackgroundChanged(false);
+      setChangedPageBackgrounds(new Set());
       setSaved(true);
       toast.success(navigator.onLine ? "Branding saved" : "Branding saved offline");
     } catch (error) {
@@ -130,6 +189,9 @@ function HydratedBrandingForm() {
       }
       if (uploadedBackgroundPublicId && !savedToServer) {
         void fetch("/api/uploads", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ publicId: uploadedBackgroundPublicId }) });
+      }
+      for (const publicId of uploadedPagePublicIds) {
+        if (!savedToServer) void fetch("/api/uploads", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ publicId }) });
       }
       toast.error(error instanceof Error ? error.message : "Unable to save branding");
     } finally {
@@ -168,6 +230,56 @@ function HydratedBrandingForm() {
           </div>
           <input ref={backgroundInputRef} type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={chooseBackground} aria-label="Upload Tap-to-Start background image" />
           <div className="flex flex-wrap gap-3"><Button type="button" variant="outline" className="h-11" onClick={() => backgroundInputRef.current?.click()}><Upload /> {background ? "Replace" : "Choose background"}</Button><Button type="button" variant="destructive" className="h-11" onClick={() => { setBackground(null); setBackgroundChanged(true); setSaved(false); }} disabled={!background}><Trash2 /> Remove</Button></div>
+        </div>
+        <div className="space-y-5 border border-black/15 bg-card p-5 sm:p-7">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h2 className="font-bold">Booth page backgrounds</h2>
+              <p className="mt-1 text-xs text-muted-foreground">Upload a separate full-screen background for each guest step. PNG, JPEG, or WebP, up to 8 MB.</p>
+            </div>
+            <ImagePlus className="size-5 shrink-0 text-primary" />
+          </div>
+          <div className="grid gap-5 sm:grid-cols-2">
+            {boothPages.map((page) => {
+              const asset = pageBackgrounds[page.key];
+              return (
+                <article key={page.key} className="space-y-3 border border-black/15 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <h3 className="text-sm font-bold">{page.label}</h3>
+                    <span className="text-[10px] font-bold tracking-[0.16em] text-muted-foreground">{page.step}</span>
+                  </div>
+                  <div className="relative aspect-[3/4] overflow-hidden border bg-[var(--booth-primary)] text-white">
+                    {asset ? <Image src={asset.url} alt={`${page.label} background preview`} fill sizes="320px" unoptimized className="object-cover" /> : null}
+                    <div className="absolute inset-0 z-10 flex flex-col p-3">
+                      <div className="flex items-center justify-between text-[9px] font-bold uppercase tracking-[0.12em]">
+                        <span>← Back</span>
+                        <span>{page.step}</span>
+                      </div>
+                      <div className="m-auto rounded border border-white/70 bg-black/10 px-3 py-2 text-center text-[10px] font-bold uppercase tracking-[0.12em]">
+                        {asset ? page.label : "Theme color fallback"}
+                      </div>
+                    </div>
+                  </div>
+                  <input
+                    ref={(element) => { pageBackgroundInputRefs.current[page.key] = element; }}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    className="sr-only"
+                    onChange={(event) => choosePageBackground(page.key, event)}
+                    aria-label={`Upload ${page.label} background image`}
+                  />
+                  <div className="flex flex-wrap gap-2">
+                    <Button type="button" variant="outline" className="h-11 flex-1" onClick={() => pageBackgroundInputRefs.current[page.key]?.click()}>
+                      <Upload /> {asset ? "Replace" : "Upload"}
+                    </Button>
+                    <Button type="button" variant="destructive" className="h-11" onClick={() => removePageBackground(page.key)} disabled={!asset} aria-label={`Remove ${page.label} background`}>
+                      <Trash2 />
+                    </Button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
         </div>
         <Button onClick={() => void save()} disabled={saving} className="h-12 w-full sm:w-auto">{saving ? <LoaderCircle className="animate-spin" /> : <Save />} {saving ? "Saving…" : saved ? "Saved" : "Save branding"}</Button>
       </section>
