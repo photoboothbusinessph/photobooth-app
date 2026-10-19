@@ -3,7 +3,10 @@ import { z } from "zod";
 
 const requiredValue = z.string().trim().min(1);
 const optionalValue = <T extends z.ZodType>(schema: T) =>
-  z.preprocess((value) => (typeof value === "string" && value.trim() === "" ? undefined : value), schema.optional());
+  z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    schema.optional(),
+  );
 
 const databaseEnvironmentSchema = z.object({
   MONGODB_URI: requiredValue,
@@ -17,23 +20,36 @@ const cloudinaryEnvironmentSchema = z.object({
 });
 
 const applicationEnvironmentSchema = z.object({
-  NEXT_PUBLIC_APP_URL: z.url().default("http://localhost:3000"),
+  NEXT_APP_URL: z.url().default("http://localhost:3000"),
 });
 
-const superAdminBootstrapEnvironmentSchema = z.object({
-  SUPER_ADMIN_USERNAME: optionalValue(z.string().min(3).max(40).regex(/^[a-zA-Z0-9._-]+$/)),
-  /** Legacy fallback for installations that have not rotated their bootstrap variable yet. */
-  SUPER_ADMIN_EMAIL: optionalValue(z.email()),
-  SUPER_ADMIN_PASSWORD: optionalValue(
-    z.string().min(12).refine(
-      (value) => !/^(?:replace|change|example|securepass)/i.test(value),
-      "SUPER_ADMIN_PASSWORD must not be a placeholder.",
+const superAdminBootstrapEnvironmentSchema = z
+  .object({
+    SUPER_ADMIN_USERNAME: optionalValue(
+      z
+        .string()
+        .min(3)
+        .max(40)
+        .regex(/^[a-zA-Z0-9._-]+$/),
     ),
-  ),
-}).refine(
-  (environment) => Boolean(environment.SUPER_ADMIN_USERNAME ?? environment.SUPER_ADMIN_EMAIL) === Boolean(environment.SUPER_ADMIN_PASSWORD),
-  "Set both super-admin bootstrap variables or neither.",
-);
+    /** Legacy fallback for installations that have not rotated their bootstrap variable yet. */
+    SUPER_ADMIN_EMAIL: optionalValue(z.email()),
+    SUPER_ADMIN_PASSWORD: optionalValue(
+      z
+        .string()
+        .min(12)
+        .refine(
+          (value) => !/^(?:replace|change|example|securepass)/i.test(value),
+          "SUPER_ADMIN_PASSWORD must not be a placeholder.",
+        ),
+    ),
+  })
+  .refine(
+    (environment) =>
+      Boolean(environment.SUPER_ADMIN_USERNAME ?? environment.SUPER_ADMIN_EMAIL) ===
+      Boolean(environment.SUPER_ADMIN_PASSWORD),
+    "Set both super-admin bootstrap variables or neither.",
+  );
 
 function parseEnvironment<T>(schema: z.ZodType<T>): T {
   const result = schema.safeParse(process.env);

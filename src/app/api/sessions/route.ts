@@ -14,7 +14,9 @@ export async function GET() {
   try {
     const { businessId } = await requireBusinessAdmin();
     const { sessions } = await getCollections();
-    return apiSuccess(await sessions.find({ businessId }).sort({ createdAt: -1 }).limit(100).toArray());
+    return apiSuccess(
+      await sessions.find({ businessId }).sort({ createdAt: -1 }).limit(100).toArray(),
+    );
   } catch (error) {
     return handleApiError(error);
   }
@@ -32,13 +34,29 @@ export async function POST(request: Request) {
     const existing = await sessions.findOne({ _id: input.id });
     if (existing && existing.businessId !== businessId) throw new Error("Forbidden");
     if (existing) return apiSuccess(toShareResult(existing.shareToken));
-    const template = await templates.findOne({ _id: businessId === "default" ? input.templateId : `${businessId}__${input.templateId}`, businessId });
-    const resolvedTemplate = template ?? starterTemplates.find((item) => item.builtIn && item.id === input.templateId);
-    if (!resolvedTemplate || !templateSupportsPhotoSlots({ ...resolvedTemplate, id: input.templateId }, input.photoCount)) throw new Error("Forbidden");
+    const template = await templates.findOne({
+      _id: businessId === "default" ? input.templateId : `${businessId}__${input.templateId}`,
+      businessId,
+    });
+    const resolvedTemplate =
+      template ?? starterTemplates.find((item) => item.builtIn && item.id === input.templateId);
+    if (
+      !resolvedTemplate ||
+      !templateSupportsPhotoSlots({ ...resolvedTemplate, id: input.templateId }, input.photoCount)
+    )
+      throw new Error("Forbidden");
 
-    const color = await uploadImage(input.colorImage, `${businessId}/sessions/${input.id}`, "color");
+    const color = await uploadImage(
+      input.colorImage,
+      `${businessId}/sessions/${input.id}`,
+      "color",
+    );
     colorPublicId = color.publicId;
-    const bw = await uploadImage(input.bwImage, `${businessId}/sessions/${input.id}`, "black-and-white");
+    const bw = await uploadImage(
+      input.bwImage,
+      `${businessId}/sessions/${input.id}`,
+      "black-and-white",
+    );
     bwPublicId = bw.publicId;
     const shareToken = randomBytes(24).toString("base64url");
     const now = new Date();
@@ -65,6 +83,6 @@ export async function POST(request: Request) {
 }
 
 function toShareResult(shareToken: string) {
-  const baseUrl = getApplicationEnvironment().NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
+  const baseUrl = getApplicationEnvironment().NEXT_APP_URL.replace(/\/$/, "");
   return { shareToken, shareUrl: `${baseUrl}/share/${shareToken}` };
 }
