@@ -18,7 +18,7 @@ export function newKioskSecret() {
 export async function setKioskCookie(token: string) {
   (await cookies()).set(KIOSK_COOKIE, token, {
     httpOnly: true,
-    secure: getApplicationEnvironment().NEXT_PUBLIC_APP_URL.startsWith("https://"),
+    secure: getApplicationEnvironment().NEXT_APP_URL.startsWith("https://"),
     sameSite: "lax",
     path: "/",
     maxAge: 60 * 60 * 24 * 365,
@@ -31,7 +31,11 @@ export async function requireKiosk(slug: string) {
   const token = (await cookies()).get(KIOSK_COOKIE)?.value;
   if (!token) throw new Error("Unauthorized");
   const { kioskDevices } = await getCollections();
-  const device = await kioskDevices.findOne({ tokenHash: hashKioskSecret(token), businessId: business._id, isEnabled: true });
+  const device = await kioskDevices.findOne({
+    tokenHash: hashKioskSecret(token),
+    businessId: business._id,
+    isEnabled: true,
+  });
   if (!device) throw new Error("Forbidden");
   await kioskDevices.updateOne({ _id: device._id }, { $set: { lastSeenAt: new Date() } });
   return { businessId: business._id, deviceId: device._id };

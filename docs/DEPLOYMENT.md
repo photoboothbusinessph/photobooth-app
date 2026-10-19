@@ -13,10 +13,10 @@ CLOUDINARY_API_SECRET
 AUTH_SECRET
 SUPER_ADMIN_USERNAME
 SUPER_ADMIN_PASSWORD
-NEXT_PUBLIC_APP_URL
+NEXT_APP_URL
 ```
 
-`NEXT_PUBLIC_APP_URL` must be the final HTTPS origin without a trailing slash. Generate `AUTH_SECRET` as a high-entropy value of at least 32 characters. Restrict MongoDB network and database access to the minimum required by the deployment.
+`NEXT_APP_URL` must be the final HTTPS origin without a trailing slash. Generate `AUTH_SECRET` as a high-entropy value of at least 32 characters. Restrict MongoDB network and database access to the minimum required by the deployment.
 
 Use a unique username containing only letters, numbers, periods, underscores, or hyphens for `SUPER_ADMIN_USERNAME`. Existing deployments using `SUPER_ADMIN_EMAIL` remain login-compatible during migration, but should rotate to the username variable.
 
@@ -34,7 +34,7 @@ For an existing installation, complete the credential rotation, backup, dry-run,
 
 1. Import the repository into the intended Netlify project. The committed `netlify.toml` uses `pnpm build` and publishes `.next`; do not override these with a static-site output folder.
 2. In **Project configuration > Environment variables**, add every variable above for the Production deploy context. Do not paste secrets into source files or build logs.
-3. Set `NEXT_PUBLIC_APP_URL` to the final Netlify or custom HTTPS origin without a trailing slash.
+3. Set `NEXT_APP_URL` to the final Netlify or custom HTTPS origin without a trailing slash.
 4. In **Deploys**, choose **Trigger deploy > Clear cache and deploy site**, then confirm that the deploy log identifies Next.js and creates Netlify functions.
 5. Open the published deploy and use **Deploy File Explorer** to confirm that the Next.js output was included. A Netlify-branded 404 on every route indicates an incorrect publish directory or missing Next.js handler, not an application 404.
 6. Open `/admin/login` and `/` on the production domain before continuing setup.
