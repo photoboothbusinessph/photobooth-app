@@ -322,3 +322,35 @@ test("worker caches only booth HTML, never redirects or RSC as documents", async
     assert.equal(await cacheResponse({ response: new Response("failed", { status: 500 }) }), null);
   } finally { delete globalThis.self; delete globalThis.workerTestOptions; }
 });
+
+test("guest booth chrome is minimal and per-page backgrounds remain offline-capable", async () => {
+  const [shell, background, networkStatus, preview, qrResult, worker, branding, provider, syncClient] = await Promise.all([
+    readFile("src/components/layout/booth-shell.tsx", "utf8"),
+    readFile("src/components/booth/booth-page-background.tsx", "utf8"),
+    readFile("src/components/shared/network-status.tsx", "utf8"),
+    readFile("src/components/booth/preview-studio.tsx", "utf8"),
+    readFile("src/components/booth/qr-result.tsx", "utf8"),
+    readFile("src/app/sw.ts", "utf8"),
+    readFile("src/components/admin/branding-form.tsx", "utf8"),
+    readFile("src/components/providers/offline-data-provider.tsx", "utf8"),
+    readFile("src/lib/sync/client-sync.ts", "utf8"),
+  ]);
+
+  assert.match(shell, /<h1 className="sr-only">\{title\}<\/h1>/);
+  assert.match(shell, /<BoothPageBackground \/>/);
+  assert.doesNotMatch(shell, /BrandMark|Touch-first booth mode|border-b/);
+  assert.match(background, /templates: "layout"/);
+  assert.match(background, /camera: "camera"/);
+  assert.match(background, /designs: "design"/);
+  assert.match(background, /preview: "preview"/);
+  assert.match(background, /"photo-qr": "qr"/);
+  assert.match(background, /object-cover/);
+  assert.match(networkStatus, /if \(guestRoute\) return null/);
+  assert.doesNotMatch(preview, /bg-black\/10/);
+  assert.doesNotMatch(qrResult, /BrandMark|Private link ready/);
+  assert.match(branding, /Booth page backgrounds/);
+  assert.match(branding, /kind: "booth-page-background"/);
+  assert.match(provider, /boothPageBackgrounds/);
+  assert.match(syncClient, /boothPageBackgrounds/);
+  assert.match(worker, /business-image-assets-v1/);
+});

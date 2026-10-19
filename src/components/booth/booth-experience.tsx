@@ -40,7 +40,6 @@ export function BoothExperience() {
     return (
       <BoothShell
         title="Your photos are ready"
-        eyebrow="Digital copy & social media"
         backHref={`${base}/booth/preview`}
         step="05 / 05"
         showCountdown={false}

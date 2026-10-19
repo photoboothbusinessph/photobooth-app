@@ -144,6 +144,8 @@ test("super admin account actions stay protected and use confirmation dialogs", 
   assert.match(accountRoute, /deleteOne\(\{ _id: id, role: "business_admin" \}\)/);
   assert.match(accountRoute, /\$inc: \{ sessionVersion: 1 \}/);
   assert.match(consoleUi, /<Dialog open=\{Boolean\(temporaryPassword\)\}/);
+  assert.match(consoleUi, /navigator\.clipboard\.writeText\(temporaryPassword\)/);
+  assert.match(consoleUi, /> Copy password<\/Button>/);
   assert.match(consoleUi, /<Dialog open=\{Boolean\(accountConfirmation\)\}/);
   assert.match(consoleUi, /Permanently delete account\?/);
   assert.match(kioskRoute, /export async function PATCH/);
@@ -158,4 +160,18 @@ test("super admin account actions stay protected and use confirmation dialogs", 
   assert.match(businessDeletion, /templates\.deleteMany/);
   assert.match(consoleUi, /<Dialog open=\{Boolean\(kioskConfirmation\)\}/);
   assert.match(consoleUi, /<Dialog open=\{Boolean\(businessDeleteTarget\)\}/);
+});
+
+test("booth page backgrounds enforce tenant ownership and business cleanup", async () => {
+  const [businessRoute, schemas, deletion] = await Promise.all([
+    readFile("src/app/api/business/route.ts", "utf8"),
+    readFile("src/lib/validation/schemas.ts", "utf8"),
+    readFile("src/lib/super-admin/delete-business.ts", "utf8"),
+  ]);
+
+  assert.match(schemas, /boothPageBackgrounds: z\.object/);
+  assert.match(schemas, /"booth-page-background"/);
+  assert.match(businessRoute, /Object\.values\(input\.boothPageBackgrounds \?\? \{\}\)/);
+  assert.match(businessRoute, /isBusinessAsset\(asset\.publicId, businessId\)/);
+  assert.match(deletion, /Object\.values\(business\.boothPageBackgrounds \?\? \{\}\)/);
 });

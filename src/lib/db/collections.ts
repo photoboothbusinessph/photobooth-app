@@ -1,7 +1,7 @@
 import "server-only";
 import type { Collection } from "mongodb";
 import { getDatabase } from "@/lib/db/mongodb";
-import type { BusinessBranding, ReceiptTemplate, ThemePalette } from "@/types";
+import type { BoothPageBackgrounds, BusinessBranding, ReceiptTemplate, ThemePalette } from "@/types";
 
 export interface BusinessDocument {
   _id: string;
@@ -15,6 +15,7 @@ export interface BusinessDocument {
   logoPublicId: string | null;
   welcomeBackgroundUrl?: string | null;
   welcomeBackgroundPublicId?: string | null;
+  boothPageBackgrounds?: BoothPageBackgrounds;
   templateCatalogVersion?: number;
   updatedAt: Date;
 }

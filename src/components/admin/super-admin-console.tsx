@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { Copy } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -60,6 +61,16 @@ export function SuperAdminConsole() {
     router.replace("/admin/login"); router.refresh();
   }
 
+  async function copyTemporaryPassword() {
+    if (!temporaryPassword) return;
+    try {
+      await navigator.clipboard.writeText(temporaryPassword);
+      toast.success("Temporary password copied.");
+    } catch {
+      toast.error("Could not copy the temporary password.");
+    }
+  }
+
   async function confirmAccountAction() {
     if (!accountConfirmation) return;
     const { action, admin } = accountConfirmation;
@@ -111,7 +122,7 @@ export function SuperAdminConsole() {
 
     <section><h2 className="mb-3 text-2xl font-bold">Paired kiosks</h2>{!loading && kiosks.length === 0 && <p className="text-muted-foreground">No kiosks paired yet.</p>}<div className="space-y-3">{kiosks.map((item) => <div key={item._id} className="flex flex-wrap items-center justify-between gap-3 border p-4"><div><strong>{item.name}</strong><p className="text-sm text-muted-foreground">{businesses.find((business) => business._id === item.businessId)?.branding.name ?? "Unknown business"} · {item.isEnabled ? "Active" : "Revoked"}</p></div><div className="flex flex-wrap gap-2">{item.isEnabled && <button disabled={busy} className="min-h-11 rounded-md border px-3" onClick={() => setKioskConfirmation({ action: "revoke", kiosk: item })}>Revoke</button>}<button disabled={busy} className="min-h-11 rounded-md border border-destructive px-3 text-destructive" onClick={() => setKioskConfirmation({ action: "delete", kiosk: item })}>Delete</button></div></div>)}</div></section>
 
-    <Dialog open={Boolean(temporaryPassword)} onOpenChange={(open) => { if (!open) setTemporaryPassword(null); }}><DialogContent showCloseButton={!busy}><DialogHeader><DialogTitle>Temporary password</DialogTitle><DialogDescription>This password is shown only once. Send it directly to the admin through a secure channel.</DialogDescription></DialogHeader><code className="select-all break-all rounded-md border bg-muted p-4 text-center text-base font-bold">{temporaryPassword}</code><p className="text-sm text-muted-foreground">The admin must change it at the next sign in.</p></DialogContent></Dialog>
+    <Dialog open={Boolean(temporaryPassword)} onOpenChange={(open) => { if (!open) setTemporaryPassword(null); }}><DialogContent showCloseButton={!busy}><DialogHeader><DialogTitle>Temporary password</DialogTitle><DialogDescription>This password is shown only once. Send it directly to the admin through a secure channel.</DialogDescription></DialogHeader><code className="select-all break-all rounded-md border bg-muted p-4 text-center text-base font-bold">{temporaryPassword}</code><p className="text-sm text-muted-foreground">The admin must change it at the next sign in.</p><Button type="button" onClick={() => void copyTemporaryPassword()}><Copy /> Copy password</Button></DialogContent></Dialog>
 
     <Dialog open={Boolean(accountConfirmation)} onOpenChange={(open) => { if (!open && !busy) setAccountConfirmation(null); }}><DialogContent showCloseButton={!busy}><DialogHeader><DialogTitle>{accountConfirmation?.action === "delete" ? "Permanently delete account?" : "Disable account?"}</DialogTitle><DialogDescription>{accountConfirmation?.action === "delete" ? `This permanently deletes ${accountConfirmation.admin.username}. This action cannot be undone.` : `${accountConfirmation?.admin.username ?? "This admin"} will immediately lose access until the account is enabled again.`}</DialogDescription></DialogHeader><DialogFooter><DialogClose render={<Button type="button" variant="outline" disabled={busy}>Cancel</Button>} /><Button type="button" variant="destructive" disabled={busy} onClick={() => void confirmAccountAction()}>{busy ? "Working…" : accountConfirmation?.action === "delete" ? "Delete permanently" : "Disable account"}</Button></DialogFooter></DialogContent></Dialog>
 

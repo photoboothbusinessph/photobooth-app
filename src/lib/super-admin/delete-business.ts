@@ -17,6 +17,7 @@ export async function deleteBusinessPermanently(businessId: string) {
     business.logoPublicId,
     business.socialQrPublicId,
     business.welcomeBackgroundPublicId,
+    ...Object.values(business.boothPageBackgrounds ?? {}).map((asset) => asset.publicId),
     ...templateAssets.map((item) => item.overlayPublicId),
     ...sessionAssets.flatMap((item) => [item.colorPublicId, item.bwPublicId]),
   ].filter((value): value is string => Boolean(value && isBusinessAsset(value, businessId))));

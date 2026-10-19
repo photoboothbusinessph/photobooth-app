@@ -31,6 +31,13 @@ export const businessSchema = z.object({
   logoPublicId: z.string().nullable().optional(),
   welcomeBackgroundUrl: z.url().nullable().optional(),
   welcomeBackgroundPublicId: z.string().nullable().optional(),
+  boothPageBackgrounds: z.object({
+    layout: z.object({ url: z.url(), publicId: z.string().min(1).max(300) }).optional(),
+    camera: z.object({ url: z.url(), publicId: z.string().min(1).max(300) }).optional(),
+    design: z.object({ url: z.url(), publicId: z.string().min(1).max(300) }).optional(),
+    preview: z.object({ url: z.url(), publicId: z.string().min(1).max(300) }).optional(),
+    qr: z.object({ url: z.url(), publicId: z.string().min(1).max(300) }).optional(),
+  }).optional(),
 });
 
 export const templateSchema = z.object({
@@ -73,7 +80,7 @@ export const sessionUploadSchema = z.object({
 
 export const assetUploadSchema = z.object({
   dataUrl: imageDataUrlSchema,
-  kind: z.enum(["logo", "social-qr", "welcome-background", "template-overlay"]),
+  kind: z.enum(["logo", "social-qr", "welcome-background", "booth-page-background", "template-overlay"]),
   previousPublicId: z.string().max(300).nullable().optional(),
   photoSlots: z.number().int().min(1).max(4).optional(),
 });

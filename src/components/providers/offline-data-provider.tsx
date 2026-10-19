@@ -41,7 +41,7 @@ export function OfflineDataProvider() {
         setConfigured(Boolean(settings.isConfigured));
         updateBranding(settings.branding);
         updatePalette(settings.palette);
-        setAssetReferences({ logoPublicId: settings.logoPublicId ?? null, socialUrl: settings.socialUrl ?? null, socialQrUrl: settings.socialQrUrl ?? null, socialQrPublicId: settings.socialQrPublicId ?? null, welcomeBackgroundUrl: settings.welcomeBackgroundUrl ?? null, welcomeBackgroundPublicId: settings.welcomeBackgroundPublicId ?? null });
+        setAssetReferences({ logoPublicId: settings.logoPublicId ?? null, socialUrl: settings.socialUrl ?? null, socialQrUrl: settings.socialQrUrl ?? null, socialQrPublicId: settings.socialQrPublicId ?? null, welcomeBackgroundUrl: settings.welcomeBackgroundUrl ?? null, welcomeBackgroundPublicId: settings.welcomeBackgroundPublicId ?? null, boothPageBackgrounds: settings.boothPageBackgrounds ?? {} });
       }
       if (routeSlug) setTemplates(cachedTemplates.filter((template) => "businessId" in template && template.businessId === settings?.businessId));
 
@@ -53,7 +53,7 @@ export function OfflineDataProvider() {
         const query = routeSlug ? `?slug=${encodeURIComponent(routeSlug)}` : "";
         const [businessResponse, templatesResponse] = await Promise.all([fetch(`/api/business${query}`), fetch(`/api/templates${query}`)]);
         if (businessResponse.ok) {
-          const { data } = await businessResponse.json() as { data: { _id: string; slug?: string; isConfigured?: boolean; branding: ReturnType<typeof useBusinessStore.getState>["branding"]; palette: ReturnType<typeof useBusinessStore.getState>["palette"]; logoPublicId?: string | null; socialUrl?: string | null; socialQrUrl?: string | null; socialQrPublicId?: string | null; welcomeBackgroundUrl?: string | null; welcomeBackgroundPublicId?: string | null } };
+          const { data } = await businessResponse.json() as { data: { _id: string; slug?: string; isConfigured?: boolean; branding: ReturnType<typeof useBusinessStore.getState>["branding"]; palette: ReturnType<typeof useBusinessStore.getState>["palette"]; logoPublicId?: string | null; socialUrl?: string | null; socialQrUrl?: string | null; socialQrPublicId?: string | null; welcomeBackgroundUrl?: string | null; welcomeBackgroundPublicId?: string | null; boothPageBackgrounds?: ReturnType<typeof useBusinessStore.getState>["boothPageBackgrounds"] } };
           if (!active) return;
           const tenantKey = routeSlug ?? data._id;
           setTenantKey(tenantKey);
@@ -62,7 +62,7 @@ export function OfflineDataProvider() {
           setConfigured(Boolean(data.isConfigured));
           updateBranding(data.branding);
           updatePalette(data.palette);
-          const assets = { logoPublicId: data.logoPublicId ?? null, socialUrl: data.socialUrl ?? null, socialQrUrl: data.socialQrUrl ?? null, socialQrPublicId: data.socialQrPublicId ?? null, welcomeBackgroundUrl: data.welcomeBackgroundUrl ?? null, welcomeBackgroundPublicId: data.welcomeBackgroundPublicId ?? null };
+          const assets = { logoPublicId: data.logoPublicId ?? null, socialUrl: data.socialUrl ?? null, socialQrUrl: data.socialQrUrl ?? null, socialQrPublicId: data.socialQrPublicId ?? null, welcomeBackgroundUrl: data.welcomeBackgroundUrl ?? null, welcomeBackgroundPublicId: data.welcomeBackgroundPublicId ?? null, boothPageBackgrounds: data.boothPageBackgrounds ?? {} };
           setAssetReferences(assets);
           setHydrated(true);
           try {
