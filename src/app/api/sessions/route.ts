@@ -2,9 +2,8 @@ import { randomBytes } from "node:crypto";
 import { apiSuccess, handleApiError } from "@/lib/api/responses";
 import { requireBusinessAdmin } from "@/lib/auth/session";
 import { requireKiosk } from "@/lib/auth/kiosk";
-import { deleteImage, uploadImage } from "@/lib/cloudinary/client";
+import { deleteImage, getCloudinaryImageUrl, uploadImage } from "@/lib/cloudinary/client";
 import { getCollections } from "@/lib/db/collections";
-import { getApplicationEnvironment } from "@/lib/server/env";
 import { sessionUploadSchema } from "@/lib/validation/schemas";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { templates as starterTemplates } from "@/config/mock-data";
@@ -33,7 +32,7 @@ export async function POST(request: Request) {
     const { sessions, templates } = await getCollections();
     const existing = await sessions.findOne({ _id: input.id });
     if (existing && existing.businessId !== businessId) throw new Error("Forbidden");
-    if (existing) return apiSuccess(toShareResult(existing.shareToken));
+    if (existing) return apiSuccess(toShareResult(existing.shareToken, request.url));
     const template = await templates.findOne({
       _id: businessId === "default" ? input.templateId : `${businessId}__${input.templateId}`,
       businessId,
@@ -46,18 +45,32 @@ export async function POST(request: Request) {
     )
       throw new Error("Forbidden");
 
-    const color = await uploadImage(
-      input.colorImage,
-      `${businessId}/sessions/${input.id}`,
-      "color",
-    );
-    colorPublicId = color.publicId;
-    const bw = await uploadImage(
-      input.bwImage,
-      `${businessId}/sessions/${input.id}`,
-      "black-and-white",
-    );
-    bwPublicId = bw.publicId;
+    let color: { url: string; publicId: string };
+    let bw: { url: string; publicId: string };
+    if ("colorPublicId" in input) {
+      const assetFolder = `receipt-photobooth/${businessId}/sessions/${input.id}`;
+      const expectedColorPublicId = `${assetFolder}/color`;
+      const expectedBwPublicId = `${assetFolder}/black-and-white`;
+      if (input.colorPublicId !== expectedColorPublicId || input.bwPublicId !== expectedBwPublicId)
+        throw new Error("Forbidden");
+      colorPublicId = input.colorPublicId;
+      bwPublicId = input.bwPublicId;
+      color = { publicId: colorPublicId, url: getCloudinaryImageUrl(colorPublicId) };
+      bw = { publicId: bwPublicId, url: getCloudinaryImageUrl(bwPublicId) };
+    } else {
+      color = await uploadImage(
+        input.colorImage,
+        `${businessId}/sessions/${input.id}`,
+        "color",
+      );
+      colorPublicId = color.publicId;
+      bw = await uploadImage(
+        input.bwImage,
+        `${businessId}/sessions/${input.id}`,
+        "black-and-white",
+      );
+      bwPublicId = bw.publicId;
+    }
     const shareToken = randomBytes(24).toString("base64url");
     const now = new Date();
     await sessions.insertOne({
@@ -74,7 +87,7 @@ export async function POST(request: Request) {
       createdAt: now,
       updatedAt: now,
     });
-    return apiSuccess(toShareResult(shareToken), { status: 201 });
+    return apiSuccess(toShareResult(shareToken, request.url), { status: 201 });
   } catch (error) {
     if (colorPublicId) await deleteImage(colorPublicId).catch(() => undefined);
     if (bwPublicId) await deleteImage(bwPublicId).catch(() => undefined);
@@ -82,7 +95,6 @@ export async function POST(request: Request) {
   }
 }
 
-function toShareResult(shareToken: string) {
-  const baseUrl = getApplicationEnvironment().NEXT_APP_URL.replace(/\/$/, "");
-  return { shareToken, shareUrl: `${baseUrl}/share/${shareToken}` };
+function toShareResult(shareToken: string, requestUrl: string) {
+  return { shareToken, shareUrl: new URL(`/share/${shareToken}`, requestUrl).toString() };
 }

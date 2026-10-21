@@ -15,6 +15,7 @@ export function StartSessionButton() {
   const startBoothSession = useBoothStore((state) => state.startSession);
   const sessionHydrated = useBoothStore((state) => state.isHydrated);
   const businessId = useBusinessStore((state) => state.businessId);
+  const boothSessionDurationSeconds = useBusinessStore((state) => state.boothSessionDurationSeconds);
   const [starting, setStarting] = useState(false);
 
   async function startSession() {
@@ -43,7 +44,7 @@ export function StartSessionButton() {
     try {
       startBoothSession(boothSlug(pathname) ?? "legacy", businessId);
       if (!(await flushBoothSessionPersistence())) throw new Error("Storage unavailable");
-      sessionStorage.setItem(BOOTH_SESSION_DEADLINE_KEY, String(createBoothSessionDeadline()));
+      sessionStorage.setItem(BOOTH_SESSION_DEADLINE_KEY, String(createBoothSessionDeadline(boothSessionDurationSeconds)));
       sessionStorage.removeItem(BOOTH_SESSION_VOICE_WARNINGS_KEY);
       router.push(`${boothBasePath(pathname)}/booth/templates`);
     } catch {

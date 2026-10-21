@@ -26,6 +26,7 @@ export async function GET(request: Request) {
         welcomeBackgroundUrl: null,
         welcomeBackgroundPublicId: null,
         boothPageBackgrounds: {},
+        boothSessionDurationSeconds: 120,
       } : null),
     );
   } catch (error) {

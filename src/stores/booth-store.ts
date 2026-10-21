@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { BOOTH_SESSION_DURATION_SECONDS } from "@/lib/booth-session";
+import { normalizeBoothSessionDurationSeconds } from "@/lib/booth-session";
 import { photoboothDb, type LocalBoothDraft } from "@/lib/db/indexed-db";
 import type { BoothStep, CapturedPhoto, PhotoMode, PhotoSlotCount } from "@/types";
 
@@ -121,7 +121,7 @@ export const useBoothStore = create<BoothState>((set, get) => {
         const settings = await photoboothDb.businessSettings.get(tenantKey);
         if (version !== hydrationVersion) return;
         const isActive = draft && settings?.identityVerified && draft.businessId === settings.businessId
-          && (draft.step === "complete" || Date.now() - draft.startedAt < BOOTH_SESSION_DURATION_SECONDS * 1000);
+          && (draft.step === "complete" || Date.now() - draft.startedAt < normalizeBoothSessionDurationSeconds(settings.boothSessionDurationSeconds) * 1000);
         if (draft && isActive) {
           set({ ...draft, selectedPhotoSlots: draft.selectedPhotoSlots ?? null, isHydrated: true });
           return;

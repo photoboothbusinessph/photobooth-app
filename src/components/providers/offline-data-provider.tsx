@@ -7,6 +7,7 @@ import { boothSlug } from "@/lib/booth-path";
 import { bindCachedBusinessId, cacheBusinessSettings, cacheTemplates, migrateLegacyOfflineData, photoboothDb } from "@/lib/db/indexed-db";
 import { useBusinessStore } from "@/stores/business-store";
 import type { ReceiptTemplate } from "@/types";
+import { normalizeBoothSessionDurationSeconds } from "@/lib/booth-session";
 
 export function OfflineDataProvider() {
   const pathname = usePathname();
@@ -19,6 +20,7 @@ export function OfflineDataProvider() {
   const updatePalette = useBusinessStore((state) => state.updatePalette);
   const setTemplates = useBusinessStore((state) => state.setTemplates);
   const setAssetReferences = useBusinessStore((state) => state.setAssetReferences);
+  const setBoothSessionDurationSeconds = useBusinessStore((state) => state.setBoothSessionDurationSeconds);
   const setTenantKey = useBusinessStore((state) => state.setTenantKey);
   const setBusinessId = useBusinessStore((state) => state.setBusinessId);
   const setBusinessSlug = useBusinessStore((state) => state.setBusinessSlug);
@@ -42,6 +44,7 @@ export function OfflineDataProvider() {
         updateBranding(settings.branding);
         updatePalette(settings.palette);
         setAssetReferences({ logoPublicId: settings.logoPublicId ?? null, socialUrl: settings.socialUrl ?? null, socialQrUrl: settings.socialQrUrl ?? null, socialQrPublicId: settings.socialQrPublicId ?? null, welcomeBackgroundUrl: settings.welcomeBackgroundUrl ?? null, welcomeBackgroundPublicId: settings.welcomeBackgroundPublicId ?? null, boothPageBackgrounds: settings.boothPageBackgrounds ?? {} });
+        setBoothSessionDurationSeconds(normalizeBoothSessionDurationSeconds(settings.boothSessionDurationSeconds));
       }
       if (routeSlug) setTemplates(cachedTemplates.filter((template) => "businessId" in template && template.businessId === settings?.businessId));
 
@@ -53,7 +56,7 @@ export function OfflineDataProvider() {
         const query = routeSlug ? `?slug=${encodeURIComponent(routeSlug)}` : "";
         const [businessResponse, templatesResponse] = await Promise.all([fetch(`/api/business${query}`), fetch(`/api/templates${query}`)]);
         if (businessResponse.ok) {
-          const { data } = await businessResponse.json() as { data: { _id: string; slug?: string; isConfigured?: boolean; branding: ReturnType<typeof useBusinessStore.getState>["branding"]; palette: ReturnType<typeof useBusinessStore.getState>["palette"]; logoPublicId?: string | null; socialUrl?: string | null; socialQrUrl?: string | null; socialQrPublicId?: string | null; welcomeBackgroundUrl?: string | null; welcomeBackgroundPublicId?: string | null; boothPageBackgrounds?: ReturnType<typeof useBusinessStore.getState>["boothPageBackgrounds"] } };
+          const { data } = await businessResponse.json() as { data: { _id: string; slug?: string; isConfigured?: boolean; branding: ReturnType<typeof useBusinessStore.getState>["branding"]; palette: ReturnType<typeof useBusinessStore.getState>["palette"]; logoPublicId?: string | null; socialUrl?: string | null; socialQrUrl?: string | null; socialQrPublicId?: string | null; welcomeBackgroundUrl?: string | null; welcomeBackgroundPublicId?: string | null; boothPageBackgrounds?: ReturnType<typeof useBusinessStore.getState>["boothPageBackgrounds"]; boothSessionDurationSeconds?: number } };
           if (!active) return;
           const tenantKey = routeSlug ?? data._id;
           setTenantKey(tenantKey);
@@ -62,12 +65,14 @@ export function OfflineDataProvider() {
           setConfigured(Boolean(data.isConfigured));
           updateBranding(data.branding);
           updatePalette(data.palette);
+          const boothSessionDurationSeconds = normalizeBoothSessionDurationSeconds(data.boothSessionDurationSeconds);
           const assets = { logoPublicId: data.logoPublicId ?? null, socialUrl: data.socialUrl ?? null, socialQrUrl: data.socialQrUrl ?? null, socialQrPublicId: data.socialQrPublicId ?? null, welcomeBackgroundUrl: data.welcomeBackgroundUrl ?? null, welcomeBackgroundPublicId: data.welcomeBackgroundPublicId ?? null, boothPageBackgrounds: data.boothPageBackgrounds ?? {} };
           setAssetReferences(assets);
+          setBoothSessionDurationSeconds(boothSessionDurationSeconds);
           setHydrated(true);
           try {
             if (routeSlug && data._id === "default") await migrateLegacyOfflineData(routeSlug).catch(() => undefined);
-            await cacheBusinessSettings(data.branding, data.palette, assets, Boolean(data.isConfigured), tenantKey, data._id);
+            await cacheBusinessSettings(data.branding, data.palette, { ...assets, boothSessionDurationSeconds }, Boolean(data.isConfigured), tenantKey, data._id);
             await bindCachedBusinessId(tenantKey, data._id);
           } catch {
             toast.error("Offline setup could not be saved. Check browser storage and reload while online.");
@@ -91,7 +96,7 @@ export function OfflineDataProvider() {
     }
     void hydrateLocalData();
     return () => { active = false; };
-  }, [adminRoute, resetBusiness, routeSlug, setAssetReferences, setBusinessId, setBusinessSlug, setConfigured, setHydrated, setTemplates, setTenantKey, updateBranding, updatePalette]);
+  }, [adminRoute, resetBusiness, routeSlug, setAssetReferences, setBoothSessionDurationSeconds, setBusinessId, setBusinessSlug, setConfigured, setHydrated, setTemplates, setTenantKey, updateBranding, updatePalette]);
 
   React.useEffect(() => {
     if (process.env.NODE_ENV !== "production" || !routeSlug || pathname.endsWith("/pair") || warmedSlug.current === routeSlug || !navigator.onLine || !("serviceWorker" in navigator)) return;

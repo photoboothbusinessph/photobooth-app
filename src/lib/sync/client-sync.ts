@@ -9,12 +9,64 @@ class SyncHttpError extends Error {
   constructor(message: string, readonly status: number) { super(message); }
 }
 
+type UploadSignature = {
+  uploadUrl: string;
+  apiKey: string;
+  timestamp: number;
+  signature: string;
+  folder: string;
+  publicId: string;
+  overwrite: string;
+  expectedPublicId: string;
+};
+
+function imageDataUrlToBlob(dataUrl: string) {
+  const match = /^data:(image\/(?:png|jpeg|webp));base64,(.+)$/.exec(dataUrl);
+  if (!match) throw new Error("The receipt image format is invalid.");
+  const binary = atob(match[2]);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+  return new Blob([bytes], { type: match[1] });
+}
+
+async function uploadSessionImage(
+  session: LocalSessionRecord,
+  variant: "color" | "black-and-white",
+  dataUrl: string,
+) {
+  const signatureResponse = await fetch(`/api/sessions/upload-signature?slug=${encodeURIComponent(session.businessSlug)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id: session.id, variant }),
+  });
+  const signatureResult = await signatureResponse.json() as { data?: UploadSignature; error?: { message?: string } };
+  if (!signatureResponse.ok || !signatureResult.data)
+    throw new SyncHttpError(signatureResult.error?.message ?? "Receipt upload authorization failed.", signatureResponse.status);
+
+  const authorization = signatureResult.data;
+  const form = new FormData();
+  form.append("file", imageDataUrlToBlob(dataUrl), `${variant}.png`);
+  form.append("api_key", authorization.apiKey);
+  form.append("timestamp", String(authorization.timestamp));
+  form.append("signature", authorization.signature);
+  form.append("folder", authorization.folder);
+  form.append("public_id", authorization.publicId);
+  form.append("overwrite", authorization.overwrite);
+  const uploadResponse = await fetch(authorization.uploadUrl, { method: "POST", body: form });
+  const uploadResult = await uploadResponse.json() as { public_id?: string; error?: { message?: string } };
+  if (!uploadResponse.ok || uploadResult.public_id !== authorization.expectedPublicId)
+    throw new SyncHttpError(uploadResult.error?.message ?? "Receipt image upload failed.", uploadResponse.status);
+  return authorization.expectedPublicId;
+}
+
 async function postSession(session: LocalSessionRecord) {
   if (!session.businessSlug || session.businessId !== activeBusinessId()) throw new Error("This session belongs to another business.");
+  const colorPublicId = await uploadSessionImage(session, "color", session.colorImage);
+  const bwPublicId = await uploadSessionImage(session, "black-and-white", session.bwImage);
   const response = await fetch(`/api/sessions?slug=${encodeURIComponent(session.businessSlug)}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ id: session.id, templateId: session.templateId, photoCount: session.photoCount, colorImage: session.colorImage, bwImage: session.bwImage }),
+    body: JSON.stringify({ id: session.id, templateId: session.templateId, photoCount: session.photoCount, colorPublicId, bwPublicId }),
   });
   const result = await response.json() as { data?: { shareToken: string; shareUrl: string }; error?: { message?: string } };
   if (!response.ok || !result.data) throw new SyncHttpError(response.status === 403 ? "Kiosk access was revoked. This photo remains on the device for an operator." : result.error?.message ?? "Session sync failed.", response.status);
@@ -26,7 +78,7 @@ async function syncBusiness() {
   const tenantKey = activeTenantKey();
   const settings = tenantKey ? await photoboothDb.businessSettings.get(tenantKey) : null;
   if (!settings) return;
-  const response = await fetch("/api/business", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isConfigured: settings.isConfigured, branding: settings.branding, palette: settings.palette, logoPublicId: settings.logoPublicId ?? null, socialUrl: settings.socialUrl ?? null, socialQrUrl: settings.socialQrUrl ?? null, socialQrPublicId: settings.socialQrPublicId ?? null, welcomeBackgroundUrl: settings.welcomeBackgroundUrl ?? null, welcomeBackgroundPublicId: settings.welcomeBackgroundPublicId ?? null, boothPageBackgrounds: settings.boothPageBackgrounds ?? {} }) });
+  const response = await fetch("/api/business", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isConfigured: settings.isConfigured, branding: settings.branding, palette: settings.palette, logoPublicId: settings.logoPublicId ?? null, socialUrl: settings.socialUrl ?? null, socialQrUrl: settings.socialQrUrl ?? null, socialQrPublicId: settings.socialQrPublicId ?? null, welcomeBackgroundUrl: settings.welcomeBackgroundUrl ?? null, welcomeBackgroundPublicId: settings.welcomeBackgroundPublicId ?? null, boothPageBackgrounds: settings.boothPageBackgrounds ?? {}, boothSessionDurationSeconds: settings.boothSessionDurationSeconds }) });
   if (!response.ok) throw new Error("Business settings sync failed.");
 }
 
