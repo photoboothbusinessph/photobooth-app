@@ -111,6 +111,23 @@ test("public share tokens resolve the business from their session", async () => 
   assert.doesNotMatch(shareRepository, /businessId:\s*["']default["']/);
 });
 
+test("public receipt downloads use a token-validated same-origin attachment route", async () => {
+  const [shareUi, downloadRoute, shareRepository] = await Promise.all([
+    readFile("src/components/share/public-share.tsx", "utf8"),
+    readFile("src/app/api/share/[token]/download/route.ts", "utf8"),
+    readFile("src/lib/share/public-share-data.ts", "utf8"),
+  ]);
+
+  assert.match(shareUi, /\/api\/share\/\$\{encodeURIComponent\(token\)\}\/download\?variant=\$\{mode\}/);
+  assert.doesNotMatch(shareUi, /fetch\(activeImage\)|URL\.createObjectURL/);
+  assert.match(downloadRoute, /publicShareTokenPattern\.test\(token\)/);
+  assert.match(downloadRoute, /getPublicShareDownloadAsset\(token/);
+  assert.match(downloadRoute, /getCloudinaryImageUrl\(asset\.publicId\)/);
+  assert.match(downloadRoute, /"Content-Disposition": `attachment;/);
+  assert.match(downloadRoute, /allowedImageTypes\.has\(contentType\)/);
+  assert.match(shareRepository, /variant === "color" \? session\.colorPublicId : session\.bwPublicId/);
+});
+
 test("starter templates are persisted once and remain editable or deletable", async () => {
   const [catalog, templateRoute, manager] = await Promise.all([
     readFile("src/lib/receipt/starter-template-catalog.ts", "utf8"),

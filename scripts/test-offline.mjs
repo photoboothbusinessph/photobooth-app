@@ -177,6 +177,48 @@ test("session receipts use tenant-scoped signed direct uploads", async () => {
   } finally { delete globalThis.signatureParams; }
 });
 
+test("public share downloads stream a same-origin image attachment", async () => {
+  globalThis.publicDownloadTest = { fetchedUrl: null };
+  const route = await loadModule("src/app/api/share/[token]/download/route.ts", {
+    "@/lib/api/responses": `
+      export function apiError(message, status) { return Response.json({ error: { message } }, { status }); }
+      export function handleApiError() { return Response.json({ error: { message: "failed" } }, { status: 500 }); }
+    `,
+    "@/lib/cloudinary/client": `export function getCloudinaryImageUrl(publicId) { return "https://res.cloudinary.com/demo/image/upload/" + publicId; }`,
+    "@/lib/security/rate-limit": "export function enforceRateLimit() {}",
+    "@/lib/share/public-share-data": `
+      export const publicShareTokenPattern = /^[A-Za-z0-9_-]{32,64}$/;
+      export async function getPublicShareDownloadAsset() { return { publicId: "business/session/black-and-white" }; }
+    `,
+  });
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    globalThis.publicDownloadTest.fetchedUrl = url;
+    return new Response(new Uint8Array([137, 80, 78, 71]), { headers: { "content-type": "image/png" } });
+  };
+  try {
+    const token = "a".repeat(32);
+    const response = await route.GET(
+      new Request(`https://booth.test/api/share/${token}/download?variant=bw`),
+      { params: Promise.resolve({ token }) },
+    );
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get("content-type"), "image/png");
+    assert.equal(response.headers.get("content-disposition"), 'attachment; filename="receipt-bw.png"');
+    assert.equal(globalThis.publicDownloadTest.fetchedUrl, "https://res.cloudinary.com/demo/image/upload/business/session/black-and-white");
+    assert.deepEqual([...new Uint8Array(await response.arrayBuffer())], [137, 80, 78, 71]);
+
+    const invalid = await route.GET(
+      new Request(`https://booth.test/api/share/${token}/download?variant=original`),
+      { params: Promise.resolve({ token }) },
+    );
+    assert.equal(invalid.status, 400);
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete globalThis.publicDownloadTest;
+  }
+});
+
 test("receipt sizes and photo boxes follow the tablet receipt rules", async () => {
   const { normalizeReceiptTemplate, receiptSizeForSlots, receiptSlotRects, templateSupportsPhotoSlots } = await loadModule("src/lib/receipt/template-rules.ts");
   assert.deepEqual([1, 2, 3, 4].map(receiptSizeForSlots), ["80 × 100 mm", "80 × 150 mm", "80 × 150 mm", "80 × 200 mm"]);
