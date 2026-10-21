@@ -15,7 +15,7 @@ Record the device, OS, browser version, production URL, tester, and date for eac
 - [ ] Start a session and confirm fullscreen is requested where supported.
 - [ ] Select each receipt template and verify its configured number of photos.
 - [ ] Capture, retake, review, switch Color/B&W, print, and confirm a receipt.
-- [ ] Confirm the 120-second timer appears only on layout, camera, and preview screens.
+- [ ] Confirm the configured session timer appears only on layout, camera, design, and preview screens.
 - [ ] Leave a timed screen inactive for 60 seconds and confirm it resets safely.
 - [ ] Scan the photo QR from another phone and verify both Color and B&W versions appear.
 - [ ] Download both versions from the public page.

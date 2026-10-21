@@ -131,6 +131,38 @@ export async function uploadImage(dataUrl: string, folder: string, publicId?: st
   return { url: result.secure_url, publicId: result.public_id };
 }
 
+export function createSignedSessionUpload(
+  businessId: string,
+  sessionId: string,
+  variant: "color" | "black-and-white",
+) {
+  const environment = getCloudinaryEnvironment();
+  configureCloudinary();
+  const timestamp = Math.floor(Date.now() / 1000);
+  const folder = `receipt-photobooth/${businessId}/sessions/${sessionId}`;
+  const publicId = variant;
+  const overwrite = "true";
+  const signature = cloudinary.utils.api_sign_request(
+    { folder, overwrite, public_id: publicId, timestamp },
+    environment.CLOUDINARY_API_SECRET,
+  );
+  return {
+    uploadUrl: `https://api.cloudinary.com/v1_1/${encodeURIComponent(environment.CLOUDINARY_CLOUD_NAME)}/image/upload`,
+    apiKey: environment.CLOUDINARY_API_KEY,
+    timestamp,
+    signature,
+    folder,
+    publicId,
+    overwrite,
+    expectedPublicId: `${folder}/${publicId}`,
+  };
+}
+
+export function getCloudinaryImageUrl(publicId: string) {
+  configureCloudinary();
+  return cloudinary.url(publicId, { secure: true, resource_type: "image" });
+}
+
 export async function deleteImage(publicId: string) {
   configureCloudinary();
   await cloudinary.uploader.destroy(publicId, { invalidate: true, resource_type: "image" });

@@ -25,6 +25,7 @@ export interface LocalBusinessSettings {
   welcomeBackgroundUrl?: string | null;
   welcomeBackgroundPublicId?: string | null;
   boothPageBackgrounds?: BoothPageBackgrounds;
+  boothSessionDurationSeconds?: number;
   updatedAt: number;
 }
 
@@ -167,7 +168,7 @@ export async function bindCachedBusinessId(tenantKey: string, businessId: string
 export async function cacheBusinessSettings(
   branding: BusinessBranding,
   palette: ThemePalette,
-  assets: Pick<LocalBusinessSettings, "logoPublicId" | "socialUrl" | "socialQrUrl" | "socialQrPublicId" | "welcomeBackgroundUrl" | "welcomeBackgroundPublicId" | "boothPageBackgrounds"> = {},
+  assets: Pick<LocalBusinessSettings, "logoPublicId" | "socialUrl" | "socialQrUrl" | "socialQrPublicId" | "welcomeBackgroundUrl" | "welcomeBackgroundPublicId" | "boothPageBackgrounds" | "boothSessionDurationSeconds"> = {},
   isConfigured = false,
   tenantKey = activeTenantKey(),
   businessId = activeBusinessId(),

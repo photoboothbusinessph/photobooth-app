@@ -38,6 +38,7 @@ export const businessSchema = z.object({
     preview: z.object({ url: z.url(), publicId: z.string().min(1).max(300) }).optional(),
     qr: z.object({ url: z.url(), publicId: z.string().min(1).max(300) }).optional(),
   }).optional(),
+  boothSessionDurationSeconds: z.number().int().min(60).max(3600).optional(),
 });
 
 export const templateSchema = z.object({
@@ -70,12 +71,26 @@ export const templateSchema = z.object({
 
 const imageDataUrlSchema = z.string().startsWith("data:image/").max(12_000_000);
 
-export const sessionUploadSchema = z.object({
+const sessionUploadBaseSchema = z.object({
   id: z.uuid(),
   templateId: z.string().min(1).max(80),
   photoCount: z.number().int().min(1).max(4),
-  colorImage: imageDataUrlSchema,
-  bwImage: imageDataUrlSchema,
+});
+
+export const sessionUploadSchema = z.union([
+  sessionUploadBaseSchema.extend({
+    colorPublicId: z.string().min(1).max(500),
+    bwPublicId: z.string().min(1).max(500),
+  }),
+  sessionUploadBaseSchema.extend({
+    colorImage: imageDataUrlSchema,
+    bwImage: imageDataUrlSchema,
+  }),
+]);
+
+export const sessionUploadSignatureSchema = z.object({
+  id: z.uuid(),
+  variant: z.enum(["color", "black-and-white"]),
 });
 
 export const assetUploadSchema = z.object({

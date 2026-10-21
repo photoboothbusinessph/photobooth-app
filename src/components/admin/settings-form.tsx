@@ -8,15 +8,44 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, Di
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { resetLocalData } from "@/lib/db/indexed-db";
+import { cacheBusinessSettings, queueSync, resetLocalData } from "@/lib/db/indexed-db";
 import { receiptSizeBySlots } from "@/lib/receipt/template-rules";
+import { MAX_BOOTH_SESSION_DURATION_SECONDS, MIN_BOOTH_SESSION_DURATION_SECONDS } from "@/lib/booth-session";
+import { useBusinessStore } from "@/stores/business-store";
 
 const defaults = { countdown: "3", template: "double", fullscreen: true };
 
 export function SettingsForm() {
   const [settings, setSettings] = React.useState(defaults);
   const [saved, setSaved] = React.useState(false);
-  function reset() { setSettings(defaults); setSaved(false); toast.success("Settings reset to defaults"); }
+  const configuredDurationSeconds = useBusinessStore((state) => state.boothSessionDurationSeconds);
+  const setBoothSessionDurationSeconds = useBusinessStore((state) => state.setBoothSessionDurationSeconds);
+  const [timerMinutes, setTimerMinutes] = React.useState<string | null>(null);
+  const [savingTimer, setSavingTimer] = React.useState(false);
+  const timerValue = timerMinutes ?? String(configuredDurationSeconds / 60);
+
+  function reset() { setSettings(defaults); setTimerMinutes("2"); setSaved(false); toast.success("Settings reset to defaults"); }
+  async function saveSessionTimer() {
+    const minutes = Number(timerValue);
+    if (!Number.isInteger(minutes) || minutes < 1 || minutes > 60) {
+      toast.error("Enter a whole number from 1 to 60 minutes.");
+      return;
+    }
+    setSavingTimer(true);
+    try {
+      const durationSeconds = minutes * 60;
+      const state = useBusinessStore.getState();
+      await cacheBusinessSettings(state.branding, state.palette, { boothSessionDurationSeconds: durationSeconds }, state.isConfigured);
+      await queueSync("business", "default");
+      setBoothSessionDurationSeconds(durationSeconds);
+      setTimerMinutes(null);
+      toast.success(navigator.onLine ? "Session timer saved" : "Session timer saved offline");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "The session timer could not be saved.");
+    } finally {
+      setSavingTimer(false);
+    }
+  }
   async function clearLocalData() {
     try { await resetLocalData(); toast.success("This business’s local booth data was cleared"); }
     catch (error) { toast.error(error instanceof Error ? error.message : "Local data could not be cleared."); }
@@ -24,7 +53,18 @@ export function SettingsForm() {
   return (
     <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
       <section className="border border-black/15 bg-card p-5 sm:p-7">
-        <div className="grid gap-6 sm:grid-cols-2">
+        <div className="border-b pb-6">
+          <div className="max-w-sm space-y-2">
+            <Label htmlFor="booth-session-timer">Booth session timer</Label>
+            <div className="flex items-center gap-3">
+              <Input id="booth-session-timer" type="number" inputMode="numeric" min={MIN_BOOTH_SESSION_DURATION_SECONDS / 60} max={MAX_BOOTH_SESSION_DURATION_SECONDS / 60} step={1} value={timerValue} onChange={(event) => setTimerMinutes(event.target.value)} aria-describedby="booth-session-timer-help" className="h-11" />
+              <span className="shrink-0 text-sm text-muted-foreground">minutes</span>
+            </div>
+            <p id="booth-session-timer-help" className="text-xs leading-5 text-muted-foreground">Sets the countdown shown during each guest session. Changes apply to the next session.</p>
+            <Button type="button" onClick={() => void saveSessionTimer()} disabled={savingTimer || !timerValue} className="mt-2 h-11"><Save /> {savingTimer ? "Savingâ€¦" : "Save timer"}</Button>
+          </div>
+        </div>
+        <div className="mt-6 grid gap-6 sm:grid-cols-2">
           <SettingSelect label="Countdown" value={settings.countdown} onChange={(value) => setSettings({ ...settings, countdown: value })} options={["3", "5", "10"]} suffix=" seconds" />
           <SettingSelect label="Default template" value={settings.template} onChange={(value) => setSettings({ ...settings, template: value })} options={["solo", "double", "triple", "quad"]} labels={["Solo Story", "Double Take", "Three Beats", "Four Frames"]} />
         </div>

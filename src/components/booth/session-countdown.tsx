@@ -7,9 +7,10 @@ import { boothBasePath } from "@/lib/booth-path";
 import { Clock3 } from "lucide-react";
 import { isReceiptPrinting } from "@/lib/receipt/print-activity";
 import { toast } from "sonner";
-import { BOOTH_SESSION_DEADLINE_KEY, BOOTH_SESSION_DURATION_SECONDS, BOOTH_SESSION_VOICE_WARNINGS_KEY } from "@/lib/booth-session";
+import { BOOTH_SESSION_DEADLINE_KEY, BOOTH_SESSION_VOICE_WARNINGS_KEY, normalizeBoothSessionDurationSeconds } from "@/lib/booth-session";
 import { cn } from "@/lib/utils";
 import { flushBoothSessionPersistence, useBoothStore } from "@/stores/booth-store";
+import { useBusinessStore } from "@/stores/business-store";
 
 const voiceWarnings = [
   { seconds: 30, message: "Warning. Your session will end in 30 seconds." },
@@ -50,6 +51,7 @@ export function SessionCountdown() {
   const resetSession = useBoothStore((state) => state.resetSession);
   const sessionHydrated = useBoothStore((state) => state.isHydrated);
   const startedAt = useBoothStore((state) => state.startedAt);
+  const boothSessionDurationSeconds = useBusinessStore((state) => state.boothSessionDurationSeconds);
   const [remaining, setRemaining] = React.useState<number | null>(null);
 
   React.useEffect(() => {
@@ -58,7 +60,7 @@ export function SessionCountdown() {
     const storedDeadline = Number(sessionStorage.getItem(BOOTH_SESSION_DEADLINE_KEY));
     const deadline = Number.isFinite(storedDeadline) && storedDeadline > 0
       ? storedDeadline
-      : startedAt + BOOTH_SESSION_DURATION_SECONDS * 1000;
+      : startedAt + normalizeBoothSessionDurationSeconds(boothSessionDurationSeconds) * 1000;
     sessionStorage.setItem(BOOTH_SESSION_DEADLINE_KEY, String(deadline));
 
     async function expireSession() {
@@ -86,7 +88,7 @@ export function SessionCountdown() {
     updateCountdown();
     const interval = window.setInterval(updateCountdown, 250);
     return () => window.clearInterval(interval);
-  }, [pathname, resetSession, router, sessionHydrated, startedAt]);
+  }, [boothSessionDurationSeconds, pathname, resetSession, router, sessionHydrated, startedAt]);
 
   if (remaining === null) return null;
 

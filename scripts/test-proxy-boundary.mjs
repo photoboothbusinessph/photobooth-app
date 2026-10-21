@@ -175,3 +175,44 @@ test("booth page backgrounds enforce tenant ownership and business cleanup", asy
   assert.match(businessRoute, /isBusinessAsset\(asset\.publicId, businessId\)/);
   assert.match(deletion, /Object\.values\(business\.boothPageBackgrounds \?\? \{\}\)/);
 });
+
+test("receipt sync bypasses serverless image payload limits with signed direct uploads", async () => {
+  const [syncClient, signatureRoute, sessionRoute, schemas, preview] = await Promise.all([
+    readFile("src/lib/sync/client-sync.ts", "utf8"),
+    readFile("src/app/api/sessions/upload-signature/route.ts", "utf8"),
+    readFile("src/app/api/sessions/route.ts", "utf8"),
+    readFile("src/lib/validation/schemas.ts", "utf8"),
+    readFile("src/components/booth/preview-studio.tsx", "utf8"),
+  ]);
+
+  assert.match(syncClient, /\/api\/sessions\/upload-signature/);
+  assert.match(syncClient, /new FormData\(\)/);
+  assert.match(syncClient, /colorPublicId, bwPublicId/);
+  assert.doesNotMatch(syncClient, /colorImage: session\.colorImage/);
+  assert.match(signatureRoute, /await requireKiosk\(slug\)/);
+  assert.match(signatureRoute, /createSignedSessionUpload/);
+  assert.match(sessionRoute, /expectedColorPublicId/);
+  assert.match(sessionRoute, /getCloudinaryImageUrl/);
+  assert.match(schemas, /sessionUploadSignatureSchema/);
+  assert.doesNotMatch(preview, /Save receipt and open QR page|Open QR page/);
+});
+
+test("admin settings persist the booth session timer for online and offline sessions", async () => {
+  const [settings, provider, syncClient, schema, countdown, start] = await Promise.all([
+    readFile("src/components/admin/settings-form.tsx", "utf8"),
+    readFile("src/components/providers/offline-data-provider.tsx", "utf8"),
+    readFile("src/lib/sync/client-sync.ts", "utf8"),
+    readFile("src/lib/validation/schemas.ts", "utf8"),
+    readFile("src/components/booth/session-countdown.tsx", "utf8"),
+    readFile("src/components/booth/start-session-button.tsx", "utf8"),
+  ]);
+
+  assert.match(settings, /Booth session timer/);
+  assert.match(settings, /cacheBusinessSettings/);
+  assert.match(settings, /queueSync\("business", "default"\)/);
+  assert.match(provider, /setBoothSessionDurationSeconds/);
+  assert.match(syncClient, /boothSessionDurationSeconds/);
+  assert.match(schema, /boothSessionDurationSeconds: z\.number\(\)\.int\(\)\.min\(60\)\.max\(3600\)/);
+  assert.match(countdown, /normalizeBoothSessionDurationSeconds\(boothSessionDurationSeconds\)/);
+  assert.match(start, /createBoothSessionDeadline\(boothSessionDurationSeconds\)/);
+});

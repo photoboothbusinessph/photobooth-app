@@ -16,6 +16,7 @@ export interface BusinessDocument {
   welcomeBackgroundUrl?: string | null;
   welcomeBackgroundPublicId?: string | null;
   boothPageBackgrounds?: BoothPageBackgrounds;
+  boothSessionDurationSeconds?: number;
   templateCatalogVersion?: number;
   updatedAt: Date;
 }

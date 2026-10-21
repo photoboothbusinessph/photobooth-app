@@ -150,6 +150,33 @@ test("Easy Thermal handoff shares one print-ready PNG with the requested copy in
   }
 });
 
+test("session receipts use tenant-scoped signed direct uploads", async () => {
+  globalThis.signatureParams = null;
+  const cloudinaryClient = await loadModule("src/lib/cloudinary/client.ts", {
+    "server-only": "export default {};",
+    cloudinary: `export const v2 = {
+      config() {},
+      utils: {
+        api_sign_request(params) { globalThis.signatureParams = params; return "signed"; },
+      },
+      url(publicId) { return "https://res.cloudinary.com/demo/image/upload/" + publicId; },
+      uploader: { upload() {}, destroy() {} },
+    };`,
+    "@/lib/server/env": `export function getCloudinaryEnvironment() {
+      return { CLOUDINARY_CLOUD_NAME: "demo", CLOUDINARY_API_KEY: "public-key", CLOUDINARY_API_SECRET: "secret" };
+    }`,
+  });
+  try {
+    const signed = cloudinaryClient.createSignedSessionUpload("business-a", "session-a", "color");
+    assert.equal(signed.expectedPublicId, "receipt-photobooth/business-a/sessions/session-a/color");
+    assert.equal(signed.apiKey, "public-key");
+    assert.equal(signed.signature, "signed");
+    assert.equal("apiSecret" in signed, false);
+    assert.equal(globalThis.signatureParams.folder, "receipt-photobooth/business-a/sessions/session-a");
+    assert.equal(globalThis.signatureParams.public_id, "color");
+  } finally { delete globalThis.signatureParams; }
+});
+
 test("receipt sizes and photo boxes follow the tablet receipt rules", async () => {
   const { normalizeReceiptTemplate, receiptSizeForSlots, receiptSlotRects, templateSupportsPhotoSlots } = await loadModule("src/lib/receipt/template-rules.ts");
   assert.deepEqual([1, 2, 3, 4].map(receiptSizeForSlots), ["80 × 100 mm", "80 × 150 mm", "80 × 150 mm", "80 × 200 mm"]);
@@ -229,6 +256,15 @@ test("camera advances automatically after the required final shot", async () => 
   const camera = await readFile("src/components/booth/camera-capture.tsx", "utf8");
   assert.match(camera, /addCapturedPhoto\(image\);[\s\S]*captured \+ 1 >= photoCount[\s\S]*await wait\(1000\);[\s\S]*await reviewShots\(\)/);
   assert.doesNotMatch(camera, />Choose design</);
+});
+
+test("business session timers are bounded and default to two minutes", async () => {
+  const timer = await loadModule("src/lib/booth-session.ts");
+  assert.equal(timer.normalizeBoothSessionDurationSeconds(undefined), 120);
+  assert.equal(timer.normalizeBoothSessionDurationSeconds(30), 60);
+  assert.equal(timer.normalizeBoothSessionDurationSeconds(300), 300);
+  assert.equal(timer.normalizeBoothSessionDurationSeconds(7_200), 3_600);
+  assert.equal(timer.normalizeBoothSessionDurationSeconds(90.5), 120);
 });
 
 test("draft recovery, tenant isolation, completed sessions and storage errors", async () => {
@@ -353,4 +389,11 @@ test("guest booth chrome is minimal and per-page backgrounds remain offline-capa
   assert.match(provider, /boothPageBackgrounds/);
   assert.match(syncClient, /boothPageBackgrounds/);
   assert.match(worker, /business-image-assets-v1/);
+});
+
+test("queued receipt sync retries after returning from the Android print app", async () => {
+  const syncProvider = await readFile("src/components/providers/sync-provider.tsx", "utf8");
+  assert.match(syncProvider, /window\.addEventListener\("focus", sync\)/);
+  assert.match(syncProvider, /document\.addEventListener\("visibilitychange", syncWhenVisible\)/);
+  assert.match(syncProvider, /window\.setInterval\(syncWhenVisible, 15_000\)/);
 });

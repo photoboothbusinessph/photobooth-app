@@ -42,6 +42,10 @@ For an existing installation, complete the credential rotation, backup, dry-run,
 8. Sign in as super admin, change the temporary password, create/assign business admins, then let each business admin finish setup and pair a kiosk.
 9. Run the online and offline acceptance checklist in `docs/QA_CHECKLIST.md` on the target device.
 
+## Vercel release notes
+
+Use the Vercel Next.js framework preset and configure the same required environment variables listed above. A `vercel.json` file is not required for receipt uploads. Receipt images upload directly from the paired kiosk to Cloudinary with a short-lived server-generated signature, so the image bytes do not pass through the Vercel Function request body. Keep `NEXT_APP_URL` set to the final HTTPS origin because authentication still uses it to select secure-cookie behavior.
+
 ## Release checks
 
 New or unpaired devices open the admin sign-in screen instead of the business welcome screen. To activate a kiosk, sign in as that business's admin on the target device, open **Kiosks**, generate a code, and choose **Open photobooth**. The sidebar action with the same label opens the same pairing screen. After pairing, the business URL opens the Tap-to-Start screen directly. The pairing page and pairing API require the matching business admin. Photo sessions and uploads still require kiosk authorization.
