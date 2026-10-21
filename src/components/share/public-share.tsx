@@ -3,8 +3,7 @@
 import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { AtSign, Download, LoaderCircle } from "lucide-react";
-import { toast } from "sonner";
+import { AtSign, Download } from "lucide-react";
 import { BrandMark } from "@/components/shared/brand-mark";
 import { SocialQrCode } from "@/components/shared/social-qr-code";
 import { StatusState } from "@/components/shared/status-state";
@@ -12,35 +11,15 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { PublicShareData } from "@/types";
 
-export function PublicShare({ data }: { data: PublicShareData | null }) {
+export function PublicShare({ data, token }: { data: PublicShareData | null; token: string }) {
   const [mode, setMode] = React.useState<"color" | "bw">("color");
-  const [downloading, setDownloading] = React.useState(false);
 
   if (!data) {
     return <main className="grid min-h-dvh place-items-center bg-neutral-950 p-5 text-white"><StatusState type="error" title="This photo link is unavailable" description="The link may be invalid, expired, or waiting for the booth to finish syncing." className="w-full max-w-lg border-white/20 bg-white/5 text-white" action={<Button nativeButton={false} render={<Link href="/" />} className="h-12">Return to booth</Button>} /></main>;
   }
 
   const activeImage = mode === "color" ? data.colorImageUrl : data.bwImageUrl;
-
-  async function downloadPhoto() {
-    setDownloading(true);
-    try {
-      const response = await fetch(activeImage);
-      if (!response.ok) throw new Error();
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `${data?.sessionId}-${mode}.png`;
-      link.click();
-      URL.revokeObjectURL(url);
-      toast.success(`${mode === "color" ? "Color" : "Black-and-white"} receipt downloaded`);
-    } catch {
-      toast.error("Download unavailable. Please try again.");
-    } finally {
-      setDownloading(false);
-    }
-  }
+  const downloadHref = `/api/share/${encodeURIComponent(token)}/download?variant=${mode}`;
 
   return (
     <main className="min-h-dvh bg-neutral-950 text-white">
@@ -59,7 +38,7 @@ export function PublicShare({ data }: { data: PublicShareData | null }) {
           <div className="mt-7 grid grid-cols-2 border border-white/40 p-1">
             {(["color", "bw"] as const).map((value) => <button key={value} type="button" onClick={() => setMode(value)} aria-pressed={mode === value} className={cn("min-h-12 font-black uppercase", mode === value ? "bg-white text-black" : "hover:bg-white/10")}>{value === "color" ? "Color" : "B&W"}</button>)}
           </div>
-          <Button onClick={() => void downloadPhoto()} disabled={downloading} className="mt-4 h-14 w-full rounded-none bg-[var(--booth-primary)] font-black uppercase">{downloading ? <LoaderCircle className="animate-spin" /> : <Download />} {downloading ? "Downloading" : `Download ${mode === "color" ? "color" : "B&W"}`}</Button>
+          <Button nativeButton={false} render={<a href={downloadHref} download={`${data.sessionId}-${mode}.png`} />} className="mt-4 h-14 w-full rounded-none bg-[var(--booth-primary)] font-black uppercase"><Download /> Download {mode === "color" ? "color" : "B&W"}</Button>
           <div className="mt-8 border-t border-white/20 pt-6"><p className="text-sm text-white/60">Stay connected with the booth.</p>{data.socialUrl ? <a href={data.socialUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex min-h-11 items-center gap-2 font-bold hover:text-[var(--booth-accent)]"><AtSign className="size-5" /> Follow {data.branding.handle || data.branding.name}</a> : <span className="mt-2 inline-flex min-h-11 items-center gap-2 font-bold"><AtSign className="size-5" /> {data.branding.handle || data.branding.name}</span>}{data.socialUrl ? <SocialQrCode url={data.socialUrl} className="mt-5 size-40 p-2" /> : data.socialQrUrl ? <div className="relative mt-5 size-40 bg-white p-2"><Image src={data.socialQrUrl} alt="Business social media QR code" fill sizes="160px" className="object-contain p-2" /></div> : null}</div>
         </section>
       </div>

@@ -6,5 +6,5 @@ export const metadata: Metadata = { title: "Your photo receipt", robots: { index
 
 export default async function SharePage({ params }: PageProps<"/share/[token]">) {
   const { token } = await params;
-  return <PublicShare data={await getPublicShareData(token)} />;
+  return <PublicShare data={await getPublicShareData(token)} token={token} />;
 }
