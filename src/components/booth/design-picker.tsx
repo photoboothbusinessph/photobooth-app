@@ -52,7 +52,6 @@ export function DesignPicker() {
             <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden">
               <ReceiptPreview template={template} photoSlots={activePhotoSlots} photos={photos} branding={branding} mirrored compact className="h-full w-auto max-w-full shadow-none" />
             </div>
-            <p className="w-full shrink-0 pt-1 text-left text-[clamp(0.7rem,1.45dvh,0.95rem)] font-black uppercase">{template.name}</p>
           </button>
         ))}
       </div>
