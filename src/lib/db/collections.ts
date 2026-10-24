@@ -12,6 +12,10 @@ export interface BusinessDocument {
   socialUrl?: string | null;
   socialQrUrl: string | null;
   socialQrPublicId: string | null;
+  socialQrLabel?: string;
+  secondarySocialUrl?: string | null;
+  secondarySocialQrLabel?: string;
+  digitalCopyQrLabel?: string;
   logoPublicId: string | null;
   welcomeBackgroundUrl?: string | null;
   welcomeBackgroundPublicId?: string | null;

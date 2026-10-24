@@ -7,6 +7,7 @@ import { getMongoClient } from "@/lib/db/mongodb";
 import { templateDocumentId } from "@/lib/db/tenant";
 import { TEMPLATE_CATALOG_VERSION } from "@/lib/receipt/starter-template-catalog";
 import { createBusinessSchema } from "@/lib/validation/management";
+import { DEFAULT_DIGITAL_COPY_QR_LABEL, DEFAULT_PRIMARY_SOCIAL_QR_LABEL, DEFAULT_SECONDARY_SOCIAL_QR_LABEL } from "@/lib/social-qr-settings";
 
 export async function GET() {
   try {
@@ -29,7 +30,7 @@ export async function POST(request: Request) {
     const session = (await getMongoClient()).startSession();
     try {
       await session.withTransaction(async () => {
-        await businesses.insertOne({ _id: id, slug: input.slug, isConfigured: false, branding: { ...business, name: input.name, monogram: input.name.slice(0, 2).toUpperCase(), logoDataUrl: null }, palette: defaultPalette, socialUrl: null, socialQrUrl: null, socialQrPublicId: null, logoPublicId: null, welcomeBackgroundUrl: null, welcomeBackgroundPublicId: null, boothPageBackgrounds: {}, boothSessionDurationSeconds: 120, templateCatalogVersion: TEMPLATE_CATALOG_VERSION, updatedAt: now }, { session });
+        await businesses.insertOne({ _id: id, slug: input.slug, isConfigured: false, branding: { ...business, name: input.name, monogram: input.name.slice(0, 2).toUpperCase(), logoDataUrl: null }, palette: defaultPalette, socialUrl: null, socialQrUrl: null, socialQrPublicId: null, socialQrLabel: DEFAULT_PRIMARY_SOCIAL_QR_LABEL, secondarySocialUrl: null, secondarySocialQrLabel: DEFAULT_SECONDARY_SOCIAL_QR_LABEL, digitalCopyQrLabel: DEFAULT_DIGITAL_COPY_QR_LABEL, logoPublicId: null, welcomeBackgroundUrl: null, welcomeBackgroundPublicId: null, boothPageBackgrounds: {}, boothSessionDurationSeconds: 120, templateCatalogVersion: TEMPLATE_CATALOG_VERSION, updatedAt: now }, { session });
         await templates.insertMany(starterTemplates.map(({ id: templateId, ...template }) => ({ ...template, _id: templateDocumentId(id, templateId), businessId: id, createdAt: now, updatedAt: now })), { session });
       });
     } finally { await session.endSession(); }

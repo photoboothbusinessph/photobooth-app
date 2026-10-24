@@ -433,6 +433,25 @@ test("guest booth chrome is minimal and per-page backgrounds remain offline-capa
   assert.match(worker, /business-image-assets-v1/);
 });
 
+test("design previews stay contained and QR results use the two-over-one layout", async () => {
+  const [designPicker, qrResult, provider, syncClient] = await Promise.all([
+    readFile("src/components/booth/design-picker.tsx", "utf8"),
+    readFile("src/components/booth/qr-result.tsx", "utf8"),
+    readFile("src/components/providers/offline-data-provider.tsx", "utf8"),
+    readFile("src/lib/sync/client-sync.ts", "utf8"),
+  ]);
+
+  assert.match(designPicker, /new ResizeObserver\(fitReceipt\)/);
+  assert.match(designPicker, /Math\.min\(container\.clientWidth \/ RECEIPT_PREVIEW_WIDTH, container\.clientHeight \/ receiptHeight\)/);
+  assert.match(designPicker, /overflow-hidden/);
+  assert.match(qrResult, /grid-cols-2 grid-rows-2/);
+  assert.match(qrResult, /className="col-span-2"/);
+  assert.match(qrResult, /secondarySocialUrl/);
+  assert.match(qrResult, /digitalCopyQrLabel/);
+  assert.match(provider, /secondarySocialQrLabel/);
+  assert.match(syncClient, /secondarySocialUrl/);
+});
+
 test("queued receipt sync retries after returning from the Android print app", async () => {
   const syncProvider = await readFile("src/components/providers/sync-provider.tsx", "utf8");
   assert.match(syncProvider, /window\.addEventListener\("focus", sync\)/);

@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { business, defaultPalette, templates as defaultTemplates } from "@/config/mock-data";
 import type { BoothPageBackgrounds, BusinessBranding, ReceiptTemplate, ThemePalette } from "@/types";
 import { DEFAULT_BOOTH_SESSION_DURATION_SECONDS } from "@/lib/booth-session";
+import { DEFAULT_DIGITAL_COPY_QR_LABEL, DEFAULT_PRIMARY_SOCIAL_QR_LABEL, DEFAULT_SECONDARY_SOCIAL_QR_LABEL } from "@/lib/social-qr-settings";
 
 interface BusinessState {
   tenantKey: string | null;
@@ -16,6 +17,10 @@ interface BusinessState {
   socialUrl: string | null;
   socialQrUrl: string | null;
   socialQrPublicId: string | null;
+  socialQrLabel: string;
+  secondarySocialUrl: string | null;
+  secondarySocialQrLabel: string;
+  digitalCopyQrLabel: string;
   welcomeBackgroundUrl: string | null;
   welcomeBackgroundPublicId: string | null;
   boothPageBackgrounds: BoothPageBackgrounds;
@@ -29,7 +34,7 @@ interface BusinessState {
   updateBranding: (branding: Partial<BusinessBranding>) => void;
   updatePalette: (palette: ThemePalette) => void;
   setTemplates: (templates: ReceiptTemplate[]) => void;
-  setAssetReferences: (assets: Partial<Pick<BusinessState, "logoPublicId" | "socialUrl" | "socialQrUrl" | "socialQrPublicId" | "welcomeBackgroundUrl" | "welcomeBackgroundPublicId" | "boothPageBackgrounds">>) => void;
+  setAssetReferences: (assets: Partial<Pick<BusinessState, "logoPublicId" | "socialUrl" | "socialQrUrl" | "socialQrPublicId" | "socialQrLabel" | "secondarySocialUrl" | "secondarySocialQrLabel" | "digitalCopyQrLabel" | "welcomeBackgroundUrl" | "welcomeBackgroundPublicId" | "boothPageBackgrounds">>) => void;
   setBoothSessionDurationSeconds: (durationSeconds: number) => void;
   resetPalette: () => void;
 }
@@ -49,6 +54,10 @@ export const useBusinessStore = create<BusinessState>((set) => ({
   socialUrl: null,
   socialQrUrl: null,
   socialQrPublicId: null,
+  socialQrLabel: DEFAULT_PRIMARY_SOCIAL_QR_LABEL,
+  secondarySocialUrl: null,
+  secondarySocialQrLabel: DEFAULT_SECONDARY_SOCIAL_QR_LABEL,
+  digitalCopyQrLabel: DEFAULT_DIGITAL_COPY_QR_LABEL,
   welcomeBackgroundUrl: null,
   welcomeBackgroundPublicId: null,
   boothPageBackgrounds: {},
@@ -57,7 +66,7 @@ export const useBusinessStore = create<BusinessState>((set) => ({
   setTenantKey: (tenantKey) => set({ tenantKey }),
   setBusinessId: (businessId) => set({ businessId }),
   setBusinessSlug: (businessSlug) => set({ businessSlug }),
-  resetBusiness: () => set({ businessId: null, businessSlug: null, isHydrated: false, isConfigured: false, branding: initialBranding, palette: defaultPalette, templates: defaultTemplates, logoPublicId: null, socialUrl: null, socialQrUrl: null, socialQrPublicId: null, welcomeBackgroundUrl: null, welcomeBackgroundPublicId: null, boothPageBackgrounds: {}, boothSessionDurationSeconds: DEFAULT_BOOTH_SESSION_DURATION_SECONDS }),
+  resetBusiness: () => set({ businessId: null, businessSlug: null, isHydrated: false, isConfigured: false, branding: initialBranding, palette: defaultPalette, templates: defaultTemplates, logoPublicId: null, socialUrl: null, socialQrUrl: null, socialQrPublicId: null, socialQrLabel: DEFAULT_PRIMARY_SOCIAL_QR_LABEL, secondarySocialUrl: null, secondarySocialQrLabel: DEFAULT_SECONDARY_SOCIAL_QR_LABEL, digitalCopyQrLabel: DEFAULT_DIGITAL_COPY_QR_LABEL, welcomeBackgroundUrl: null, welcomeBackgroundPublicId: null, boothPageBackgrounds: {}, boothSessionDurationSeconds: DEFAULT_BOOTH_SESSION_DURATION_SECONDS }),
   setConfigured: (isConfigured) => set({ isConfigured }),
   updateBranding: (branding) => set((state) => ({ branding: { ...state.branding, ...branding } })),
   updatePalette: (palette) => set({ palette }),
