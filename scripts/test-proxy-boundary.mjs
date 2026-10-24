@@ -233,3 +233,22 @@ test("admin settings persist the booth session timer for online and offline sess
   assert.match(countdown, /normalizeBoothSessionDurationSeconds\(boothSessionDurationSeconds\)/);
   assert.match(start, /createBoothSessionDeadline\(boothSessionDurationSeconds\)/);
 });
+
+test("business QR settings validate and persist two links with customer labels", async () => {
+  const [form, schema, businessRoute, collections] = await Promise.all([
+    readFile("src/components/admin/social-qr-form.tsx", "utf8"),
+    readFile("src/lib/validation/schemas.ts", "utf8"),
+    readFile("src/app/api/business/route.ts", "utf8"),
+    readFile("src/lib/db/collections.ts", "utf8"),
+  ]);
+
+  assert.match(form, /Social QR 1/);
+  assert.match(form, /Social QR 2/);
+  assert.match(form, /Label below QR code/);
+  assert.match(form, /Digital copy QR label/);
+  assert.match(schema, /secondarySocialUrl: z\.url\(\)/);
+  assert.match(schema, /socialQrLabel: z\.string\(\)\.trim\(\)\.min\(1\)\.max\(40\)/);
+  assert.match(schema, /digitalCopyQrLabel: z\.string\(\)\.trim\(\)\.min\(1\)\.max\(40\)/);
+  assert.match(businessRoute, /DEFAULT_SECONDARY_SOCIAL_QR_LABEL/);
+  assert.match(collections, /secondarySocialUrl\?: string \| null/);
+});

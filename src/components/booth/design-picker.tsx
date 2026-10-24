@@ -7,10 +7,10 @@ import { ReceiptPreview } from "@/components/receipt/receipt-preview";
 import { Button } from "@/components/ui/button";
 import { useBoothRouter } from "@/hooks/use-booth-router";
 import { boothBasePath } from "@/lib/booth-path";
-import { normalizeReceiptTemplate, templateSupportsPhotoSlots } from "@/lib/receipt/template-rules";
+import { normalizeReceiptTemplate, receiptMillimeters, receiptSizeForSlots, templateSupportsPhotoSlots } from "@/lib/receipt/template-rules";
 import { flushBoothSessionPersistence, useBoothStore } from "@/stores/booth-store";
 import { useBusinessStore } from "@/stores/business-store";
-import type { PhotoSlotCount } from "@/types";
+import type { BusinessBranding, CapturedPhoto, PhotoSlotCount, ReceiptTemplate } from "@/types";
 
 const PAGE_SIZE = 4;
 
@@ -49,9 +49,7 @@ export function DesignPicker() {
         {visible.map((template) => (
           <button key={template.id} type="button" disabled={openingId !== null} onClick={() => void chooseDesign(template.id)} className="relative flex min-h-0 flex-col items-center border-2 border-white/55 bg-white/8 p-[clamp(0.45rem,1.2dvh,0.9rem)] transition-colors hover:bg-white/15 focus-visible:ring-4 focus-visible:ring-[var(--booth-accent)] disabled:cursor-wait disabled:opacity-70" aria-label={`Use ${template.name} receipt design`}>
             {openingId === template.id ? <span className="absolute right-2 top-2 z-10 grid size-8 place-items-center rounded-full bg-[var(--booth-primary)]"><LoaderCircle className="size-4 animate-spin" /></span> : null}
-            <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden">
-              <ReceiptPreview template={template} photoSlots={activePhotoSlots} photos={photos} branding={branding} mirrored compact className="h-full w-auto max-w-full shadow-none" />
-            </div>
+            <ContainedReceiptPreview template={template} photoSlots={activePhotoSlots} photos={photos} branding={branding} />
           </button>
         ))}
       </div>
@@ -62,4 +60,32 @@ export function DesignPicker() {
       </nav> : null}
     </div>
   );
+}
+
+const RECEIPT_PREVIEW_WIDTH = 310;
+
+function ContainedReceiptPreview({ template, photoSlots, photos, branding }: { template: ReceiptTemplate; photoSlots: PhotoSlotCount; photos: CapturedPhoto[]; branding: BusinessBranding }) {
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const dimensions = receiptMillimeters(receiptSizeForSlots(photoSlots));
+  const receiptHeight = RECEIPT_PREVIEW_WIDTH * dimensions.height / dimensions.width;
+  const [scale, setScale] = React.useState(0);
+
+  React.useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const fitReceipt = () => {
+      const nextScale = Math.min(container.clientWidth / RECEIPT_PREVIEW_WIDTH, container.clientHeight / receiptHeight);
+      setScale(Number.isFinite(nextScale) ? Math.max(nextScale, 0) : 0);
+    };
+    fitReceipt();
+    const observer = new ResizeObserver(fitReceipt);
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [receiptHeight]);
+
+  return <div ref={containerRef} className="relative min-h-0 w-full flex-1 overflow-hidden">
+    <div className="absolute left-1/2 top-1/2 origin-center" style={{ width: RECEIPT_PREVIEW_WIDTH, height: receiptHeight, transform: `translate(-50%, -50%) scale(${scale})`, visibility: scale > 0 ? "visible" : "hidden" }}>
+      <ReceiptPreview template={template} photoSlots={photoSlots} photos={photos} branding={branding} mirrored compact className="!h-full !w-full !max-w-none !shadow-none" />
+    </div>
+  </div>;
 }

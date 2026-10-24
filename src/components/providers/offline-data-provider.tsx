@@ -8,6 +8,7 @@ import { bindCachedBusinessId, cacheBusinessSettings, cacheTemplates, migrateLeg
 import { useBusinessStore } from "@/stores/business-store";
 import type { ReceiptTemplate } from "@/types";
 import { normalizeBoothSessionDurationSeconds } from "@/lib/booth-session";
+import { DEFAULT_DIGITAL_COPY_QR_LABEL, DEFAULT_PRIMARY_SOCIAL_QR_LABEL, DEFAULT_SECONDARY_SOCIAL_QR_LABEL } from "@/lib/social-qr-settings";
 
 export function OfflineDataProvider() {
   const pathname = usePathname();
@@ -43,7 +44,19 @@ export function OfflineDataProvider() {
         setConfigured(Boolean(settings.isConfigured));
         updateBranding(settings.branding);
         updatePalette(settings.palette);
-        setAssetReferences({ logoPublicId: settings.logoPublicId ?? null, socialUrl: settings.socialUrl ?? null, socialQrUrl: settings.socialQrUrl ?? null, socialQrPublicId: settings.socialQrPublicId ?? null, welcomeBackgroundUrl: settings.welcomeBackgroundUrl ?? null, welcomeBackgroundPublicId: settings.welcomeBackgroundPublicId ?? null, boothPageBackgrounds: settings.boothPageBackgrounds ?? {} });
+        setAssetReferences({
+          logoPublicId: settings.logoPublicId ?? null,
+          socialUrl: settings.socialUrl ?? null,
+          socialQrUrl: settings.socialQrUrl ?? null,
+          socialQrPublicId: settings.socialQrPublicId ?? null,
+          socialQrLabel: settings.socialQrLabel ?? DEFAULT_PRIMARY_SOCIAL_QR_LABEL,
+          secondarySocialUrl: settings.secondarySocialUrl ?? null,
+          secondarySocialQrLabel: settings.secondarySocialQrLabel ?? DEFAULT_SECONDARY_SOCIAL_QR_LABEL,
+          digitalCopyQrLabel: settings.digitalCopyQrLabel ?? DEFAULT_DIGITAL_COPY_QR_LABEL,
+          welcomeBackgroundUrl: settings.welcomeBackgroundUrl ?? null,
+          welcomeBackgroundPublicId: settings.welcomeBackgroundPublicId ?? null,
+          boothPageBackgrounds: settings.boothPageBackgrounds ?? {},
+        });
         setBoothSessionDurationSeconds(normalizeBoothSessionDurationSeconds(settings.boothSessionDurationSeconds));
       }
       if (routeSlug) setTemplates(cachedTemplates.filter((template) => "businessId" in template && template.businessId === settings?.businessId));
@@ -56,7 +69,7 @@ export function OfflineDataProvider() {
         const query = routeSlug ? `?slug=${encodeURIComponent(routeSlug)}` : "";
         const [businessResponse, templatesResponse] = await Promise.all([fetch(`/api/business${query}`), fetch(`/api/templates${query}`)]);
         if (businessResponse.ok) {
-          const { data } = await businessResponse.json() as { data: { _id: string; slug?: string; isConfigured?: boolean; branding: ReturnType<typeof useBusinessStore.getState>["branding"]; palette: ReturnType<typeof useBusinessStore.getState>["palette"]; logoPublicId?: string | null; socialUrl?: string | null; socialQrUrl?: string | null; socialQrPublicId?: string | null; welcomeBackgroundUrl?: string | null; welcomeBackgroundPublicId?: string | null; boothPageBackgrounds?: ReturnType<typeof useBusinessStore.getState>["boothPageBackgrounds"]; boothSessionDurationSeconds?: number } };
+          const { data } = await businessResponse.json() as { data: { _id: string; slug?: string; isConfigured?: boolean; branding: ReturnType<typeof useBusinessStore.getState>["branding"]; palette: ReturnType<typeof useBusinessStore.getState>["palette"]; logoPublicId?: string | null; socialUrl?: string | null; socialQrUrl?: string | null; socialQrPublicId?: string | null; socialQrLabel?: string; secondarySocialUrl?: string | null; secondarySocialQrLabel?: string; digitalCopyQrLabel?: string; welcomeBackgroundUrl?: string | null; welcomeBackgroundPublicId?: string | null; boothPageBackgrounds?: ReturnType<typeof useBusinessStore.getState>["boothPageBackgrounds"]; boothSessionDurationSeconds?: number } };
           if (!active) return;
           const tenantKey = routeSlug ?? data._id;
           setTenantKey(tenantKey);
@@ -66,7 +79,19 @@ export function OfflineDataProvider() {
           updateBranding(data.branding);
           updatePalette(data.palette);
           const boothSessionDurationSeconds = normalizeBoothSessionDurationSeconds(data.boothSessionDurationSeconds);
-          const assets = { logoPublicId: data.logoPublicId ?? null, socialUrl: data.socialUrl ?? null, socialQrUrl: data.socialQrUrl ?? null, socialQrPublicId: data.socialQrPublicId ?? null, welcomeBackgroundUrl: data.welcomeBackgroundUrl ?? null, welcomeBackgroundPublicId: data.welcomeBackgroundPublicId ?? null, boothPageBackgrounds: data.boothPageBackgrounds ?? {} };
+          const assets = {
+            logoPublicId: data.logoPublicId ?? null,
+            socialUrl: data.socialUrl ?? null,
+            socialQrUrl: data.socialQrUrl ?? null,
+            socialQrPublicId: data.socialQrPublicId ?? null,
+            socialQrLabel: data.socialQrLabel ?? DEFAULT_PRIMARY_SOCIAL_QR_LABEL,
+            secondarySocialUrl: data.secondarySocialUrl ?? null,
+            secondarySocialQrLabel: data.secondarySocialQrLabel ?? DEFAULT_SECONDARY_SOCIAL_QR_LABEL,
+            digitalCopyQrLabel: data.digitalCopyQrLabel ?? DEFAULT_DIGITAL_COPY_QR_LABEL,
+            welcomeBackgroundUrl: data.welcomeBackgroundUrl ?? null,
+            welcomeBackgroundPublicId: data.welcomeBackgroundPublicId ?? null,
+            boothPageBackgrounds: data.boothPageBackgrounds ?? {},
+          };
           setAssetReferences(assets);
           setBoothSessionDurationSeconds(boothSessionDurationSeconds);
           setHydrated(true);

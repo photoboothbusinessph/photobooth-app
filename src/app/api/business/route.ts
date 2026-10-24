@@ -5,6 +5,7 @@ import { getBusinessBySlug } from "@/lib/db/tenant";
 import { isBusinessAsset } from "@/lib/cloudinary/ownership";
 import { businessSchema } from "@/lib/validation/schemas";
 import { business, defaultPalette } from "@/config/mock-data";
+import { DEFAULT_DIGITAL_COPY_QR_LABEL, DEFAULT_PRIMARY_SOCIAL_QR_LABEL, DEFAULT_SECONDARY_SOCIAL_QR_LABEL } from "@/lib/social-qr-settings";
 
 export async function GET(request: Request) {
   try {
@@ -22,6 +23,10 @@ export async function GET(request: Request) {
         socialUrl: null,
         socialQrUrl: null,
         socialQrPublicId: null,
+        socialQrLabel: DEFAULT_PRIMARY_SOCIAL_QR_LABEL,
+        secondarySocialUrl: null,
+        secondarySocialQrLabel: DEFAULT_SECONDARY_SOCIAL_QR_LABEL,
+        digitalCopyQrLabel: DEFAULT_DIGITAL_COPY_QR_LABEL,
         logoPublicId: null,
         welcomeBackgroundUrl: null,
         welcomeBackgroundPublicId: null,
