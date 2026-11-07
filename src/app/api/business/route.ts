@@ -3,6 +3,7 @@ import { requireBusinessAdmin } from "@/lib/auth/session";
 import { getCollections } from "@/lib/db/collections";
 import { getBusinessBySlug } from "@/lib/db/tenant";
 import { isBusinessAsset } from "@/lib/cloudinary/ownership";
+import { verifyWelcomeVideoAsset } from "@/lib/cloudinary/client";
 import { businessSchema } from "@/lib/validation/schemas";
 import { business, defaultPalette } from "@/config/mock-data";
 import { DEFAULT_DIGITAL_COPY_QR_LABEL, DEFAULT_PRIMARY_SOCIAL_QR_LABEL, DEFAULT_SECONDARY_SOCIAL_QR_LABEL } from "@/lib/social-qr-settings";
@@ -30,6 +31,8 @@ export async function GET(request: Request) {
         logoPublicId: null,
         welcomeBackgroundUrl: null,
         welcomeBackgroundPublicId: null,
+        welcomeVideoUrl: null,
+        welcomeVideoPublicId: null,
         boothPageBackgrounds: {},
         boothSessionDurationSeconds: 120,
       } : null),
@@ -47,6 +50,10 @@ export async function PATCH(request: Request) {
     if (input.logoPublicId && !isBusinessAsset(input.logoPublicId, businessId)) throw new Error("Forbidden");
     if (input.socialQrPublicId && !isBusinessAsset(input.socialQrPublicId, businessId)) throw new Error("Forbidden");
     if (input.welcomeBackgroundPublicId && !isBusinessAsset(input.welcomeBackgroundPublicId, businessId)) throw new Error("Forbidden");
+    if (input.welcomeVideoPublicId && !isBusinessAsset(input.welcomeVideoPublicId, businessId)) throw new Error("Forbidden");
+    if (input.welcomeVideoPublicId && input.welcomeVideoUrl) {
+      await verifyWelcomeVideoAsset(input.welcomeVideoPublicId, input.welcomeVideoUrl);
+    }
     if (Object.values(input.boothPageBackgrounds ?? {}).some((asset) => !isBusinessAsset(asset.publicId, businessId))) throw new Error("Forbidden");
     const now = new Date();
     await businesses.updateOne(

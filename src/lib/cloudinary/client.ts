@@ -1,8 +1,12 @@
 import "server-only";
+import { randomUUID } from "node:crypto";
 import { inflateSync } from "node:zlib";
 import { v2 as cloudinary } from "cloudinary";
 import { getCloudinaryEnvironment } from "@/lib/server/env";
 import { overlayPixelsBySlots } from "@/lib/receipt/template-rules";
+import { WELCOME_VIDEO_MAX_BYTES } from "@/lib/welcome-video";
+
+export type CloudinaryResourceType = "image" | "video";
 
 const allowedDataUrl = /^data:image\/(png|jpeg|webp);base64,([A-Za-z0-9+/=]+)$/;
 const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
@@ -158,12 +162,62 @@ export function createSignedSessionUpload(
   };
 }
 
+export function createSignedWelcomeVideoUpload(businessId: string) {
+  const environment = getCloudinaryEnvironment();
+  configureCloudinary();
+  const timestamp = Math.floor(Date.now() / 1000);
+  const folder = `receipt-photobooth/${businessId}/welcome-video`;
+  const publicId = randomUUID();
+  const overwrite = "false";
+  const allowedFormats = "mp4";
+  const signature = cloudinary.utils.api_sign_request(
+    { allowed_formats: allowedFormats, folder, overwrite, public_id: publicId, timestamp },
+    environment.CLOUDINARY_API_SECRET,
+  );
+  return {
+    uploadUrl: `https://api.cloudinary.com/v1_1/${encodeURIComponent(environment.CLOUDINARY_CLOUD_NAME)}/video/upload`,
+    apiKey: environment.CLOUDINARY_API_KEY,
+    timestamp,
+    signature,
+    folder,
+    publicId,
+    overwrite,
+    allowedFormats,
+    expectedPublicId: `${folder}/${publicId}`,
+  };
+}
+
 export function getCloudinaryImageUrl(publicId: string) {
   configureCloudinary();
   return cloudinary.url(publicId, { secure: true, resource_type: "image" });
 }
 
 export async function deleteImage(publicId: string) {
+  return deleteAsset(publicId, "image");
+}
+
+export async function deleteAsset(publicId: string, resourceType: CloudinaryResourceType) {
   configureCloudinary();
-  await cloudinary.uploader.destroy(publicId, { invalidate: true, resource_type: "image" });
+  await cloudinary.uploader.destroy(publicId, { invalidate: true, resource_type: resourceType });
+}
+
+export async function verifyWelcomeVideoAsset(publicId: string, expectedUrl: string) {
+  configureCloudinary();
+  const asset = await cloudinary.api.resource(publicId, { resource_type: "video", type: "upload" }) as {
+    bytes?: number;
+    format?: string;
+    public_id?: string;
+    resource_type?: string;
+    secure_url?: string;
+  };
+  if (
+    asset.public_id !== publicId
+    || asset.resource_type !== "video"
+    || asset.format !== "mp4"
+    || typeof asset.bytes !== "number"
+    || asset.bytes > WELCOME_VIDEO_MAX_BYTES
+    || asset.secure_url !== expectedUrl
+  ) {
+    throw new AssetValidationError("The welcome video could not be verified.");
+  }
 }

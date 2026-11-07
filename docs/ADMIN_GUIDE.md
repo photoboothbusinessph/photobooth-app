@@ -4,7 +4,7 @@
 
 1. The platform owner creates your business-admin account in `/super-admin` and gives you a temporary password through a secure channel. Open `/admin/login`, sign in, and change that password.
 2. Complete the first-run business setup. Enter the business name, short logo text, social handle, receipt footer, and starting colors.
-3. Open **Branding** to use an uploaded logo or styled text logo and optionally add a Tap-to-Start background image.
+3. Open **Branding** to use an uploaded logo or styled text logo and optionally add a Tap-to-Start background image, MP4 video, or both. The video plays first and the image remains its poster/fallback.
 4. Open **Theme** to preview and save the booth color palette.
 5. Open **Templates** to create a generated layout or upload a transparent PNG overlay, then select one default template. Receipt size is assigned automatically from the number of photo slots.
 6. Open **Social QR** to enter the business social-media link; the QR code is generated automatically.
@@ -21,7 +21,7 @@
 ## Offline and synchronization notes
 
 - The camera, receipt preview, printing, and local session save are designed to work without internet after a successful online production load.
-- Creating or replacing image-based templates and Tap-to-Start backgrounds requires internet. Saved assets are cached for subsequent offline booth use.
+- Creating or replacing image-based templates and Tap-to-Start image or video backgrounds requires internet. After saving an MP4, open the kiosk online and wait until the video has loaded before relying on offline playback.
 - Public share links, photo QR access, uploads, and admin cloud changes require internet.
 - Keep the browser open until the sync indicator reports that pending sessions have uploaded.
 - If a kiosk is revoked while offline, its photos remain on that device. The server will reject their sync; the pairing screen lists unsynced session IDs for an operator. Do not clear browser data.
@@ -31,6 +31,7 @@
 
 - Install the production HTTPS site from the browser's app/install menu.
 - Grant camera permission to the production origin.
+- After changing the Tap-to-Start MP4, open the kiosk online and confirm that the complete video plays before testing or using it offline.
 - Keep the device connected to power and disable operating-system sleep during the event.
 - Test the exact camera and printer on the target device before guest use.
 - Configure the Android tablet and USB printer for 80mm paper before the event. The booth supplies the receipt length (100mm, 150mm, or 200mm) and copy count in its ESC/POS job.

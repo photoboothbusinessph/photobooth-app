@@ -23,6 +23,8 @@ interface BusinessState {
   digitalCopyQrLabel: string;
   welcomeBackgroundUrl: string | null;
   welcomeBackgroundPublicId: string | null;
+  welcomeVideoUrl: string | null;
+  welcomeVideoPublicId: string | null;
   boothPageBackgrounds: BoothPageBackgrounds;
   boothSessionDurationSeconds: number;
   setHydrated: (isHydrated: boolean) => void;
@@ -34,7 +36,7 @@ interface BusinessState {
   updateBranding: (branding: Partial<BusinessBranding>) => void;
   updatePalette: (palette: ThemePalette) => void;
   setTemplates: (templates: ReceiptTemplate[]) => void;
-  setAssetReferences: (assets: Partial<Pick<BusinessState, "logoPublicId" | "socialUrl" | "socialQrUrl" | "socialQrPublicId" | "socialQrLabel" | "secondarySocialUrl" | "secondarySocialQrLabel" | "digitalCopyQrLabel" | "welcomeBackgroundUrl" | "welcomeBackgroundPublicId" | "boothPageBackgrounds">>) => void;
+  setAssetReferences: (assets: Partial<Pick<BusinessState, "logoPublicId" | "socialUrl" | "socialQrUrl" | "socialQrPublicId" | "socialQrLabel" | "secondarySocialUrl" | "secondarySocialQrLabel" | "digitalCopyQrLabel" | "welcomeBackgroundUrl" | "welcomeBackgroundPublicId" | "welcomeVideoUrl" | "welcomeVideoPublicId" | "boothPageBackgrounds">>) => void;
   setBoothSessionDurationSeconds: (durationSeconds: number) => void;
   resetPalette: () => void;
 }
@@ -60,13 +62,15 @@ export const useBusinessStore = create<BusinessState>((set) => ({
   digitalCopyQrLabel: DEFAULT_DIGITAL_COPY_QR_LABEL,
   welcomeBackgroundUrl: null,
   welcomeBackgroundPublicId: null,
+  welcomeVideoUrl: null,
+  welcomeVideoPublicId: null,
   boothPageBackgrounds: {},
   boothSessionDurationSeconds: DEFAULT_BOOTH_SESSION_DURATION_SECONDS,
   setHydrated: (isHydrated) => set({ isHydrated }),
   setTenantKey: (tenantKey) => set({ tenantKey }),
   setBusinessId: (businessId) => set({ businessId }),
   setBusinessSlug: (businessSlug) => set({ businessSlug }),
-  resetBusiness: () => set({ businessId: null, businessSlug: null, isHydrated: false, isConfigured: false, branding: initialBranding, palette: defaultPalette, templates: defaultTemplates, logoPublicId: null, socialUrl: null, socialQrUrl: null, socialQrPublicId: null, socialQrLabel: DEFAULT_PRIMARY_SOCIAL_QR_LABEL, secondarySocialUrl: null, secondarySocialQrLabel: DEFAULT_SECONDARY_SOCIAL_QR_LABEL, digitalCopyQrLabel: DEFAULT_DIGITAL_COPY_QR_LABEL, welcomeBackgroundUrl: null, welcomeBackgroundPublicId: null, boothPageBackgrounds: {}, boothSessionDurationSeconds: DEFAULT_BOOTH_SESSION_DURATION_SECONDS }),
+  resetBusiness: () => set({ businessId: null, businessSlug: null, isHydrated: false, isConfigured: false, branding: initialBranding, palette: defaultPalette, templates: defaultTemplates, logoPublicId: null, socialUrl: null, socialQrUrl: null, socialQrPublicId: null, socialQrLabel: DEFAULT_PRIMARY_SOCIAL_QR_LABEL, secondarySocialUrl: null, secondarySocialQrLabel: DEFAULT_SECONDARY_SOCIAL_QR_LABEL, digitalCopyQrLabel: DEFAULT_DIGITAL_COPY_QR_LABEL, welcomeBackgroundUrl: null, welcomeBackgroundPublicId: null, welcomeVideoUrl: null, welcomeVideoPublicId: null, boothPageBackgrounds: {}, boothSessionDurationSeconds: DEFAULT_BOOTH_SESSION_DURATION_SECONDS }),
   setConfigured: (isConfigured) => set({ isConfigured }),
   updateBranding: (branding) => set((state) => ({ branding: { ...state.branding, ...branding } })),
   updatePalette: (palette) => set({ palette }),

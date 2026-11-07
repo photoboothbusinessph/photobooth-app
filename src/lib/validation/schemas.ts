@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { WELCOME_VIDEO_MAX_BYTES, WELCOME_VIDEO_MIME_TYPE } from "@/lib/welcome-video";
 
 export const paletteSchema = z.object({
   primary: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
@@ -35,6 +36,8 @@ export const businessSchema = z.object({
   logoPublicId: z.string().nullable().optional(),
   welcomeBackgroundUrl: z.url().nullable().optional(),
   welcomeBackgroundPublicId: z.string().nullable().optional(),
+  welcomeVideoUrl: z.url().nullable().optional(),
+  welcomeVideoPublicId: z.string().nullable().optional(),
   boothPageBackgrounds: z.object({
     layout: z.object({ url: z.url(), publicId: z.string().min(1).max(300) }).optional(),
     camera: z.object({ url: z.url(), publicId: z.string().min(1).max(300) }).optional(),
@@ -43,6 +46,10 @@ export const businessSchema = z.object({
     qr: z.object({ url: z.url(), publicId: z.string().min(1).max(300) }).optional(),
   }).optional(),
   boothSessionDurationSeconds: z.number().int().min(60).max(3600).optional(),
+}).superRefine((value, context) => {
+  if (Boolean(value.welcomeVideoUrl) !== Boolean(value.welcomeVideoPublicId)) {
+    context.addIssue({ code: "custom", path: ["welcomeVideoUrl"], message: "Welcome video URL and public ID must be saved together." });
+  }
 });
 
 export const templateSchema = z.object({
@@ -102,4 +109,15 @@ export const assetUploadSchema = z.object({
   kind: z.enum(["logo", "social-qr", "welcome-background", "booth-page-background", "template-overlay"]),
   previousPublicId: z.string().max(300).nullable().optional(),
   photoSlots: z.number().int().min(1).max(4).optional(),
+});
+
+export const welcomeVideoUploadSignatureSchema = z.object({
+  fileName: z.string().trim().min(1).max(255).regex(/\.mp4$/i, "Choose an MP4 video."),
+  fileSize: z.number().int().positive().max(WELCOME_VIDEO_MAX_BYTES),
+  mimeType: z.literal(WELCOME_VIDEO_MIME_TYPE),
+});
+
+export const assetDeleteSchema = z.object({
+  publicId: z.string().min(1).max(500),
+  resourceType: z.enum(["image", "video"]).default("image"),
 });

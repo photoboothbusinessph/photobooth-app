@@ -9,6 +9,7 @@ import { useBusinessStore } from "@/stores/business-store";
 import type { ReceiptTemplate } from "@/types";
 import { normalizeBoothSessionDurationSeconds } from "@/lib/booth-session";
 import { DEFAULT_DIGITAL_COPY_QR_LABEL, DEFAULT_PRIMARY_SOCIAL_QR_LABEL, DEFAULT_SECONDARY_SOCIAL_QR_LABEL } from "@/lib/social-qr-settings";
+import { warmWelcomeVideoCache } from "@/lib/welcome-video";
 
 export function OfflineDataProvider() {
   const pathname = usePathname();
@@ -55,6 +56,8 @@ export function OfflineDataProvider() {
           digitalCopyQrLabel: settings.digitalCopyQrLabel ?? DEFAULT_DIGITAL_COPY_QR_LABEL,
           welcomeBackgroundUrl: settings.welcomeBackgroundUrl ?? null,
           welcomeBackgroundPublicId: settings.welcomeBackgroundPublicId ?? null,
+          welcomeVideoUrl: settings.welcomeVideoUrl ?? null,
+          welcomeVideoPublicId: settings.welcomeVideoPublicId ?? null,
           boothPageBackgrounds: settings.boothPageBackgrounds ?? {},
         });
         setBoothSessionDurationSeconds(normalizeBoothSessionDurationSeconds(settings.boothSessionDurationSeconds));
@@ -69,7 +72,7 @@ export function OfflineDataProvider() {
         const query = routeSlug ? `?slug=${encodeURIComponent(routeSlug)}` : "";
         const [businessResponse, templatesResponse] = await Promise.all([fetch(`/api/business${query}`), fetch(`/api/templates${query}`)]);
         if (businessResponse.ok) {
-          const { data } = await businessResponse.json() as { data: { _id: string; slug?: string; isConfigured?: boolean; branding: ReturnType<typeof useBusinessStore.getState>["branding"]; palette: ReturnType<typeof useBusinessStore.getState>["palette"]; logoPublicId?: string | null; socialUrl?: string | null; socialQrUrl?: string | null; socialQrPublicId?: string | null; socialQrLabel?: string; secondarySocialUrl?: string | null; secondarySocialQrLabel?: string; digitalCopyQrLabel?: string; welcomeBackgroundUrl?: string | null; welcomeBackgroundPublicId?: string | null; boothPageBackgrounds?: ReturnType<typeof useBusinessStore.getState>["boothPageBackgrounds"]; boothSessionDurationSeconds?: number } };
+          const { data } = await businessResponse.json() as { data: { _id: string; slug?: string; isConfigured?: boolean; branding: ReturnType<typeof useBusinessStore.getState>["branding"]; palette: ReturnType<typeof useBusinessStore.getState>["palette"]; logoPublicId?: string | null; socialUrl?: string | null; socialQrUrl?: string | null; socialQrPublicId?: string | null; socialQrLabel?: string; secondarySocialUrl?: string | null; secondarySocialQrLabel?: string; digitalCopyQrLabel?: string; welcomeBackgroundUrl?: string | null; welcomeBackgroundPublicId?: string | null; welcomeVideoUrl?: string | null; welcomeVideoPublicId?: string | null; boothPageBackgrounds?: ReturnType<typeof useBusinessStore.getState>["boothPageBackgrounds"]; boothSessionDurationSeconds?: number } };
           if (!active) return;
           const tenantKey = routeSlug ?? data._id;
           setTenantKey(tenantKey);
@@ -90,11 +93,14 @@ export function OfflineDataProvider() {
             digitalCopyQrLabel: data.digitalCopyQrLabel ?? DEFAULT_DIGITAL_COPY_QR_LABEL,
             welcomeBackgroundUrl: data.welcomeBackgroundUrl ?? null,
             welcomeBackgroundPublicId: data.welcomeBackgroundPublicId ?? null,
+            welcomeVideoUrl: data.welcomeVideoUrl ?? null,
+            welcomeVideoPublicId: data.welcomeVideoPublicId ?? null,
             boothPageBackgrounds: data.boothPageBackgrounds ?? {},
           };
           setAssetReferences(assets);
           setBoothSessionDurationSeconds(boothSessionDurationSeconds);
           setHydrated(true);
+          if (data.welcomeVideoUrl) void warmWelcomeVideoCache(data.welcomeVideoUrl).catch(() => undefined);
           try {
             if (routeSlug && data._id === "default") await migrateLegacyOfflineData(routeSlug).catch(() => undefined);
             await cacheBusinessSettings(data.branding, data.palette, { ...assets, boothSessionDurationSeconds }, Boolean(data.isConfigured), tenantKey, data._id);
