@@ -193,6 +193,34 @@ test("booth page backgrounds enforce tenant ownership and business cleanup", asy
   assert.match(deletion, /Object\.values\(business\.boothPageBackgrounds \?\? \{\}\)/);
 });
 
+test("welcome MP4 uploads are signed, tenant-scoped, verified, and cleaned up", async () => {
+  const [signatureRoute, branding, schemas, cloudinary, businessRoute, uploadRoute, deletion] = await Promise.all([
+    readFile("src/app/api/uploads/video-signature/route.ts", "utf8"),
+    readFile("src/components/admin/branding-form.tsx", "utf8"),
+    readFile("src/lib/validation/schemas.ts", "utf8"),
+    readFile("src/lib/cloudinary/client.ts", "utf8"),
+    readFile("src/app/api/business/route.ts", "utf8"),
+    readFile("src/app/api/uploads/route.ts", "utf8"),
+    readFile("src/lib/super-admin/delete-business.ts", "utf8"),
+  ]);
+
+  assert.match(signatureRoute, /await requireBusinessAdmin\(\)/);
+  assert.match(signatureRoute, /enforceRateLimit/);
+  assert.match(signatureRoute, /welcomeVideoUploadSignatureSchema/);
+  assert.match(schemas, /mimeType: z\.literal\(WELCOME_VIDEO_MIME_TYPE\)/);
+  assert.match(schemas, /fileSize: z\.number\(\)\.int\(\)\.positive\(\)\.max\(WELCOME_VIDEO_MAX_BYTES\)/);
+  assert.match(cloudinary, /\/video\/upload/);
+  assert.match(cloudinary, /allowed_formats: allowedFormats/);
+  assert.match(cloudinary, /verifyWelcomeVideoAsset/);
+  assert.match(branding, /new FormData\(\)/);
+  assert.match(branding, /resource_type !== "video"/);
+  assert.match(branding, /format !== "mp4"/);
+  assert.match(businessRoute, /isBusinessAsset\(input\.welcomeVideoPublicId, businessId\)/);
+  assert.match(businessRoute, /verifyWelcomeVideoAsset/);
+  assert.match(uploadRoute, /resourceType/);
+  assert.match(deletion, /deleteAsset\(welcomeVideoPublicId, "video"\)/);
+});
+
 test("receipt sync bypasses serverless image payload limits with signed direct uploads", async () => {
   const [syncClient, signatureRoute, sessionRoute, schemas, preview] = await Promise.all([
     readFile("src/lib/sync/client-sync.ts", "utf8"),

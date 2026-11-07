@@ -1,5 +1,5 @@
 import "server-only";
-import { deleteImage } from "@/lib/cloudinary/client";
+import { deleteAsset, deleteImage } from "@/lib/cloudinary/client";
 import { isBusinessAsset } from "@/lib/cloudinary/ownership";
 import { getCollections } from "@/lib/db/collections";
 import { getMongoClient } from "@/lib/db/mongodb";
@@ -21,6 +21,9 @@ export async function deleteBusinessPermanently(businessId: string) {
     ...templateAssets.map((item) => item.overlayPublicId),
     ...sessionAssets.flatMap((item) => [item.colorPublicId, item.bwPublicId]),
   ].filter((value): value is string => Boolean(value && isBusinessAsset(value, businessId))));
+  const welcomeVideoPublicId = business.welcomeVideoPublicId && isBusinessAsset(business.welcomeVideoPublicId, businessId)
+    ? business.welcomeVideoPublicId
+    : null;
 
   const mongoSession = (await getMongoClient()).startSession();
   let deletionCounts = { admins: 0, kiosks: 0, pairCodes: 0, sessions: 0, templates: 0 };
@@ -45,6 +48,9 @@ export async function deleteBusinessPermanently(businessId: string) {
     await mongoSession.endSession();
   }
 
-  await Promise.allSettled([...publicIds].map((publicId) => deleteImage(publicId)));
+  await Promise.allSettled([
+    ...[...publicIds].map((publicId) => deleteImage(publicId)),
+    ...(welcomeVideoPublicId ? [deleteAsset(welcomeVideoPublicId, "video")] : []),
+  ]);
   return { deleted: true, ...deletionCounts };
 }

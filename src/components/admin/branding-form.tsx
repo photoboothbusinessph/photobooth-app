@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { ImagePlus, LoaderCircle, Save, Trash2, Upload } from "lucide-react";
+import { Film, ImagePlus, LoaderCircle, Save, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { BrandMark } from "@/components/shared/brand-mark";
 import { StatusState } from "@/components/shared/status-state";
@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useBusinessStore } from "@/stores/business-store";
 import { cacheBusinessSettings, queueSync } from "@/lib/db/indexed-db";
+import { removeWelcomeVideoFromCache, warmWelcomeVideoCache, WELCOME_VIDEO_MAX_BYTES, WELCOME_VIDEO_MIME_TYPE } from "@/lib/welcome-video";
 import type { BoothPageBackgroundKey, BoothPageBackgrounds, BusinessBranding } from "@/types";
 
 const isHexColor = (value: string) => /^#[0-9A-Fa-f]{6}$/.test(value);
@@ -22,6 +23,27 @@ const boothPages: Array<{ key: BoothPageBackgroundKey; label: string; step: stri
   { key: "qr", label: "QR Result", step: "05 / 05" },
 ];
 
+type WelcomeVideoSignature = {
+  uploadUrl: string;
+  apiKey: string;
+  timestamp: number;
+  signature: string;
+  folder: string;
+  publicId: string;
+  overwrite: string;
+  allowedFormats: string;
+  expectedPublicId: string;
+};
+
+type WelcomeVideoUploadResult = {
+  secure_url?: string;
+  public_id?: string;
+  resource_type?: string;
+  format?: string;
+  bytes?: number;
+  error?: { message?: string };
+};
+
 export function BrandingForm() {
   const isHydrated = useBusinessStore((state) => state.isHydrated);
   if (!isHydrated) return <StatusState type="loading" title="Loading branding" description="Preparing your business settings." className="min-h-80" />;
@@ -31,6 +53,8 @@ export function BrandingForm() {
 function HydratedBrandingForm() {
   const inputRef = React.useRef<HTMLInputElement>(null);
   const backgroundInputRef = React.useRef<HTMLInputElement>(null);
+  const videoInputRef = React.useRef<HTMLInputElement>(null);
+  const videoObjectUrlRef = React.useRef<string | null>(null);
   const pageBackgroundInputRefs = React.useRef<Partial<Record<BoothPageBackgroundKey, HTMLInputElement | null>>>({});
   const storedBranding = useBusinessStore((state) => state.branding);
   const updateBranding = useBusinessStore((state) => state.updateBranding);
@@ -40,6 +64,8 @@ function HydratedBrandingForm() {
   const socialQrPublicId = useBusinessStore((state) => state.socialQrPublicId);
   const welcomeBackgroundUrl = useBusinessStore((state) => state.welcomeBackgroundUrl);
   const welcomeBackgroundPublicId = useBusinessStore((state) => state.welcomeBackgroundPublicId);
+  const welcomeVideoUrl = useBusinessStore((state) => state.welcomeVideoUrl);
+  const welcomeVideoPublicId = useBusinessStore((state) => state.welcomeVideoPublicId);
   const storedPageBackgrounds = useBusinessStore((state) => state.boothPageBackgrounds);
   const setAssetReferences = useBusinessStore((state) => state.setAssetReferences);
   const [name, setName] = React.useState(storedBranding.name);
@@ -53,9 +79,16 @@ function HydratedBrandingForm() {
   const [logoChanged, setLogoChanged] = React.useState(false);
   const [background, setBackground] = React.useState<string | null>(welcomeBackgroundUrl);
   const [backgroundChanged, setBackgroundChanged] = React.useState(false);
+  const [video, setVideo] = React.useState<string | null>(welcomeVideoUrl);
+  const [videoFile, setVideoFile] = React.useState<File | null>(null);
+  const [videoChanged, setVideoChanged] = React.useState(false);
   const [pageBackgrounds, setPageBackgrounds] = React.useState<BoothPageBackgrounds>(storedPageBackgrounds);
   const [changedPageBackgrounds, setChangedPageBackgrounds] = React.useState<Set<BoothPageBackgroundKey>>(() => new Set());
   const [saving, setSaving] = React.useState(false);
+
+  React.useEffect(() => () => {
+    if (videoObjectUrlRef.current) URL.revokeObjectURL(videoObjectUrlRef.current);
+  }, []);
 
   function chooseLogo(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -76,6 +109,29 @@ function HydratedBrandingForm() {
     const reader = new FileReader();
     reader.onload = () => { setBackground(typeof reader.result === "string" ? reader.result : null); setBackgroundChanged(true); setSaved(false); toast.success("Background preview ready to upload"); };
     reader.readAsDataURL(file);
+  }
+  function chooseVideo(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (file.type !== WELCOME_VIDEO_MIME_TYPE || !/\.mp4$/i.test(file.name)) { toast.error("Choose an MP4 video"); return; }
+    if (file.size > WELCOME_VIDEO_MAX_BYTES) { toast.error("Choose an MP4 video no larger than 25 MB"); return; }
+    if (videoObjectUrlRef.current) URL.revokeObjectURL(videoObjectUrlRef.current);
+    const objectUrl = URL.createObjectURL(file);
+    videoObjectUrlRef.current = objectUrl;
+    setVideo(objectUrl);
+    setVideoFile(file);
+    setVideoChanged(true);
+    setSaved(false);
+    toast.success("Video preview ready to upload");
+  }
+  function removeVideo() {
+    if (videoObjectUrlRef.current) URL.revokeObjectURL(videoObjectUrlRef.current);
+    videoObjectUrlRef.current = null;
+    setVideo(null);
+    setVideoFile(null);
+    setVideoChanged(true);
+    setSaved(false);
   }
   function choosePageBackground(key: BoothPageBackgroundKey, event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -102,6 +158,44 @@ function HydratedBrandingForm() {
     setChangedPageBackgrounds((current) => new Set(current).add(key));
     setSaved(false);
   }
+  async function uploadWelcomeVideo(file: File) {
+    const signatureResponse = await fetch("/api/uploads/video-signature", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fileName: file.name, fileSize: file.size, mimeType: file.type }),
+    });
+    const signatureResult = await signatureResponse.json() as { data?: WelcomeVideoSignature; error?: { message?: string } };
+    if (!signatureResponse.ok || !signatureResult.data) {
+      throw new Error(signatureResult.error?.message ?? "Unable to prepare the video upload.");
+    }
+
+    const signature = signatureResult.data;
+    const formData = new FormData();
+    formData.set("file", file);
+    formData.set("api_key", signature.apiKey);
+    formData.set("timestamp", String(signature.timestamp));
+    formData.set("signature", signature.signature);
+    formData.set("folder", signature.folder);
+    formData.set("public_id", signature.publicId);
+    formData.set("overwrite", signature.overwrite);
+    formData.set("allowed_formats", signature.allowedFormats);
+
+    const uploadResponse = await fetch(signature.uploadUrl, { method: "POST", body: formData });
+    const uploaded = await uploadResponse.json() as WelcomeVideoUploadResult;
+    if (!uploadResponse.ok) throw new Error(uploaded.error?.message ?? "Video upload failed.");
+    if (
+      !uploaded.secure_url
+      || uploaded.public_id !== signature.expectedPublicId
+      || uploaded.resource_type !== "video"
+      || uploaded.format !== "mp4"
+      || typeof uploaded.bytes !== "number"
+      || uploaded.bytes > WELCOME_VIDEO_MAX_BYTES
+    ) {
+      void fetch("/api/uploads", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ publicId: signature.expectedPublicId, resourceType: "video" }) });
+      throw new Error("The uploaded video response could not be verified.");
+    }
+    return { url: uploaded.secure_url, publicId: uploaded.public_id };
+  }
   async function save() {
     if (!logoText.trim()) { toast.error("Enter text for the business logo."); return; }
     if (logoMode === "image" && !logo) { toast.error("Choose an image or select Text only."); return; }
@@ -109,6 +203,7 @@ function HydratedBrandingForm() {
     setSaving(true);
     let uploadedPublicId: string | null = null;
     let uploadedBackgroundPublicId: string | null = null;
+    let uploadedVideoPublicId: string | null = null;
     const uploadedPagePublicIds: string[] = [];
     let savedToServer = false;
     try {
@@ -116,6 +211,8 @@ function HydratedBrandingForm() {
       let nextLogoPublicId = logoPublicId;
       let nextBackground = background;
       let nextBackgroundPublicId = welcomeBackgroundPublicId;
+      let nextVideo = video;
+      let nextVideoPublicId = welcomeVideoPublicId;
       const nextPageBackgrounds: BoothPageBackgrounds = { ...pageBackgrounds };
       if (logoChanged && logo && logoMode === "image") {
         if (!navigator.onLine) throw new Error("Connect to the internet to upload a new logo.");
@@ -139,6 +236,18 @@ function HydratedBrandingForm() {
       } else if (backgroundChanged && !background) {
         nextBackgroundPublicId = null;
       }
+      if (videoChanged) {
+        if (!navigator.onLine) throw new Error("Connect to the internet to update the welcome video.");
+        if (videoFile) {
+          const uploadedVideo = await uploadWelcomeVideo(videoFile);
+          nextVideo = uploadedVideo.url;
+          nextVideoPublicId = uploadedVideo.publicId;
+          uploadedVideoPublicId = uploadedVideo.publicId;
+        } else {
+          nextVideo = null;
+          nextVideoPublicId = null;
+        }
+      }
       if (changedPageBackgrounds.size && !navigator.onLine) throw new Error("Connect to the internet to upload booth page backgrounds.");
       for (const key of changedPageBackgrounds) {
         const draft = pageBackgrounds[key];
@@ -153,14 +262,14 @@ function HydratedBrandingForm() {
         uploadedPagePublicIds.push(result.data.publicId);
       }
       const nextBranding = { ...storedBranding, name, footerText: footer, monogram: logoText.trim(), logoMode, logoFont, logoColor: logoColor || undefined, logoDataUrl: nextLogo };
-      const assets = { logoPublicId: nextLogoPublicId, socialUrl, socialQrUrl, socialQrPublicId, welcomeBackgroundUrl: nextBackground, welcomeBackgroundPublicId: nextBackgroundPublicId, boothPageBackgrounds: nextPageBackgrounds };
+      const assets = { logoPublicId: nextLogoPublicId, socialUrl, socialQrUrl, socialQrPublicId, welcomeBackgroundUrl: nextBackground, welcomeBackgroundPublicId: nextBackgroundPublicId, welcomeVideoUrl: nextVideo, welcomeVideoPublicId: nextVideoPublicId, boothPageBackgrounds: nextPageBackgrounds };
       if (navigator.onLine) {
         const response = await fetch("/api/business", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isConfigured: useBusinessStore.getState().isConfigured, branding: nextBranding, palette: useBusinessStore.getState().palette, ...assets }) });
         if (!response.ok) throw new Error("Unable to save branding. Please try again.");
         savedToServer = true;
       }
       updateBranding(nextBranding);
-      setAssetReferences({ logoPublicId: nextLogoPublicId, welcomeBackgroundUrl: nextBackground, welcomeBackgroundPublicId: nextBackgroundPublicId, boothPageBackgrounds: nextPageBackgrounds });
+      setAssetReferences({ logoPublicId: nextLogoPublicId, welcomeBackgroundUrl: nextBackground, welcomeBackgroundPublicId: nextBackgroundPublicId, welcomeVideoUrl: nextVideo, welcomeVideoPublicId: nextVideoPublicId, boothPageBackgrounds: nextPageBackgrounds });
       await cacheBusinessSettings(nextBranding, useBusinessStore.getState().palette, assets, useBusinessStore.getState().isConfigured);
       if (!navigator.onLine) await queueSync("business", "default");
       if (navigator.onLine && logoChanged && logoPublicId && logoPublicId !== nextLogoPublicId) {
@@ -168,6 +277,12 @@ function HydratedBrandingForm() {
       }
       if (navigator.onLine && backgroundChanged && welcomeBackgroundPublicId && welcomeBackgroundPublicId !== nextBackgroundPublicId) {
         void fetch("/api/uploads", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ publicId: welcomeBackgroundPublicId }) });
+      }
+      if (videoChanged && welcomeVideoPublicId && welcomeVideoPublicId !== nextVideoPublicId) {
+        void fetch("/api/uploads", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ publicId: welcomeVideoPublicId, resourceType: "video" }) });
+      }
+      if (videoChanged && welcomeVideoUrl && welcomeVideoUrl !== nextVideo) {
+        void removeWelcomeVideoFromCache(welcomeVideoUrl);
       }
       for (const key of changedPageBackgrounds) {
         const previousPublicId = storedPageBackgrounds[key]?.publicId;
@@ -177,11 +292,19 @@ function HydratedBrandingForm() {
       }
       setLogo(nextLogo);
       setBackground(nextBackground);
+      if (videoObjectUrlRef.current) URL.revokeObjectURL(videoObjectUrlRef.current);
+      videoObjectUrlRef.current = null;
+      setVideo(nextVideo);
+      setVideoFile(null);
       setPageBackgrounds(nextPageBackgrounds);
       setLogoChanged(false);
       setBackgroundChanged(false);
+      setVideoChanged(false);
       setChangedPageBackgrounds(new Set());
       setSaved(true);
+      if (nextVideo && navigator.onLine) {
+        void warmWelcomeVideoCache(nextVideo).catch(() => toast.warning("Video saved, but this device could not cache it for offline playback yet."));
+      }
       toast.success(navigator.onLine ? "Branding saved" : "Branding saved offline");
     } catch (error) {
       if (uploadedPublicId && !savedToServer) {
@@ -189,6 +312,9 @@ function HydratedBrandingForm() {
       }
       if (uploadedBackgroundPublicId && !savedToServer) {
         void fetch("/api/uploads", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ publicId: uploadedBackgroundPublicId }) });
+      }
+      if (uploadedVideoPublicId && !savedToServer) {
+        void fetch("/api/uploads", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ publicId: uploadedVideoPublicId, resourceType: "video" }) });
       }
       for (const publicId of uploadedPagePublicIds) {
         if (!savedToServer) void fetch("/api/uploads", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ publicId }) });
@@ -224,12 +350,25 @@ function HydratedBrandingForm() {
           </>}
         </div>
         <div className="space-y-5 border border-black/15 bg-card p-5 sm:p-7">
-          <div className="flex items-center justify-between"><div><h2 className="font-bold">Tap-to-Start background</h2><p className="mt-1 text-xs text-muted-foreground">Used only on the booth welcome screen. Portrait artwork works best on tablets.</p></div><ImagePlus className="size-5 text-primary" /></div>
+          <div className="flex items-center justify-between"><div><h2 className="font-bold">Tap-to-Start background</h2><p className="mt-1 text-xs text-muted-foreground">Add an image, a silent looping MP4, or both. Portrait artwork works best on tablets.</p></div><ImagePlus className="size-5 text-primary" /></div>
           <div className="relative flex min-h-56 items-center justify-center overflow-hidden border border-dashed bg-[var(--booth-primary)] p-6">
-            {background ? <Image src={background} alt="Tap-to-Start background preview" fill sizes="800px" unoptimized className="object-cover" /> : <p className="relative z-10 text-sm font-bold text-white">Theme color fallback</p>}
+            {background ? <Image src={background} alt="Tap-to-Start image background preview" fill sizes="800px" unoptimized className="object-cover" /> : null}
+            {video ? <video key={video} src={video} poster={background ?? undefined} autoPlay muted loop playsInline preload="metadata" aria-label="Tap-to-Start video background preview" className="absolute inset-0 z-10 size-full object-cover" /> : null}
+            {!background && !video ? <p className="relative z-20 text-sm font-bold text-white">Theme color fallback</p> : null}
           </div>
           <input ref={backgroundInputRef} type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={chooseBackground} aria-label="Upload Tap-to-Start background image" />
-          <div className="flex flex-wrap gap-3"><Button type="button" variant="outline" className="h-11" onClick={() => backgroundInputRef.current?.click()}><Upload /> {background ? "Replace" : "Choose background"}</Button><Button type="button" variant="destructive" className="h-11" onClick={() => { setBackground(null); setBackgroundChanged(true); setSaved(false); }} disabled={!background}><Trash2 /> Remove</Button></div>
+          <input ref={videoInputRef} type="file" accept="video/mp4,.mp4" className="sr-only" onChange={chooseVideo} aria-label="Upload Tap-to-Start MP4 background video" />
+          <div className="space-y-3">
+            <div>
+              <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground">Background image</p>
+              <div className="flex flex-wrap gap-3"><Button type="button" variant="outline" className="h-11" onClick={() => backgroundInputRef.current?.click()} disabled={saving}><Upload /> {background ? "Replace image" : "Choose image"}</Button><Button type="button" variant="destructive" className="h-11" onClick={() => { setBackground(null); setBackgroundChanged(true); setSaved(false); }} disabled={!background || saving}><Trash2 /> Remove image</Button></div>
+            </div>
+            <div>
+              <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground">Background video</p>
+              <div className="flex flex-wrap gap-3"><Button type="button" variant="outline" className="h-11" onClick={() => videoInputRef.current?.click()} disabled={saving}><Film /> {video ? "Replace MP4" : "Choose MP4"}</Button><Button type="button" variant="destructive" className="h-11" onClick={removeVideo} disabled={!video || saving}><Trash2 /> Remove video</Button></div>
+              <p className="mt-2 text-xs text-muted-foreground">MP4 only, up to 25 MB. Use a short portrait H.264 video for reliable tablet playback.</p>
+            </div>
+          </div>
         </div>
         <div className="space-y-5 border border-black/15 bg-card p-5 sm:p-7">
           <div className="flex items-center justify-between gap-4">
@@ -283,7 +422,7 @@ function HydratedBrandingForm() {
         </div>
         <Button onClick={() => void save()} disabled={saving} className="h-12 w-full sm:w-auto">{saving ? <LoaderCircle className="animate-spin" /> : <Save />} {saving ? "Saving…" : saved ? "Saved" : "Save branding"}</Button>
       </section>
-      <aside className="xl:sticky xl:top-24 xl:self-start"><p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">Live booth preview</p><div className="relative aspect-[3/5] overflow-hidden bg-[var(--booth-primary)] text-white">{background ? <Image src={background} alt="Tap-to-Start background preview" fill sizes="430px" unoptimized className="object-cover" /> : null}</div><p className="mt-2 text-xs text-muted-foreground">Guests can tap anywhere on this screen to begin.</p></aside>
+      <aside className="xl:sticky xl:top-24 xl:self-start"><p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">Live booth preview</p><div className="relative aspect-[3/5] overflow-hidden bg-[var(--booth-primary)] text-white">{background ? <Image src={background} alt="Tap-to-Start image background preview" fill sizes="430px" unoptimized className="object-cover" /> : null}{video ? <video key={video} src={video} poster={background ?? undefined} autoPlay muted loop playsInline preload="metadata" aria-hidden className="absolute inset-0 z-10 size-full object-cover" /> : null}</div><p className="mt-2 text-xs text-muted-foreground">Video plays first. The image and theme color remain as fallbacks. Guests can tap anywhere to begin.</p></aside>
     </div>
   );
 }

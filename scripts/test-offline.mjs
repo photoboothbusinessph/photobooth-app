@@ -174,6 +174,13 @@ test("session receipts use tenant-scoped signed direct uploads", async () => {
     assert.equal("apiSecret" in signed, false);
     assert.equal(globalThis.signatureParams.folder, "receipt-photobooth/business-a/sessions/session-a");
     assert.equal(globalThis.signatureParams.public_id, "color");
+    const videoUpload = cloudinaryClient.createSignedWelcomeVideoUpload("business-a");
+    assert.equal(videoUpload.uploadUrl, "https://api.cloudinary.com/v1_1/demo/video/upload");
+    assert.equal(videoUpload.allowedFormats, "mp4");
+    assert.match(videoUpload.expectedPublicId, /^receipt-photobooth\/business-a\/welcome-video\//);
+    assert.equal(globalThis.signatureParams.folder, "receipt-photobooth/business-a/welcome-video");
+    assert.equal(globalThis.signatureParams.allowed_formats, "mp4");
+    assert.equal(globalThis.signatureParams.overwrite, "false");
   } finally { delete globalThis.signatureParams; }
 });
 
@@ -370,20 +377,24 @@ test("worker caches only booth HTML, never redirects or RSC as documents", async
       export class CacheFirst { constructor(options) { Object.assign(this, options); } }
       export class NetworkOnly {}
       export class NetworkFirst { constructor(options) { Object.assign(this, options); } }
+      export class RangeRequestsPlugin {}
       export class Serwist { constructor(options) { globalThis.workerTestOptions = options; } addEventListeners() {} }
     `,
   });
   try {
     const config = globalThis.workerTestOptions;
     assert.equal(config.precacheOptions?.navigateFallback, undefined);
-    const assetCache = config.runtimeCaching[0];
+    const videoCache = config.runtimeCaching[0];
+    assert.equal(videoCache.handler.cacheName, "business-video-assets-v1");
+    assert.equal(videoCache.matcher({ url: new URL("https://res.cloudinary.com/demo/video/upload/sample.mp4") }), true);
+    const assetCache = config.runtimeCaching[1];
     assert.equal(assetCache.handler.cacheName, "business-image-assets-v1");
     assert.equal(assetCache.matcher({ url: new URL("https://res.cloudinary.com/demo/image.png"), request: { destination: "image" } }), true);
     assert.equal(assetCache.matcher({ url: new URL("https://other.test/image.png"), request: { destination: "image" } }), false);
     for (const path of ["/api/kiosks/status", "/api/business", "/admin", "/share/token", "/b/alpha/pair"]) {
-      assert.equal(config.runtimeCaching[1].matcher({ url: new URL(path, "https://booth.test"), sameOrigin: true }), true);
+      assert.equal(config.runtimeCaching[2].matcher({ url: new URL(path, "https://booth.test"), sameOrigin: true }), true);
     }
-    const route = config.runtimeCaching[2];
+    const route = config.runtimeCaching[3];
     const matches = (path, headers = { accept: "text/html" }) => route.matcher({
       url: new URL(path, "https://booth.test"), sameOrigin: true,
       request: new Request("https://booth.test" + path, { headers }),
@@ -431,6 +442,28 @@ test("guest booth chrome is minimal and per-page backgrounds remain offline-capa
   assert.match(provider, /boothPageBackgrounds/);
   assert.match(syncClient, /boothPageBackgrounds/);
   assert.match(worker, /business-image-assets-v1/);
+});
+
+test("Tap-to-Start video keeps image fallback and supports cached range playback", async () => {
+  const [welcome, branding, provider, syncClient, worker, videoCache] = await Promise.all([
+    readFile("src/components/booth/welcome-screen.tsx", "utf8"),
+    readFile("src/components/admin/branding-form.tsx", "utf8"),
+    readFile("src/components/providers/offline-data-provider.tsx", "utf8"),
+    readFile("src/lib/sync/client-sync.ts", "utf8"),
+    readFile("src/app/sw.ts", "utf8"),
+    readFile("src/lib/welcome-video.ts", "utf8"),
+  ]);
+
+  assert.match(welcome, /autoPlay muted loop playsInline preload="auto"/);
+  assert.match(welcome, /poster=\{background \?\? undefined\}/);
+  assert.match(welcome, /pointer-events-none/);
+  assert.match(branding, /Choose MP4/);
+  assert.match(branding, /WELCOME_VIDEO_MAX_BYTES/);
+  assert.match(provider, /warmWelcomeVideoCache/);
+  assert.match(syncClient, /welcomeVideoUrl/);
+  assert.match(worker, /RangeRequestsPlugin/);
+  assert.match(worker, /business-video-assets-v1/);
+  assert.match(videoCache, /cache\.put\(request, response\.clone\(\)\)/);
 });
 
 test("design previews stay contained and QR results use the two-over-one layout", async () => {

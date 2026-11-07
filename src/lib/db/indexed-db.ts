@@ -28,6 +28,8 @@ export interface LocalBusinessSettings {
   digitalCopyQrLabel?: string;
   welcomeBackgroundUrl?: string | null;
   welcomeBackgroundPublicId?: string | null;
+  welcomeVideoUrl?: string | null;
+  welcomeVideoPublicId?: string | null;
   boothPageBackgrounds?: BoothPageBackgrounds;
   boothSessionDurationSeconds?: number;
   updatedAt: number;
@@ -172,7 +174,7 @@ export async function bindCachedBusinessId(tenantKey: string, businessId: string
 export async function cacheBusinessSettings(
   branding: BusinessBranding,
   palette: ThemePalette,
-  assets: Pick<LocalBusinessSettings, "logoPublicId" | "socialUrl" | "socialQrUrl" | "socialQrPublicId" | "socialQrLabel" | "secondarySocialUrl" | "secondarySocialQrLabel" | "digitalCopyQrLabel" | "welcomeBackgroundUrl" | "welcomeBackgroundPublicId" | "boothPageBackgrounds" | "boothSessionDurationSeconds"> = {},
+  assets: Pick<LocalBusinessSettings, "logoPublicId" | "socialUrl" | "socialQrUrl" | "socialQrPublicId" | "socialQrLabel" | "secondarySocialUrl" | "secondarySocialQrLabel" | "digitalCopyQrLabel" | "welcomeBackgroundUrl" | "welcomeBackgroundPublicId" | "welcomeVideoUrl" | "welcomeVideoPublicId" | "boothPageBackgrounds" | "boothSessionDurationSeconds"> = {},
   isConfigured = false,
   tenantKey = activeTenantKey(),
   businessId = activeBusinessId(),
